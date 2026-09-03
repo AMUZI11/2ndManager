@@ -46,4 +46,4 @@ export const POST = withAdminAuth(async (request, context, adminContext) => {
     console.error('[POST /api/v1/admin/tenants/:id/impersonate]', err);
     return errorResponse('Gagal memulai sesi Ghost Impersonation.', 'SERVER_ERROR', 500);
   }
-});\n
+});
