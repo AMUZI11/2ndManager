@@ -86,13 +86,47 @@ export default function TenantDetailPage({ params }) {
           </div>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="h-8 px-4 bg-[#CCFF00] hover:bg-[#b3e600] text-black font-extrabold text-xs rounded border border-black flex items-center space-x-1.5 cursor-pointer transition-colors"
-        >
-          <ShieldAlert size={14} />
-          <span>KONTROL CHOKEHOLD</span>
-        </button>
+        <div className="flex items-center space-x-2.5">
+          <button
+            onClick={async () => {
+              const reason = window.prompt('Masukkan justifikasi audit untuk sesi Ghost Inspection (minimal 10 karakter):');
+              if (!reason || reason.trim().length < 10) {
+                alert('Justifikasi wajib diisi minimal 10 karakter untuk dicatat di immutable audit log.');
+                return;
+              }
+              try {
+                const res = await fetch(\`/api/v1/admin/tenants/\${shop.id}/impersonate\`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ reason: reason.trim() }),
+                });
+                const json = await res.json();
+                if (res.ok && json.data) {
+                  localStorage.setItem('hl_active_branch', shop.id);
+                  localStorage.setItem('hl_ghost_session', JSON.stringify(json.data));
+                  window.open(\`/dashboard?ghost=true&shop=\${shop.id}\`, '_blank');
+                } else {
+                  alert(json.message || 'Gagal memulai sesi Ghost.');
+                }
+              } catch (e) {
+                console.error(e);
+                alert('Terjadi kesalahan jaringan.');
+              }
+            }}
+            className="h-8 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-xs rounded border border-zinc-700 flex items-center space-x-1.5 cursor-pointer transition-colors"
+          >
+            <span>👻</span>
+            <span>GHOST INSPECTION</span>
+          </button>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="h-8 px-4 bg-[#CCFF00] hover:bg-[#b3e600] text-black font-extrabold text-xs rounded border border-black flex items-center space-x-1.5 cursor-pointer transition-colors"
+          >
+            <ShieldAlert size={14} />
+            <span>KONTROL CHOKEHOLD</span>
+          </button>
+        </div>
       </div>
 
       {/* Info Tiles */}
