@@ -13,7 +13,8 @@ import {
   LogOut, 
   ArrowUpRight,
   Terminal,
-  ChevronRight
+  ChevronRight,
+  CreditCard
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -22,6 +23,7 @@ export default function AdminSidebar() {
   const router = useRouter();
   const supabase = createClient();
   const [adminUser, setAdminUser] = useState(null);
+  const [pendingProofsCount, setPendingProofsCount] = useState(0);
 
   useEffect(() => {
     async function getAdminSession() {
@@ -29,9 +31,32 @@ export default function AdminSidebar() {
       setAdminUser(user);
     }
     getAdminSession();
+
+    // Fetch initial pending payment proofs
+    const fetchPendingCount = async () => {
+      try {
+        const res = await fetch('/api/v1/admin/telemetry');
+        const json = await res.json();
+        if (json?.data?.metrics?.pendingProofs !== undefined) {
+          setPendingProofsCount(json.data.metrics.pendingProofs);
+        }
+      } catch (e) {}
+    };
+    fetchPendingCount();
+
+    // Realtime increment on new payment proof
+    const channel = supabase.channel('sidebar_proofs_counter');
+    channel.on('broadcast', { event: 'PAYMENT_PROOF_SUBMITTED' }, () => {
+      setPendingProofsCount((prev) => prev + 1);
+    });
+    channel.subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [supabase]);
 
-  // Global Keyboard Shortcuts (Alt + 1 .. 6)
+  // Global Keyboard Shortcuts (Alt + 1 .. 7)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -41,6 +66,7 @@ export default function AdminSidebar() {
         if (e.key === '4') { e.preventDefault(); router.push('/admin/categories-master'); }
         if (e.key === '5') { e.preventDefault(); router.push('/admin/fraud-radar'); }
         if (e.key === '6') { e.preventDefault(); router.push('/admin/audit-logs'); }
+        if (e.key === '7') { e.preventDefault(); router.push('/admin/payment-proofs'); }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -49,6 +75,7 @@ export default function AdminSidebar() {
 
   const navItems = [
     { href: '/admin/dashboard', label: 'Platform Pulse', icon: Activity, shortcut: 'Alt+1' },
+    { href: '/admin/payment-proofs', label: 'Bukti Pembayaran', icon: CreditCard, shortcut: 'Alt+7', badge: pendingProofsCount },
     { href: '/admin/tenants', label: 'Tenants & Billing', icon: Store, shortcut: 'Alt+2' },
     { href: '/admin/panic-dispatch', label: 'Panic Dispatch', icon: LifeBuoy, shortcut: 'Alt+3' },
     { href: '/admin/categories-master', label: 'Master Kategori', icon: Layers, shortcut: 'Alt+4' },
@@ -113,9 +140,16 @@ export default function AdminSidebar() {
                   <Icon size={16} className={isActive ? 'text-[#CCFF00]' : 'text-zinc-500 group-hover:text-zinc-300'} />
                   <span className="truncate">{item.label}</span>
                 </div>
-                <kbd className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-500 border border-zinc-800 group-hover:text-zinc-400 group-hover:border-zinc-700">
-                  {item.shortcut}
-                </kbd>
+                <div className="flex items-center space-x-1.5 shrink-0">
+                  {item.badge > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-[#CCFF00] text-black font-black text-[9px] font-mono leading-none animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
+                  <kbd className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-500 border border-zinc-800 group-hover:text-zinc-400 group-hover:border-zinc-700">
+                    {item.shortcut}
+                  </kbd>
+                </div>
               </Link>
             );
           })}

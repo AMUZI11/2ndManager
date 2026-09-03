@@ -95,6 +95,13 @@ export const POST = withBossOnly(async (request, context, { user, profile, supab
       return errorResponse(`Gagal mengunggah gambar ke storage: ${storageErr.message}`, 'STORAGE_ERROR', 500);
     }
 
+    const { data: shopData } = await supabaseAdmin
+      .from('shops')
+      .select('name')
+      .eq('id', shopId)
+      .single();
+    const shopName = shopData?.name || 'Toko Klien';
+
     // 2. Insert row ke tabel payment_proofs via supabaseAdmin
     const { data: proof, error: dbErr } = await supabaseAdmin
       .from('payment_proofs')
@@ -109,6 +116,26 @@ export const POST = withBossOnly(async (request, context, { user, profile, supab
       .single();
 
     if (dbErr) throw dbErr;
+
+    // 3. Realtime Broadcast ke Admin Platform Deck (platform_events)
+    try {
+      const channel = supabaseAdmin.channel('platform_events');
+      await channel.send({
+        type: 'broadcast',
+        event: 'PAYMENT_PROOF_SUBMITTED',
+        payload: {
+          event: 'PAYMENT_PROOF_SUBMITTED',
+          proof_id: proof.id,
+          shop_id: shopId,
+          shop_name: shopName,
+          user_email: user.email,
+          plan_requested: planRequested.toUpperCase(),
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (broadcastErr) {
+      console.error('[Broadcast Payment Error]', broadcastErr);
+    }
 
     return successResponse(proof, 201);
   } catch (error) {

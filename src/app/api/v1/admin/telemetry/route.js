@@ -10,8 +10,9 @@ export const GET = withAdminAuth(async (request, context, adminContext) => {
     const { count: chokeholdCount } = await supabaseAdmin.from('shops').select('*', { count: 'exact', head: true }).eq('operational_status', 'CHOKEHOLD');
     const { count: graceCount } = await supabaseAdmin.from('shops').select('*', { count: 'exact', head: true }).eq('operational_status', 'GRACE_PERIOD');
     
-    // 2. Open Panic Tickets
+    // 2. Open Panic Tickets & Pending Payment Proofs
     const { count: openTickets } = await supabaseAdmin.from('support_tickets').select('*', { count: 'exact', head: true }).eq('status', 'OPEN');
+    const { count: pendingProofs } = await supabaseAdmin.from('payment_proofs').select('*', { count: 'exact', head: true }).eq('status', 'PENDING');
 
     // 3. Transactions Today & Total Volume
     const today = new Date();
@@ -39,6 +40,7 @@ export const GET = withAdminAuth(async (request, context, adminContext) => {
         chokeholdCount: chokeholdCount || 0,
         graceCount: graceCount || 0,
         openTickets: openTickets || 0,
+        pendingProofs: pendingProofs || 0,
         todayGMV,
         todayTxCount,
       },

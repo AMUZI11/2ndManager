@@ -2,6 +2,7 @@ import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import CommandPalette from '@/components/admin/CommandPalette';
 import CommandPaletteTrigger from '@/components/admin/CommandPaletteTrigger';
+import AdminNotificationToast from '@/components/admin/AdminNotificationToast';
 
 export const metadata = {
   title: 'Obsidian Command Deck — 2ndManager Platform Operations',
@@ -16,6 +17,9 @@ export default function AdminLayout({ children }) {
         <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-purple-900/10 blur-[140px] transform-gpu translate-z-0" />
         <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-orange-900/10 blur-[140px] transform-gpu translate-z-0" />
       </div>
+
+      {/* Global Realtime Alerts Toast (Payments & Panic) */}
+      <AdminNotificationToast />
 
       {/* Global Command Palette (Cmd+K / Ctrl+K) */}
       <CommandPalette />

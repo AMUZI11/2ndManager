@@ -12,7 +12,8 @@ import {
   Clock,
   ArrowUpRight,
   Lock,
-  Layers
+  Layers,
+  CreditCard
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -71,7 +72,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Primary KPI Grid (Geist Mono Metrics) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* GMV Metric */}
         <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2 relative overflow-hidden">
           <div className="flex items-center justify-between text-zinc-400 text-xs font-mono">
@@ -133,6 +134,24 @@ export default function AdminDashboard() {
             className="text-[11px] text-red-300 hover:text-red-200 underline font-mono flex items-center space-x-1"
           >
             <span>Buka Antrean Triage WA</span>
+            <ArrowUpRight size={11} />
+          </Link>
+        </div>
+
+        {/* Pending Payment Proofs Metric */}
+        <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
+          <div className="flex items-center justify-between text-zinc-400 text-xs font-mono">
+            <span>BUKTI TRANSFER PENDING</span>
+            <CreditCard size={15} className="text-[#CCFF00]" />
+          </div>
+          <p className="text-2xl font-heading font-black text-[#CCFF00] font-mono">
+            {metrics.pendingProofs || 0}
+          </p>
+          <Link
+            href="/admin/payment-proofs"
+            className="text-[11px] text-[#CCFF00] hover:underline font-mono flex items-center space-x-1 font-bold"
+          >
+            <span>Review Pembayaran</span>
             <ArrowUpRight size={11} />
           </Link>
         </div>
