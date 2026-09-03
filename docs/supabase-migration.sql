@@ -517,5 +517,107 @@ CREATE POLICY "boss_read_own_proofs" ON public.payment_proofs
   );
 
 -- ─────────────────────────────────────────────────────────────
+-- STEP 8: THE OBSIDIAN PLATFORM (ADMIN PLATFORM SUITE)
+-- ─────────────────────────────────────────────────────────────
+
+DO $$ BEGIN
+    CREATE TYPE subscription_tier_enum AS ENUM ('TRIAL', 'MAGANG', 'JURAGAN', 'EKSEKUTIF');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE shop_operational_status AS ENUM ('ACTIVE', 'GRACE_PERIOD', 'CHOKEHOLD', 'SUSPENDED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+ALTER TABLE shops 
+ADD COLUMN IF NOT EXISTS subscription_tier subscription_tier_enum DEFAULT 'TRIAL',
+ADD COLUMN IF NOT EXISTS operational_status shop_operational_status DEFAULT 'ACTIVE',
+ADD COLUMN IF NOT EXISTS chokehold_active BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS grace_period_until TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS cashier_limit INT DEFAULT 1,
+ADD COLUMN IF NOT EXISTS active_cashiers_count INT DEFAULT 1;
+
+CREATE INDEX IF NOT EXISTS idx_shops_operational_status ON shops(operational_status, chokehold_active);
+
+-- TABEL TIKET ANTRIAN DARURAT (PANIC DISPATCH)
+CREATE TABLE IF NOT EXISTS support_tickets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shop_id UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+    issue_type VARCHAR(50) NOT NULL,
+    reporter_name VARCHAR(100) NOT NULL,
+    reporter_phone VARCHAR(25) NOT NULL,
+    telemetry_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+    priority VARCHAR(10) NOT NULL DEFAULT 'HIGH',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    assigned_to UUID REFERENCES auth.users(id),
+    resolved_at TIMESTAMPTZ,
+    resolved_by UUID REFERENCES auth.users(id),
+    resolution_notes TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status, created_at DESC);
+
+-- TABEL AUDIT TRAIL PERMANEN (IMMUTABLE AUDIT LEDGER)
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_id UUID NOT NULL REFERENCES auth.users(id),
+    admin_email VARCHAR(150) NOT NULL,
+    action_type VARCHAR(60) NOT NULL,
+    target_shop_id UUID REFERENCES shops(id),
+    reason TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    ip_address VARCHAR(45) NOT NULL,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_target ON admin_audit_logs(target_shop_id, created_at DESC);
+
+CREATE OR REPLACE RULE no_update_admin_audit_logs AS ON UPDATE TO admin_audit_logs DO INSTEAD NOTHING;
+CREATE OR REPLACE RULE no_delete_admin_audit_logs AS ON DELETE TO admin_audit_logs DO INSTEAD NOTHING;
+REVOKE UPDATE, DELETE, TRUNCATE ON admin_audit_logs FROM PUBLIC, authenticated;
+
+-- TABEL MASTER KATALOG BAWAAN (SINGLE SOURCE OF TRUTH)
+CREATE TABLE IF NOT EXISTS global_category_templates (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(10) UNIQUE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    example_items TEXT NOT NULL,
+    display_order INT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_by UUID REFERENCES auth.users(id)
+);
+
+INSERT INTO global_category_templates (code, name, example_items, display_order) VALUES
+('SBK', 'Sembako & Bahan Pokok', 'Beras, Minyak Goreng, Gula Pasir, Terigu, Telur', 1),
+('MNM', 'Minuman & Kopi', 'Air Mineral, Kopi Sachet, Teh, Susu UHT, Soda', 2),
+('RKK', 'Rokok & Tembakau', 'Rokok Filter, Kretek, Korek Api, Tembakau', 3),
+('SNK', 'Snack & Makanan Ringan', 'Keripik, Biskuit, Wafer, Mie Instan, Cokelat', 4),
+('BMB', 'Bumbu & Bahan Dapur', 'Garam, Micin/Penyedap, Kecap, Saus, Santan Instan', 5),
+('SBN', 'Sabun & Kebersihan Rumah', 'Deterjen, Sabun Cuci Piring, Pembersih Lantai', 6),
+('PRW', 'Perawatan Diri & Mandi', 'Sabun Mandi, Sampo, Pasta Gigi, Deodoran', 7),
+('OBT', 'Obat-obatan & Farmasi', 'Parasetamol, Obat Flu, Minyak Kayu Putih, Plester', 8),
+('GAS', 'Gas LPG & Galon Air', 'Tabung Gas 3kg/12kg, Air Galon Isi Ulang', 9),
+('PLS', 'Pulsa, Token & Tagihan', 'Pulsa HP, Token Listrik PLN, Voucher Game', 10),
+('ATK', 'Alat Tulis & Perlengkapan', 'Buku Tulis, Pulpen, Lakban, Amplop', 11)
+ON CONFLICT (code) DO NOTHING;
+
+-- AGREGASI TELEMETRI UNTUK ISOLASI KINERJA ANALITIK
+CREATE TABLE IF NOT EXISTS platform_daily_telemetry (
+    metric_date DATE PRIMARY KEY DEFAULT CURRENT_DATE,
+    total_active_shops INT DEFAULT 0,
+    gross_volume_idr BIGINT DEFAULT 0,
+    total_transactions_count INT DEFAULT 0,
+    active_chokeholds_count INT DEFAULT 0,
+    open_panic_tickets_count INT DEFAULT 0,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────────────
 -- ✅ SELESAI — Migration script 100% idempotent
 -- ─────────────────────────────────────────────────────────────
