@@ -1,6 +1,7 @@
 import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import CommandPalette from '@/components/admin/CommandPalette';
+import CommandPaletteTrigger from '@/components/admin/CommandPaletteTrigger';
 
 export const metadata = {
   title: 'Obsidian Command Deck — 2ndManager Platform Operations',
@@ -35,13 +36,7 @@ export default function AdminLayout({ children }) {
           </div>
 
           <div className="flex items-center space-x-4">
-            <button 
-              id="open-cmd-palette-btn"
-              className="h-8 px-3 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-400 hover:text-zinc-200 flex items-center space-x-2.5 transition-colors cursor-pointer"
-            >
-              <span>Cari atau perintah...</span>
-              <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-600 rounded text-[10px] font-mono text-zinc-300">⌘K</kbd>
-            </button>
+            <CommandPaletteTrigger />
 
             <div className="flex items-center space-x-2 pl-2 border-l border-zinc-800">
               <div className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse" title="Platform Realtime Connected" />
@@ -55,19 +50,6 @@ export default function AdminLayout({ children }) {
           {children}
         </div>
       </main>
-
-      {/* Inline script for Command Palette button click */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            document.addEventListener('click', function(e) {
-              if (e.target && e.target.closest('#open-cmd-palette-btn')) {
-                window.dispatchEvent(new CustomEvent('open-command-palette'));
-              }
-            });
-          `,
-        }}
-      />
     </div>
   );
 }
