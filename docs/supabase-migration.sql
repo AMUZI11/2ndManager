@@ -221,6 +221,11 @@ CREATE TABLE IF NOT EXISTS public.payment_proofs (
   created_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Storage bucket untuk bukti pembayaran
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('payment-proofs', 'payment-proofs', true, 10485760, ARRAY['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'application/pdf'])
+ON CONFLICT (id) DO NOTHING;
+
 -- ─────────────────────────────────────────────────────────────
 -- STEP 4: POSTGRESQL TRIGGER — AUTO-SETUP SAAT REGISTER
 -- ─────────────────────────────────────────────────────────────
@@ -237,7 +242,12 @@ DECLARE
 BEGIN
   shop_name := COALESCE(NEW.raw_user_meta_data->>'shop_name', 'Toko Saya');
 
-  -- 1. Buat toko baru
+  -- Auto-append (Cabang 1) jika nama toko belum mengandung kata Cabang
+  IF shop_name NOT ILIKE '%Cabang%' THEN
+    shop_name := shop_name || ' (Cabang 1)';
+  END IF;
+
+  -- 1. Buat toko baru (otomatis terdaftar sebagai Cabang 1)
   INSERT INTO public.shops (name, owner_id)
   VALUES (shop_name, NEW.id)
   RETURNING id INTO new_shop_id;
