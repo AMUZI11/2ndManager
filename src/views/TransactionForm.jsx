@@ -4,6 +4,9 @@ import { Plus, Trash2, Save, CheckCircle2, Gift } from 'lucide-react';
 import { api, calculateCascadingDiscount } from '../utils/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { useTutorial, ContextualTooltip } from '../components/TutorialEngine';
+import { createClient } from '../lib/supabase/client';
+import { canAccessFeature } from '../lib/subscription';
+import PaywallModal from '../components/ui/PaywallModal';
 
 const getTerbacaRupiah = (amountStr) => {
   const num = parseInt(amountStr);
@@ -46,6 +49,9 @@ export default function TransactionForm({ setView, editTransactionId }) {
   const [successMsg, setSuccessMsg] = useState("");
   const [bonusWarning, setBonusWarning] = useState("");
   const [showExitTutorialConfirm, setShowExitTutorialConfirm] = useState(false);
+  const [userPlan, setUserPlan] = useState('FREE');
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+  const [paywallConfig, setPaywallConfig] = useState({});
 
   const isDemoActive = !!demoData;
 
@@ -53,10 +59,21 @@ export default function TransactionForm({ setView, editTransactionId }) {
     async function loadInitialData() {
       setLoading(true);
       try {
-        const [custs, prods] = await Promise.all([
+        const [custs, prods, billingData] = await Promise.all([
           api.getCustomers(),
-          api.getProducts()
+          api.getProducts(),
+          api.getBilling().catch(() => null),
         ]);
+
+        if (billingData?.plan || billingData?.tier || billingData?.subscription?.plan) {
+          setUserPlan(billingData.plan || billingData.tier || billingData.subscription.plan);
+        } else if (user) {
+          const { data: profile } = await supabase.from('profiles').select('subscription_plan').eq('id', user.id).maybeSingle();
+          if (profile?.subscription_plan) {
+            setUserPlan(profile.subscription_plan);
+          }
+        }
+
         setCustomers(custs);
         setProducts(prods);
 
@@ -110,6 +127,14 @@ export default function TransactionForm({ setView, editTransactionId }) {
     loadInitialData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editTransactionId, isDemoActive]);
+
+  useEffect(() => {
+    const handlePlanUpdate = (e) => {
+      if (e.detail?.plan) setUserPlan(e.detail.plan);
+    };
+    window.addEventListener('hl-plan-changed', handlePlanUpdate);
+    return () => window.removeEventListener('hl-plan-changed', handlePlanUpdate);
+  }, []);
 
   // Handle local state sync back to demo sandbox state if tutorial is running
   useEffect(() => {
@@ -192,6 +217,16 @@ export default function TransactionForm({ setView, editTransactionId }) {
   };
 
   const handleStatusChange = (val) => {
+    if (val === 'Piutang' && !canAccessFeature(userPlan, 'allow_kasbon')) {
+      setPaywallConfig({
+        title: "Buka Fitur Kasbon Digital",
+        message: "Hentikan Lupa Catat Hutang. Buka fitur Buku Kasbon Digital sekarang mulai dari Rp 60rb/bulan.",
+        targetPlan: "Starter",
+        priceLabel: "Rp 60rb/bulan"
+      });
+      setIsPaywallOpen(true);
+      return;
+    }
     setStatus(val);
     registerTrigger("tx-status-select", "change");
   };
@@ -315,110 +350,80 @@ export default function TransactionForm({ setView, editTransactionId }) {
       <div className="min-h-[400px] flex items-center justify-center">
         <div className="text-center space-y-2">
           <div className="w-8 h-8 border-4 border-navy-bright border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-semibold text-charcoal-medium">Memuat data nota...</p>
+          <p className="text-lg font-semibold text-kw-text/80">Memuat data nota...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+    <div className="space-y-6 pb-32 sm:pb-36">
+      {/* Header (Fira Sans ExtraBold Title, Trojan Horse Subtitle & Passive Nomor Bon/Tanggal) */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-kw-card rounded-2xl p-6 border border-black/5 shadow-none gap-8">
         <div>
-          <h1 className="text-hero text-xl">{editTransactionId ? "✏️ Edit Nota Penjualan" : "➕ Buat Bon Penjualan Baru"}</h1>
-          <p className="text-gray-500 text-xs mt-1">
-            {isDemoActive ? "📚 Sedang dalam Mode Latihan Membuat Bon Demo" : "Catat transaksi penjualan produk dengan kalkulasi diskon bertingkat otomatis."}
+          <h1 className="text-2xl font-extrabold text-kw-text font-heading tracking-tight">
+            {editTransactionId ? "✏️ Edit Nota Penjualan" : "➕ Buat Bon Penjualan Baru"}
+          </h1>
+          <p className="text-slate-500 text-xl mt-1 font-medium">
+            {isDemoActive ? (
+              "📚 Sedang dalam Mode Latihan Membuat Bon Demo"
+            ) : (
+              <>
+                Catat detail transaksi penjualan Anda. <span className="text-kw-accent font-bold">🔒 Mode Diskon Bertingkat &amp; Pajak Otomatis (Terkunci - Upgrade PRO)</span>
+              </>
+            )}
           </p>
         </div>
-        <button 
-          type="button"
-          onClick={() => {
-            if (isDemoActive) {
-              setShowExitTutorialConfirm(true);
-            } else {
-              setView("dashboard");
-            }
-          }}
-          className="border-2 border-gray-200 hover:bg-gray-50 text-charcoal-medium font-bold text-sm h-12 px-5 rounded-xl transition-all cursor-pointer"
-        >
-          Kembali
-        </button>
+
+        <div className="flex items-center gap-8 self-end sm:self-auto">
+          {/* Passive Nomor Bon & Tanggal Display */}
+          <div className="text-right">
+            <span className="text-xl font-mono text-slate-400 block font-bold">No. Bon: {nomorBon || 'AUTO'}</span>
+            <span className="text-[11px] text-slate-400 block font-medium">Tgl: {tanggal || new Date().toISOString().split('T')[0]}</span>
+          </div>
+
+          <button 
+            type="button"
+            onClick={() => {
+              if (isDemoActive) {
+                setShowExitTutorialConfirm(true);
+              } else {
+                setView("dashboard");
+              }
+            }}
+            className="border-2 border-kw-border hover:bg-kw-bg text-kw-text font-extrabold text-xl h-10 px-4 rounded-xl transition-all cursor-pointer"
+          >
+            Kembali
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleSaveInvoice} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Col: Core Form Fields */}
+        {/* Left Col: Core Form Fields (Styled Card with Depth) */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
+          <div className="bg-kw-card rounded-2xl p-6 border border-black/5 shadow-none space-y-5">
             {errorMsg && (
-              <div className="bg-rose-light text-rose-deep p-3 rounded-xl text-xs font-semibold">
+              <div className="bg-rose-50 text-rose-700 border border-kw-terra p-6.5 rounded-xl text-xl font-bold">
                 ⚠️ {errorMsg}
               </div>
             )}
             {successMsg && (
-              <div className="bg-emerald-mint text-emerald-deep p-3 rounded-xl text-xs font-bold flex items-center gap-2">
+              <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 p-6.5 rounded-xl text-xl font-bold flex items-center gap-8">
                 <CheckCircle2 size={16} /> {successMsg}
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Nomor Bon */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-charcoal-medium uppercase flex items-center">
-                  Nomor Nota / Bon *
-                  <ContextualTooltip id="tip-bon-no" content="Nomor nota transaksi. Sistem mengharuskan nomor ini unik. Contoh: BON-2025-001." />
-                </label>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    id="tx-nomor-bon"
-                    value={nomorBon}
-                    onChange={(e) => handleNomorBonChange(e.target.value)}
-                    placeholder="Contoh: BON-001"
-                    className="flex-1 h-12 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 text-sm focus:border-navy-bright focus:bg-white outline-none transition-all font-semibold"
-                  />
-                  {!isDemoActive && (
-                    <button 
-                      type="button" 
-                      onClick={generateInvoiceNumber}
-                      className="border border-gray-200 hover:bg-gray-50 px-3 rounded-xl text-xs font-bold text-gray-500"
-                    >
-                      Acak
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Tanggal */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-charcoal-medium uppercase">Tanggal Penjualan</label>
-                <input 
-                  type="date" 
-                  id="tx-tanggal"
-                  value={tanggal}
-                  onChange={(e) => setTanggal(e.target.value)}
-                  className="w-full h-12 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 text-sm focus:border-navy-bright focus:bg-white outline-none transition-all font-semibold"
-                />
-                <button 
-                  type="button" 
-                  id="tx-tanggal-btn" 
-                  onClick={() => registerTrigger("tx-tanggal-btn", "next")} 
-                  className="hidden" 
-                />
-              </div>
-            </div>
-
-            {/* Customer Dropdown */}
+            {/* Refactored Customer Dropdown (Double-Bezel & h-14 Senior-First UI) */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-charcoal-medium uppercase flex items-center">
-                Pilih Nama Pelanggan *
+              <label className="block text-xl font-extrabold text-kw-text uppercase tracking-wider flex items-center">
+                PILIH NAMA PELANGGAN *
                 <ContextualTooltip id="tip-customer" content="Pilih nama pembeli dari daftar pelanggan terdaftar. Diskon bertingkat akan diambil langsung dari data pelanggan tersebut." />
               </label>
               <select 
                 id="tx-customer-select"
                 value={customerId}
                 onChange={(e) => handleCustomerChange(e.target.value)}
-                className="w-full h-12 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 text-sm focus:border-navy-bright focus:bg-white outline-none transition-all font-semibold"
+                className="w-full h-14 bg-kw-card border border-[#3D1A0F]/20 rounded-xl px-4 text-lg font-extrabold text-kw-bg shadow-none focus:border-kw-border focus:ring-2 focus:ring-[#C97B1A]/20 outline-none transition-all cursor-pointer"
               >
                 <option value="">-- Silakan Pilih Pelanggan --</option>
                 {customers.map(c => (
@@ -430,14 +435,14 @@ export default function TransactionForm({ setView, editTransactionId }) {
             {/* Is Bonus Mode Toggle */}
             {selectedCustomer && (
               <div className="space-y-3">
-                <div className="bg-amber-cream/40 border border-amber-soft/50 rounded-2xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="bg-amber-cream/40 border border-amber-soft/50 rounded-2xl p-8 flex items-center justify-between">
+                  <div className="flex items-center gap-6">
                     <div className="p-2.5 bg-amber-gold/10 text-amber-deep rounded-xl">
                       <Gift size={20} />
                     </div>
                     <div>
-                      <p className="font-bold text-sm text-charcoal-black">Nota Pengambilan Bonus</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="font-bold text-lg text-kw-text">Nota Pengambilan Bonus</p>
+                      <p className="text-xl text-kw-text/70">
                         Tersedia: {selectedCustomerBonusStatus.bonuses_available} kuota bonus gratis.
                       </p>
                     </div>
@@ -459,11 +464,11 @@ export default function TransactionForm({ setView, editTransactionId }) {
                       }}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-gold"></div>
+                    <div className="w-11 h-6 bg-kw-bg peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-kw-card after:border-kw-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-gold"></div>
                   </label>
                 </div>
                 {bonusWarning && (
-                  <div className="bg-amber-cream text-amber-deep p-4 rounded-2xl text-xs font-semibold border border-amber-soft">
+                  <div className="bg-amber-cream text-amber-deep p-8 rounded-2xl text-xl font-semibold border border-amber-soft">
                     ⚠️ {bonusWarning}
                   </div>
                 )}
@@ -472,36 +477,36 @@ export default function TransactionForm({ setView, editTransactionId }) {
           </div>
 
           {/* Product Items Table */}
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
+          <div className="bg-kw-card rounded-2xl p-6 border-2 border-kw-border shadow-none space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-subheading text-base font-bold text-charcoal-black">Daftar Barang yang Dibeli</h3>
+              <h3 className="text-subheading text-xl font-bold text-kw-text">Daftar Barang yang Dibeli</h3>
               <button 
                 type="button" 
                 id="tx-add-product-btn"
                 onClick={handleAddProductLine}
-                className="text-xs font-bold text-navy-bright flex items-center gap-1 hover:underline bg-navy-light px-3 py-2 rounded-lg"
+                className="text-xl font-bold text-navy-bright flex items-center gap-1 hover:underline bg-navy-light px-3 py-2 rounded-lg"
               >
                 <Plus size={14} /> Tambah Produk
               </button>
             </div>
 
             {items.length === 0 ? (
-              <div className="text-center py-8 text-gray-400 text-xs border-2 border-dashed border-gray-100 rounded-2xl">
+              <div className="text-center py-8 text-kw-text/70 text-xl border-2 border-dashed border-kw-border rounded-2xl">
                 Belum ada produk ditambahkan. Klik [+ Tambah Produk] di atas.
               </div>
             ) : (
               <div className="space-y-4">
                 {calculatedLines.map((line, idx) => (
-                  <div key={idx} className="flex flex-col md:flex-row gap-3 p-4 bg-gray-50/50 rounded-2xl border border-gray-100 items-start md:items-center">
+                  <div key={idx} className="flex flex-col md:flex-row gap-6 p-8 bg-kw-bg rounded-2xl border-2 border-kw-border items-start md:items-center">
                     
                     {/* Product Selection */}
                     <div className="flex-1 w-full space-y-1">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase">Nama Produk</span>
+                      <span className="text-[10px] text-kw-text/70 font-bold uppercase">Nama Produk</span>
                       <select 
                         id={`tx-product-select-${idx}`}
                         value={line.product_id}
                         onChange={(e) => handleItemProductChange(idx, e.target.value)}
-                        className="w-full h-11 bg-white border border-gray-200 rounded-xl px-3 text-xs focus:border-navy-bright outline-none font-semibold"
+                        className="w-full h-11 bg-kw-card border-2 border-kw-border rounded-xl px-3 text-xl focus:border-navy-bright outline-none font-semibold"
                       >
                         <option value="">-- Pilih Produk --</option>
                         {products.map(p => (
@@ -512,32 +517,32 @@ export default function TransactionForm({ setView, editTransactionId }) {
 
                     {/* Quantity */}
                     <div className="w-full md:w-24 space-y-1">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase">Qty / Box</span>
+                      <span className="text-[10px] text-kw-text/70 font-bold uppercase">Qty / Box</span>
                       <input 
                         type="number" 
                         id={`tx-qty-input-${idx}`}
                         min="1"
                         value={line.quantity}
                         onChange={(e) => handleItemQtyChange(idx, e.target.value)}
-                        className="w-full h-11 bg-white border border-gray-200 rounded-xl px-3 text-xs focus:border-navy-bright outline-none font-bold text-center"
+                        className="w-full h-11 bg-kw-card border-2 border-kw-border rounded-xl px-3 text-xl focus:border-navy-bright outline-none font-bold text-center"
                       />
                     </div>
 
                     {/* Unit Price calculated dynamically */}
                     <div className="w-full md:w-32 space-y-1">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase flex items-center">
+                      <span className="text-[10px] text-kw-text/70 font-bold uppercase flex items-center">
                         Harga Satuan
                         <button type="button" id={`tx-price-calc-${idx}`} onClick={() => registerTrigger(`tx-price-calc-${idx}`, 'next')} className="hidden" />
                       </span>
-                      <div className="h-11 bg-white border border-gray-200 rounded-xl px-3 flex items-center justify-end text-xs font-bold text-charcoal-medium tabular-nums">
+                      <div className="h-11 bg-kw-card border-2 border-kw-border rounded-xl px-3 flex items-center justify-end text-xl font-bold text-kw-text/80 tabular-nums">
                         {isBonus ? "GRATIS" : formatRupiah(line.discounted_price)}
                       </div>
                     </div>
 
                     {/* Line Subtotal */}
                     <div className="w-full md:w-36 space-y-1">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase">Total Harga</span>
-                      <div className="h-11 bg-white border border-gray-200 rounded-xl px-3 flex items-center justify-end text-xs font-bold text-navy-deep tabular-nums">
+                      <span className="text-[10px] text-kw-text/70 font-bold uppercase">Total Harga</span>
+                      <div className="h-11 bg-kw-card border-2 border-kw-border rounded-xl px-3 flex items-center justify-end text-xl font-bold text-navy-deep tabular-nums">
                         {isBonus ? "Rp0" : formatRupiah(line.subtotal)}
                       </div>
                     </div>
@@ -559,20 +564,20 @@ export default function TransactionForm({ setView, editTransactionId }) {
 
         {/* Right Col: Ledger Calculation Summary */}
         <div className="space-y-6">
-          <div id="tx-summary-cards" className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
-            <h3 className="text-subheading text-base font-bold border-b border-gray-50 pb-3">Ringkasan Pembayaran</h3>
+          <div id="tx-summary-cards" className="bg-kw-card rounded-2xl p-6 border-2 border-kw-border shadow-none space-y-6">
+            <h3 className="text-subheading text-xl font-bold border-b-2 border-kw-border pb-3">Ringkasan Pembayaran</h3>
 
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between items-center text-gray-500">
+            <div className="space-y-3 text-xl">
+              <div className="flex justify-between items-center text-kw-text/70">
                 <span>Total Omzet Penjualan:</span>
-                <span className="font-semibold text-charcoal-medium tabular-nums">{formatRupiah(totalOmzet)}</span>
+                <span className="font-semibold text-kw-text/80 tabular-nums">{formatRupiah(totalOmzet)}</span>
               </div>
-              <div className="flex justify-between items-center text-gray-500">
+              <div className="flex justify-between items-center text-kw-text/70">
                 <span>Ongkos Kirim (Ongkir):</span>
-                <span className="font-semibold text-charcoal-medium tabular-nums">{formatRupiah(totalShipping)}</span>
+                <span className="font-semibold text-kw-text/80 tabular-nums">{formatRupiah(totalShipping)}</span>
               </div>
-              <hr className="border-gray-50" />
-              <div className="flex justify-between items-center text-sm font-bold text-charcoal-black">
+              <hr className="border-kw-border" />
+              <div className="flex justify-between items-center text-lg font-bold text-kw-text">
                 <span>Total Tagihan:</span>
                 <span className="text-lg text-navy-deep font-extrabold tabular-nums">{formatRupiah(totalBill)}</span>
               </div>
@@ -580,22 +585,22 @@ export default function TransactionForm({ setView, editTransactionId }) {
 
             {/* Input: Ongkir */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-charcoal-medium uppercase flex items-center">
+              <label className="block text-xl font-bold text-kw-text/80 uppercase flex items-center">
                 Ongkir (Biaya Kirim)
                 <ContextualTooltip id="tip-ongkir" content="Biaya ongkir untuk mengantar pesanan. Diteruskan ke pelanggan, tidak menambah laba bersih Anda." />
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">Rp</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-kw-text/70 font-semibold text-lg">Rp</span>
                 <input 
                   type="number" 
                   id="tx-ongkir-input"
                   value={ongkir} 
                   onChange={(e) => setOngkir(e.target.value)}
-                  className="w-full h-12 bg-gray-50 border-2 border-gray-200 rounded-xl pl-10 pr-4 text-sm focus:border-navy-bright focus:bg-white outline-none transition-all font-semibold"
+                  className="w-full h-12 bg-kw-bg border-2 border-kw-border rounded-xl pl-10 pr-4 text-lg focus:border-navy-bright focus:bg-kw-card outline-none transition-all font-semibold"
                 />
               </div>
               {parseInt(ongkir) > 0 && (
-                <p className="text-[11px] font-extrabold text-[#C97B1A] mt-1.5 animate-slide-in">
+                <p className="text-[11px] font-extrabold text-kw-accent mt-1.5 animate-slide-in">
                   {getTerbacaRupiah(ongkir)}
                 </p>
               )}
@@ -603,19 +608,19 @@ export default function TransactionForm({ setView, editTransactionId }) {
 
             {/* Input: Deskripsi */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-charcoal-medium uppercase">Keterangan / Catatan</label>
+              <label className="block text-xl font-bold text-kw-text/80 uppercase">Keterangan / Catatan</label>
               <textarea 
                 value={deskripsi} 
                 onChange={(e) => setDeskripsi(e.target.value)}
                 placeholder="Catatan alamat / waktu kirim..."
                 rows="2"
-                className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 text-xs focus:border-navy-bright focus:bg-white outline-none transition-all"
+                className="w-full bg-kw-bg border-2 border-kw-border rounded-xl p-6 text-xl focus:border-navy-bright focus:bg-kw-card outline-none transition-all"
               />
             </div>
 
             {/* Status Selector */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-charcoal-medium uppercase flex items-center">
+              <label className="block text-xl font-bold text-kw-text/80 uppercase flex items-center">
                 Status Pembayaran
                 <ContextualTooltip id="tip-status" content="Piutang = belum dibayar. Lunas = uang sudah diterima. Laba dan Omzet baru diakui jika status disetel Lunas." />
               </label>
@@ -623,7 +628,7 @@ export default function TransactionForm({ setView, editTransactionId }) {
                 id="tx-status-select"
                 value={status}
                 onChange={(e) => handleStatusChange(e.target.value)}
-                className="w-full h-12 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 text-sm focus:border-navy-bright focus:bg-white outline-none transition-all font-semibold"
+                className="w-full h-12 bg-kw-bg border-2 border-kw-border rounded-xl px-4 text-lg focus:border-navy-bright focus:bg-kw-card outline-none transition-all font-semibold"
               >
                 <option value="Piutang">Piutang (Belum Bayar)</option>
                 <option value="Lunas">Lunas (Sudah Dibayar)</option>
@@ -635,7 +640,7 @@ export default function TransactionForm({ setView, editTransactionId }) {
               <button 
                 type="submit"
                 id="tx-save-btn"
-                className="w-full bg-cta hover:bg-cta/90 text-primary font-bold h-12 rounded-xl text-sm shadow-md flex items-center justify-center gap-1.5 transition-all hover:scale-[1.01] cursor-pointer font-mono"
+                className="w-full bg-[#8C2818] hover:bg-[#8C2818]/90 text-primary font-bold h-12 rounded-xl text-lg shadow-none flex items-center justify-center gap-1.5 transition-all hover:scale-[1.01] cursor-pointer font-mono"
               >
                 <Save size={18} /> Simpan Bon
               </button>
@@ -655,6 +660,16 @@ export default function TransactionForm({ setView, editTransactionId }) {
         onCancel={() => setShowExitTutorialConfirm(false)}
         confirmLabel="YA, KELUAR"
         cancelLabel="BATAL"
+      />
+
+      {/* ── MODAL PAYWALL ── */}
+      <PaywallModal 
+        isOpen={isPaywallOpen}
+        onClose={() => setIsPaywallOpen(false)}
+        title={paywallConfig.title}
+        message={paywallConfig.message}
+        targetPlan={paywallConfig.targetPlan}
+        priceLabel={paywallConfig.priceLabel}
       />
     </div>
   );

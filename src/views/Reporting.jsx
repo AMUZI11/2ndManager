@@ -1,43 +1,90 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
-import { Printer, Gift, Download } from 'lucide-react';
+import {
+  Printer, Download, Flame, Trophy, ShieldAlert, FileText, Clock,
+  Lock, Sparkles, AlertTriangle, X, CheckCircle2
+} from 'lucide-react';
 import { api } from '../utils/api';
 import { useTutorial } from '../components/TutorialEngine';
 import { MonthlyTrendChart, CategoryPieChart } from '../components/AnalyticsCharts';
 import { exportToCSV } from '../utils/export';
+import { canAccessFeature, checkQuotaLimit, normalizePlan, getPlanConfig } from '../lib/subscription';
 
 export default function Reporting() {
   const { registerTrigger } = useTutorial();
+  const [activeTab, setActiveTab] = useState('rekap'); // 'rekap' | 'heatmap' | 'top_products' | 'void_logs' | 'audit_logs'
   const [selectedMonth, setSelectedMonth] = useState(""); // YYYY-MM
   const [availableMonths, setAvailableMonths] = useState([]);
   const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState([]);
   const [allTransactions, setAllTransactions] = useState([]);
+  const [voidLogs, setVoidLogs] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+
+  // Tier Gating State
+  const [userPlan, setUserPlan] = useState('FREE'); // 'FREE' | 'STARTER' | 'PRO'
+  const [showProModal, setShowProModal] = useState(false);
+  const [dateCapError, setDateCapError] = useState('');
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
 
   useEffect(() => {
     async function loadInitialData() {
       setLoading(true);
       try {
-        const [txs, custs] = await Promise.all([
+        const [txs, custs, vLogs, aLogs, billingData] = await Promise.all([
           api.getTransactions(),
-          api.getCustomers()
+          api.getCustomers(),
+          api.getVoidLogs().catch(() => []),
+          api.getAuditLogs().catch(() => []),
+          api.getBilling().catch(() => null)
         ]);
-        setAllTransactions(txs);
-        setCustomers(custs);
 
-        const months = Array.from(new Set(txs.map(t => t.tanggal.slice(0, 7)))).sort().reverse();
+        setAllTransactions(txs || []);
+        setCustomers(custs || []);
+        setVoidLogs(vLogs || []);
+        setAuditLogs(aLogs || []);
+
+        // Read subscription plan from /api/v1/billing or session fallback
+        const sessionUser = api.getCurrentSession();
+        const planFromBilling = billingData?.plan || billingData?.subscription?.plan || billingData?.tier;
+        const planFromSession = sessionUser?.plan || sessionUser?.subscription_plan;
+        const activePlan = (planFromBilling || planFromSession || 'MAGANG').toUpperCase();
+        setUserPlan(activePlan);
+
+        // Generate last 12 months fallback so dropdown is never empty
+        const getRecentMonths = () => {
+          const list = [];
+          const now = new Date();
+          for (let i = 0; i < 12; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            list.push(`${yyyy}-${mm}`);
+          }
+          return list;
+        };
+
+        const txMonths = (txs || []).map(t => t.tanggal?.slice(0, 7)).filter(Boolean);
+        const allMonthsSet = new Set([...txMonths, ...getRecentMonths()]);
+        const months = Array.from(allMonthsSet).sort().reverse();
         setAvailableMonths(months);
 
         const currentMonthStr = new Date().toISOString().slice(0, 7);
-        setSelectedMonth(prev => {
-          if (months.length > 0) {
-            if (!prev || !months.includes(prev)) {
-              return months[0];
-            }
-            return prev;
-          }
-          return currentMonthStr;
-        });
+        const initialMonth = months.includes(currentMonthStr) ? currentMonthStr : (months[0] || currentMonthStr);
+        setSelectedMonth(initialMonth);
+
+        // Set default date range to first day of month to today/end of month
+        if (initialMonth) {
+          const [year, month] = initialMonth.split("-");
+          const firstDay = `${initialMonth}-01`;
+          const lastDayNum = new Date(Number(year), Number(month), 0).getDate();
+          // Cap default range to max 30 days
+          const endDayNum = Math.min(lastDayNum, 30);
+          const lastDay = `${initialMonth}-${String(endDayNum).padStart(2, '0')}`;
+          setExportStartDate(firstDay);
+          setExportEndDate(lastDay);
+        }
       } catch (err) {
         console.error("Gagal memuat rekap laporan:", err);
       } finally {
@@ -47,10 +94,63 @@ export default function Reporting() {
     loadInitialData();
   }, []);
 
+  const handleMonthChange = (monthStr) => {
+    setSelectedMonth(monthStr);
+    if (monthStr) {
+      const [year, month] = monthStr.split("-");
+      const firstDay = `${monthStr}-01`;
+      const lastDayNum = new Date(Number(year), Number(month), 0).getDate();
+      const endDayNum = Math.min(lastDayNum, 30);
+      const lastDay = `${monthStr}-${String(endDayNum).padStart(2, '0')}`;
+      setExportStartDate(firstDay);
+      setExportEndDate(lastDay);
+      setDateCapError('');
+    }
+  };
+
+  // Realtime plan change listener
+  useEffect(() => {
+    const handlePlanChange = (e) => {
+      if (e.detail?.plan) setUserPlan(e.detail.plan);
+    };
+    window.addEventListener('hl-plan-changed', handlePlanChange);
+    return () => window.removeEventListener('hl-plan-changed', handlePlanChange);
+  }, []);
+
+  const planConfig = getPlanConfig(userPlan);
+  const isFree = normalizePlan(userPlan) === 'MAGANG';
+  const isPro = canAccessFeature(userPlan, 'export_csv');
+  const maxReportDays = planConfig?.limits?.max_report_days || 30;
+
+  const handleStartDateChange = (val) => {
+    setExportStartDate(val);
+    if (!isPro && val && exportEndDate) {
+      const diffDays = (new Date(exportEndDate) - new Date(val)) / (1000 * 3600 * 24);
+      if (diffDays > maxReportDays) {
+        setDateCapError(`Rentang tanggal maksimal ${maxReportDays} hari untuk ${planConfig.name}. Upgrade Kontrak Anda untuk laporan historis lebih luas.`);
+      } else {
+        setDateCapError('');
+      }
+    }
+  };
+
+  const handleEndDateChange = (val) => {
+    setExportEndDate(val);
+    if (!isPro && exportStartDate && val) {
+      const diffDays = (new Date(val) - new Date(exportStartDate)) / (1000 * 3600 * 24);
+      if (diffDays > maxReportDays) {
+        setDateCapError(`Rentang tanggal maksimal ${maxReportDays} hari untuk ${planConfig.name}. Upgrade Kontrak Anda untuk laporan historis lebih luas.`);
+      } else {
+        setDateCapError('');
+      }
+    }
+  };
+
   const trendData = useMemo(() => {
     if (allTransactions.length === 0) return [];
     const monthlyGroups = {};
     allTransactions.forEach(t => {
+      if (!t.tanggal) return;
       const yyyymm = t.tanggal.slice(0, 7);
       if (!monthlyGroups[yyyymm]) {
         monthlyGroups[yyyymm] = { omzet: 0, piutang: 0 };
@@ -87,7 +187,7 @@ export default function Reporting() {
     }
 
     // Filter by selected month
-    const monthlyTx = allTransactions.filter(t => t.tanggal.startsWith(selectedMonth));
+    const monthlyTx = allTransactions.filter(t => t.tanggal && t.tanggal.startsWith(selectedMonth));
 
     // Ledger variables
     let omzet_lm = 0;
@@ -99,54 +199,47 @@ export default function Reporting() {
     const categoryOmzets = {};
     monthlyTx.forEach(t => {
       if (t.status === "Lunas") {
-        paid += t.amount_owed;
-        
-        t.items.forEach(item => {
+        paid += Number(t.amount_owed || 0);
+
+        t.items?.forEach(item => {
           const type = item.product_type_snapshot || 'LM';
           categoryOmzets[type] = (categoryOmzets[type] || 0) + Number(item.line_omzet || 0);
 
           if (type === "LM") {
-            omzet_lm += item.line_omzet;
+            omzet_lm += Number(item.line_omzet || 0);
           } else if (type === "BR") {
-            omzet_br += item.line_omzet;
+            omzet_br += Number(item.line_omzet || 0);
           }
-          laba_total += item.line_laba;
+          laba_total += Number(item.line_laba || 0);
         });
       } else {
-        piutang += t.amount_owed;
+        piutang += Number(t.amount_owed || 0);
       }
     });
 
     const omzet_total = omzet_lm + omzet_br;
 
-    const totals = {
-      omzet_lm,
-      omzet_br,
-      omzet_total,
-      laba_total,
-      piutang,
-      paid
-    };
+    const totals = { omzet_lm, omzet_br, omzet_total, laba_total, piutang, paid };
 
     // Breakdown per customer
     const summaries = customers.map(c => {
       const cTx = monthlyTx.filter(t => t.customer_id === c.id);
-      
-      const cPiutang = cTx.filter(t => t.status === "Piutang").reduce((sum, t) => sum + t.amount_owed, 0);
-      const cPaid = cTx.filter(t => t.status === "Lunas").reduce((sum, t) => sum + t.amount_owed, 0);
-      
+
+      const cPiutang = cTx.filter(t => t.status === "Piutang").reduce((sum, t) => sum + Number(t.amount_owed || 0), 0);
+      const cPaid = cTx.filter(t => t.status === "Lunas").reduce((sum, t) => sum + Number(t.amount_owed || 0), 0);
+
       let cOmzetLm = 0;
       let cOmzetBr = 0;
       let cLaba = 0;
 
       cTx.filter(t => t.status === "Lunas").forEach(t => {
-        t.items.forEach(item => {
+        t.items?.forEach(item => {
           if (item.product_type_snapshot === "LM") {
-            cOmzetLm += item.line_omzet;
+            cOmzetLm += Number(item.line_omzet || 0);
           } else {
-            cOmzetBr += item.line_omzet;
+            cOmzetBr += Number(item.line_omzet || 0);
           }
-          cLaba += item.line_laba;
+          cLaba += Number(item.line_laba || 0);
         });
       });
 
@@ -160,345 +253,634 @@ export default function Reporting() {
       };
     }).filter(s => s.omzet > 0 || s.piutang > 0 || s.paid > 0);
 
-    // Filter bonus logs for selected month
     const bonuses = monthlyTx.filter(t => t.is_bonus);
 
-    return {
-      totals,
-      customerSummaries: summaries,
-      bonusLogs: bonuses,
-      categoryOmzets
-    };
+    return { totals, customerSummaries: summaries, bonusLogs: bonuses, categoryOmzets };
   }, [selectedMonth, allTransactions, customers]);
 
-  const { totals, customerSummaries, bonusLogs } = ledgerData;
+  // Heatmap Jam Sibuk (Perhitungan distribusi jam transaksi 00:00 - 23:00)
+  const hourlyData = useMemo(() => {
+    const hours = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0, omzet: 0 }));
+    allTransactions.forEach(t => {
+      if (t.created_at) {
+        const hour = new Date(t.created_at).getHours();
+        hours[hour].count += 1;
+        hours[hour].omzet += Number(t.omzet_total || t.amount_owed || 0);
+      }
+    });
+    return hours;
+  }, [allTransactions]);
 
+  const maxHourlyCount = Math.max(1, ...hourlyData.map(h => h.count));
+
+  // Top 10 Produk Terlaris
+  const topProducts = useMemo(() => {
+    const productMap = {};
+    allTransactions.forEach(t => {
+      t.items?.forEach(item => {
+        const name = item.product_name || item.product_type_snapshot || 'Produk';
+        if (!productMap[name]) {
+          productMap[name] = { name, totalQty: 0, totalOmzet: 0 };
+        }
+        productMap[name].totalQty += item.quantity || 1;
+        productMap[name].totalOmzet += item.line_omzet || 0;
+      });
+    });
+
+    return Object.values(productMap)
+      .sort((a, b) => b.totalQty - a.totalQty)
+      .slice(0, 10);
+  }, [allTransactions]);
+
+  const { totals } = ledgerData;
 
   const handleExportOverallCSV = () => {
-    const headers = ['Laporan Parameter', 'Nilai Nominal'];
-    const rows = [
-      ['Periode Laporan', selectedMonth],
-      ['Total Omzet Lunas', totals.omzet_total],
-      ['Omzet Kategori LM', totals.omzet_lm],
-      ['Omzet Kategori BR', totals.omzet_br],
-      ['Laba Bersih Lunas', totals.laba_total],
-      ['Outstanding Piutang', totals.piutang],
-      ['Total Setoran Masuk', totals.paid]
-    ];
-    exportToCSV(`Rekap_Bulanan_${selectedMonth}.csv`, headers, rows);
-  };
-
-  const handleExportCustomersCSV = () => {
-    const headers = ['Nama Pelanggan', 'Omzet Lunas (Rp)', 'Laba Lunas (Rp)', 'Outstanding Piutang (Rp)', 'Total Setoran Masuk (Rp)'];
-    const rows = customerSummaries.map(s => [
-      s.nama,
-      s.omzet,
-      s.laba,
-      s.piutang,
-      s.paid
-    ]);
-    exportToCSV(`Breakdown_Pelanggan_${selectedMonth}.csv`, headers, rows);
-  };
-
-  const handlePrintOverall = () => {
-    const printWindow = window.open("", "_blank");
-    
-    const [year, month] = selectedMonth.split("-");
-    const d = new Date(year, month - 1);
-    const monthName = d.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
-
-    const formatRupiahPrint = (val) => {
-      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
-    };
-
-    let tableRows = customerSummaries.map(s => `
-      <tr>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd;">${s.nama}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${formatRupiahPrint(s.omzet)}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${formatRupiahPrint(s.laba)}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right; color: red;">${formatRupiahPrint(s.piutang)}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right; color: green;">${formatRupiahPrint(s.paid)}</td>
-      </tr>
-    `).join("");
-
-    if (customerSummaries.length === 0) {
-      tableRows = `<tr><td colspan="5" style="padding: 24px; text-align: center; color: #888;">Tidak ada data aktivitas penjualan.</td></tr>`;
+    // Paywall check for CSV Export using centralized canAccessFeature
+    if (!canAccessFeature(userPlan, 'export_csv')) {
+      setShowProModal(true);
+      return;
     }
 
-    const htmlContent = `
-      <html>
-        <head>
-          <title>Rekap Bulanan Keseluruhan</title>
-          <style>
-            body { font-family: 'Arial', sans-serif; color: #333; margin: 40px; }
-            .header { border-bottom: 3px double #333; padding-bottom: 15px; margin-bottom: 30px; }
-            .title { font-size: 24px; font-weight: bold; text-transform: uppercase; margin: 0; }
-            .sub { font-size: 14px; color: #666; margin-top: 5px; }
-            .meta { margin-bottom: 30px; line-height: 1.6; }
-            .meta strong { min-width: 150px; display: inline-block; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { background-color: #f5f5f5; padding: 12px; border-bottom: 2px solid #333; text-align: left; }
-            .total-box { margin-top: 30px; padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; width: 100%; box-sizing: border-box; }
-            .total-grid { display: grid; grid-template-cols: repeat(3, 1fr); gap: 20px; }
-            .total-card { border-right: 1px solid #ddd; padding-right: 15px; }
-            .total-card:last-child { border: none; }
-            .total-label { font-size: 12px; color: #666; text-transform: uppercase; font-weight: bold; }
-            .total-val { font-size: 20px; font-weight: bold; margin-top: 5px; }
-            .footer { margin-top: 50px; border-top: 1px solid #ccc; padding-top: 15px; text-align: center; font-size: 12px; color: #888; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1 class="title">Laporan Keuangan Bulanan HL</h1>
-            <p class="sub">Keseluruhan Pelanggan • Cash Basis Ledger</p>
-          </div>
-          
-          <div class="meta">
-            <p><strong>Periode Laporan:</strong> ${monthName}</p>
-            <p><strong>Tanggal Cetak:</strong> ${new Date().toLocaleDateString('id-ID')}</p>
-          </div>
+    // Enforce date range limit via checkQuotaLimit
+    if (exportStartDate && exportEndDate) {
+      const start = new Date(exportStartDate);
+      const end = new Date(exportEndDate);
+      const diffTime = end.getTime() - start.getTime();
 
-          <div class="total-box">
-            <div class="total-grid">
-              <div class="total-card">
-                <div class="total-label">Total Penjualan Lunas</div>
-                <div class="total-val" style="color: navy;">${formatRupiahPrint(totals.omzet_total)}</div>
-              </div>
-              <div class="total-card">
-                <div class="total-label">Laba Bersih Lunas</div>
-                <div class="total-val" style="color: purple;">${formatRupiahPrint(totals.laba_total)}</div>
-              </div>
-              <div class="total-card">
-                <div class="total-label">Outstanding Piutang</div>
-                <div class="total-val" style="color: red;">${formatRupiahPrint(totals.piutang)}</div>
-              </div>
-            </div>
-          </div>
+      if (diffTime < 0) {
+        setDateCapError("Tanggal akhir harus setelah atau sama dengan tanggal awal.");
+        return;
+      }
 
-          <h2 style="font-size: 18px; margin-top: 40px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Breakdown Pelanggan</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Nama Pelanggan</th>
-                <th style="text-align: right;">Omzet Lunas</th>
-                <th style="text-align: right;">Laba Lunas</th>
-                <th style="text-align: right;">Piutang Outstanding</th>
-                <th style="text-align: right;">Total Dibayar</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${tableRows}
-            </tbody>
-          </table>
+      const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24));
+      const dayQuotaCheck = checkQuotaLimit(userPlan, diffDays, 'max_report_days');
+      if (!dayQuotaCheck.allowed) {
+        setDateCapError(dayQuotaCheck.message);
+        return;
+      }
+    }
 
-          <div class="footer">
-            Dokumen Rekapitulasi Laporan Bulanan HL Manager Pro.
-          </div>
+    setDateCapError('');
 
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            }
-          </script>
-        </body>
-      </html>
-    `;
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-  };
+    // Filter transactions by export date range
+    let filteredTxs = allTransactions;
+    if (exportStartDate && exportEndDate) {
+      filteredTxs = allTransactions.filter(t => {
+        const d = t.tanggal ? t.tanggal.slice(0, 10) : '';
+        return d >= exportStartDate && d <= exportEndDate;
+      });
+    } else if (selectedMonth) {
+      filteredTxs = allTransactions.filter(t => t.tanggal && t.tanggal.startsWith(selectedMonth));
+    }
 
-  const getMonthLabel = (mStr) => {
-    if (!mStr) return "";
-    const [year, month] = mStr.split("-");
-    const d = new Date(year, month - 1);
-    return d.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+    let expOmzetLm = 0;
+    let expOmzetBr = 0;
+    let expLabaTotal = 0;
+    let expPiutang = 0;
+    let expPaid = 0;
+
+    filteredTxs.forEach(t => {
+      if (t.status === "Lunas") {
+        expPaid += Number(t.amount_owed || 0);
+        t.items?.forEach(item => {
+          const type = item.product_type_snapshot || 'LM';
+          if (type === "LM") expOmzetLm += Number(item.line_omzet || 0);
+          else expOmzetBr += Number(item.line_omzet || 0);
+          expLabaTotal += Number(item.line_laba || 0);
+        });
+      } else {
+        expPiutang += Number(t.amount_owed || 0);
+      }
+    });
+
+    const expOmzetTotal = expOmzetLm + expOmzetBr;
+
+    const headers = ['Laporan Parameter', 'Nilai Nominal'];
+    const rows = [
+      ['Periode Laporan', exportStartDate && exportEndDate ? `${exportStartDate} s/d ${exportEndDate}` : selectedMonth],
+      ['Total Omzet Lunas', expOmzetTotal],
+      ['Omzet Kategori LM', expOmzetLm],
+      ['Omzet Kategori BR', expOmzetBr],
+      ['Laba Bersih Lunas', expLabaTotal],
+      ['Outstanding Piutang', expPiutang],
+      ['Total Setoran Masuk', expPaid]
+    ];
+
+    const filename = `Rekap_Keuangan_${exportStartDate || selectedMonth}_sd_${exportEndDate || selectedMonth}.csv`;
+    exportToCSV(filename, headers, rows);
   };
 
   const formatRupiah = (val) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val || 0);
   };
 
   if (loading) {
     return (
-      <div className="min-h-[400px] flex items-center justify-center">
-        <div className="text-center space-y-2">
-          <div className="w-8 h-8 border-4 border-navy-bright border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-semibold text-charcoal-medium">Memuat Laporan Keuangan...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-3">
+        <div className="w-10 h-10 border-4 border-slate-900 border-t-[#CCFF00] rounded-full animate-spin" />
+        <span className="text-xs font-mono font-bold text-slate-700">Memuat Laporan Keuangan &amp; Radar Analitik...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Title Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white rounded-2xl p-6 border border-gray-100 shadow-sm gap-4">
+    <div className="space-y-6 pb-32">
+
+      {/* HEADER PAGE */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B]">
         <div>
-          <h1 className="text-hero text-xl">📋 Rekapitulasi Laporan Bulanan</h1>
-          <p className="text-gray-500 text-xs mt-1">Laporan kinerja omzet, laba bersih, piutang tertunggak lintas semua pelanggan.</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-display uppercase tracking-tight">📊 Laporan &amp; Analitik Bisnis</h1>
+            <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-lg border font-mono ${
+              normalizePlan(userPlan) === 'EKSEKUTIF' ? 'bg-[#CCFF00] text-slate-900 border-slate-800 shadow-[1px_1px_0px_#1E293B]' :
+              normalizePlan(userPlan) === 'MANAJER' ? 'bg-purple-100 text-purple-900 border-purple-500' :
+              normalizePlan(userPlan) === 'SUPERVISOR' ? 'bg-blue-100 text-blue-900 border-blue-500' :
+              'bg-slate-100 text-slate-700 border-slate-300'
+            }`}>
+              {planConfig?.badge || `PAKET ${userPlan}`}
+            </span>
+          </div>
+          <p className="text-xs font-sans text-slate-600 mt-1">Pantau performa penjualan, radar batal kasir, grafik jam sibuk, dan audit trail.</p>
         </div>
 
-        {/* Month Filter Selector */}
-        <div className="relative w-full sm:w-auto">
-          <select 
-            id="report-month-select"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full sm:w-56 h-12 bg-navy-light text-navy-deep border-2 border-navy-ice rounded-xl px-4 text-xs font-bold outline-none transition-all cursor-pointer"
+        {/* TAB BUTTONS (Pop-Art Glass Capsule) */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setActiveTab('rekap')}
+            className={`btn-arcade px-3.5 py-2 border-2 border-slate-800 text-xs font-mono font-bold uppercase rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'rekap' ? 'bg-slate-900 text-[#CCFF00] shadow-[2px_2px_0px_#1E293B]' : 'bg-white text-slate-700 hover:bg-slate-100'
+            }`}
           >
-            {availableMonths.length === 0 ? (
-              <option value={selectedMonth}>{getMonthLabel(selectedMonth)}</option>
-            ) : (
-              availableMonths.map(m => (
-                <option key={m} value={m}>{getMonthLabel(m)}</option>
-              ))
+            <FileText size={14} /> Rekap
+          </button>
+          <button
+            onClick={() => setActiveTab('heatmap')}
+            className={`btn-arcade px-3.5 py-2 border-2 border-slate-800 text-xs font-mono font-bold uppercase rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'heatmap' ? 'bg-slate-900 text-[#CCFF00] shadow-[2px_2px_0px_#1E293B]' : 'bg-white text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <Flame size={14} className={activeTab === 'heatmap' ? 'text-[#CCFF00]' : 'text-amber-500'} /> Heatmap
+            {isFree && (
+              <span className="bg-slate-100 text-slate-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-slate-300 flex items-center gap-0.5 ml-1">
+                <Lock size={9} /> Pro
+              </span>
             )}
-          </select>
+          </button>
+          <button
+            onClick={() => setActiveTab('top_products')}
+            className={`btn-arcade px-3.5 py-2 border-2 border-slate-800 text-xs font-mono font-bold uppercase rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'top_products' ? 'bg-slate-900 text-[#CCFF00] shadow-[2px_2px_0px_#1E293B]' : 'bg-white text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <Trophy size={14} className={activeTab === 'top_products' ? 'text-[#CCFF00]' : 'text-amber-500'} /> Top 10
+            {isFree && (
+              <span className="bg-slate-100 text-slate-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-slate-300 flex items-center gap-0.5 ml-1">
+                <Lock size={9} /> Pro
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('void_logs')}
+            className={`btn-arcade px-3.5 py-2 border-2 border-slate-800 text-xs font-mono font-bold uppercase rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'void_logs' ? 'bg-slate-900 text-[#CCFF00] shadow-[2px_2px_0px_#1E293B]' : 'bg-white text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <ShieldAlert size={14} /> Void Log ({voidLogs.length})
+            {isFree && (
+              <span className="bg-slate-100 text-slate-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-slate-300 flex items-center gap-0.5 ml-1">
+                <Lock size={9} /> Pro
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Ledger Stats Row */}
-      <div id="report-stats-cards" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Total Omzet */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-2">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">💰 Total Omzet Lunas</p>
-          <p className="text-2xl font-extrabold text-navy-deep tabular-nums">{formatRupiah(totals.omzet_total)}</p>
-          <div className="text-[10px] text-gray-500 space-y-0.5 mt-1 border-t border-gray-50 pt-1.5">
-            <p>LM: {formatRupiah(totals.omzet_lm)}</p>
-            <p>BR: {formatRupiah(totals.omzet_br)}</p>
+      {/* ── TAB 1: REKAP KEUANGAN ── */}
+      {activeTab === 'rekap' && (
+        <div className="space-y-6">
+          {/* 1. TOP METRICS (The Comic Trio) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Stat 1: Total Omzet Lunas */}
+            <div className="bg-white p-6 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-1">
+              <p className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 bg-[#CCFF00] border border-slate-800 rounded-full block" /> TOTAL OMZET LUNAS
+              </p>
+              <p className="text-3xl font-extrabold font-mono text-slate-900 tabular-nums">
+                {formatRupiah(totals.omzet_total)}
+              </p>
+              <p className="text-[10px] font-mono text-slate-500">Total kas tunai dari transaksi lunas</p>
+            </div>
+
+            {/* Stat 2: Laba Bersih Lunas */}
+            <div className="bg-white p-6 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-1">
+              <p className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 bg-emerald-500 border border-slate-800 rounded-full block" /> LABA BERSIH (PROFIT)
+              </p>
+              <p className="text-3xl font-extrabold font-mono text-emerald-800 tabular-nums">
+                {formatRupiah(totals.laba_total)}
+              </p>
+              <p className="text-[10px] font-mono text-slate-500">Laba riil setelah dipotong modal HPP</p>
+            </div>
+
+            {/* Stat 3: Outstanding Piutang */}
+            <div className="bg-white p-6 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-1">
+              <p className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 bg-rose-500 border border-slate-800 rounded-full block" /> OUTSTANDING PIUTANG
+              </p>
+              <p className="text-3xl font-extrabold font-mono text-rose-600 tabular-nums">
+                {formatRupiah(totals.piutang)}
+              </p>
+              <p className="text-[10px] font-mono text-slate-500">Uang bon di luar yang belum ditagih</p>
+            </div>
+          </div>
+
+          {/* 2. COMPACT FILTER ROW & EXPORT CSV BUTTON */}
+          <div className="bg-white p-5 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-4 w-full">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center flex-wrap gap-4">
+                
+                {/* Month Dropdown */}
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <label className="text-xs font-mono font-bold text-slate-700 uppercase whitespace-nowrap hidden sm:block">
+                    Pilih Bulan:
+                  </label>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => handleMonthChange(e.target.value)}
+                    className="w-full sm:w-auto bg-slate-50 border-2 border-slate-800 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-[#CCFF00] outline-none cursor-pointer min-w-[180px]"
+                  >
+                    {availableMonths.map(m => {
+                      const parts = m.split('-');
+                      const year = parts[0];
+                      const monthIdx = parseInt(parts[1], 10) - 1;
+                      const monthNames = [
+                        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+                      ];
+                      const monthLabel = monthNames[monthIdx] ? `${monthNames[monthIdx]} ${year}` : m;
+                      return (
+                        <option key={m} value={m}>
+                          {monthLabel}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Date Range Inputs */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                  <label className="text-xs font-mono font-bold text-slate-700 uppercase whitespace-nowrap hidden sm:block">
+                    Rentang:
+                  </label>
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+                    <input
+                      type="date"
+                      value={exportStartDate}
+                      onChange={(e) => handleStartDateChange(e.target.value)}
+                      className="flex-1 sm:flex-none bg-slate-50 border-2 border-slate-800 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#CCFF00] min-w-[130px]"
+                    />
+                    <span className="text-xs text-slate-500 font-mono font-bold">s/d</span>
+                    <input
+                      type="date"
+                      value={exportEndDate}
+                      max={!isPro && exportStartDate ? new Date(new Date(exportStartDate).getTime() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0] : undefined}
+                      onChange={(e) => handleEndDateChange(e.target.value)}
+                      className="flex-1 sm:flex-none bg-slate-50 border-2 border-slate-800 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#CCFF00] min-w-[130px]"
+                    />
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Unduh CSV Button */}
+              <button
+                onClick={handleExportOverallCSV}
+                className="btn-arcade w-full lg:w-auto bg-[#CCFF00] hover:bg-[#b3e600] border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] text-slate-900 text-xs font-mono font-bold uppercase px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              >
+                <Download size={15} />
+                <span>Unduh CSV Rekap</span>
+                {!isPro && (
+                  <span className="bg-slate-900 text-[#CCFF00] text-[9px] font-black px-1.5 py-0.2 rounded border border-slate-800 ml-1">
+                    PRO
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {dateCapError && (
+              <p className="text-xs font-mono font-bold text-rose-900 bg-rose-50 p-2.5 rounded-xl border border-rose-300">
+                {dateCapError}
+              </p>
+            )}
+          </div>
+
+          {/* 3. CHARTS ROW */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <MonthlyTrendChart data={trendData} />
+            <CategoryPieChart data={ledgerData.categoryOmzets} />
           </div>
         </div>
+      )}
 
-        {/* Metric 2: Laba Bersih */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-2">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">💜 Laba Bersih Lunas (HL)</p>
-          <p className="text-2xl font-extrabold text-purple-700 tabular-nums">{formatRupiah(totals.laba_total)}</p>
-          <p className="text-[11px] text-gray-500 mt-1">Keuntungan yang sudah terealisasi</p>
-        </div>
+      {/* ── TAB 2: HEATMAP JAM SIBUK (Gated for FREE) ── */}
+      {activeTab === 'heatmap' && (
+        <div className="relative">
+          <div className={`bg-white p-6 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-6 ${
+            isFree ? 'filter blur-sm opacity-35 pointer-events-none select-none' : ''
+          }`}>
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h2 className="text-base font-extrabold text-slate-900 font-display uppercase flex items-center gap-2">
+                  <Flame size={18} className="text-amber-500" /> Heatmap Jam Sibuk Warung (Jam Rame Pembeli)
+                </h2>
+                <p className="text-xs font-sans text-slate-600 mt-0.5">Visualisasi distribusi jam transaksi untuk optimasi jadwal kerja kasir &amp; stok.</p>
+              </div>
+            </div>
 
-        {/* Metric 3: Piutang */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-2">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide text-rose-deep">🔴 Piutang Outstanding</p>
-          <p className="text-2xl font-extrabold text-rose-deep tabular-nums">{formatRupiah(totals.piutang)}</p>
-          <p className="text-[11px] text-gray-500 mt-1">Uang tertunggak di pelanggan</p>
-        </div>
-
-        {/* Metric 4: Total Dibayar */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-2">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide text-emerald-deep">🟢 Total Setoran Masuk</p>
-          <p className="text-2xl font-extrabold text-emerald-deep tabular-nums">{formatRupiah(totals.paid)}</p>
-          <p className="text-[11px] text-gray-500 mt-1">Omzet Lunas + Ongkir Lunas</p>
-        </div>
-      </div>
-
-      {/* Action export card */}
-      <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <span className="text-xs text-[#6B4F3A] font-bold">Unduh laporan keuangan ({selectedMonth}):</span>
-        <div className="flex flex-wrap gap-2.5">
-          <button 
-            id="report-pdf-btn"
-            onClick={() => {
-              handlePrintOverall();
-              registerTrigger("report-pdf-btn", "click");
-            }}
-            className="flex items-center gap-1.5 px-4 h-11 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer"
-          >
-            <Printer size={15} /> Cetak/PDF Rekap
-          </button>
-          <button 
-            onClick={handleExportOverallCSV}
-            className="flex items-center gap-1.5 px-4 h-11 bg-[#C97B1A] hover:bg-[#A85F10] text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer"
-          >
-            <Download size={15} /> CSV Rekap Bulanan
-          </button>
-          <button 
-            onClick={handleExportCustomersCSV}
-            className="flex items-center gap-1.5 px-4 h-11 bg-[#FAF7F0] hover:bg-[#E8DCC8] border border-[#E8DCC8] text-[#3D1A0F] text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer"
-          >
-            <Download size={15} /> CSV Breakdown Pelanggan
-          </button>
-        </div>
-      </div>
-
-      {/* Analytics Charts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <MonthlyTrendChart data={trendData} />
-        <CategoryPieChart data={ledgerData.categoryOmzets} />
-      </div>
-
-      {/* Main Grid: Breakdown table & Bonus Logs */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        
-        {/* Table of customers performance (col-span 2) */}
-        <div className="xl:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-          <h2 className="text-heading text-base">Breakdown Kinerja per Pelanggan</h2>
-
-          <div className="overflow-x-auto">
-            {customerSummaries.length === 0 ? (
-              <div className="text-center py-8 text-gray-400 text-sm">Tidak ada aktivitas pelanggan di periode ini.</div>
-            ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase font-semibold pb-3">
-                    <th className="pb-3">Nama Pelanggan</th>
-                    <th className="pb-3 text-right">Omzet Lunas</th>
-                    <th className="pb-3 text-right">Laba Lunas</th>
-                    <th className="pb-3 text-right">Outstanding Piutang</th>
-                    <th className="pb-3 text-right">Setoran Masuk</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50 text-sm">
-                  {customerSummaries.map((s) => (
-                    <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="py-3 font-semibold text-charcoal-black">{s.nama}</td>
-                      <td className="py-3 text-right font-semibold tabular-nums">{formatRupiah(s.omzet)}</td>
-                      <td className="py-3 text-right text-purple-700 font-bold tabular-nums">{formatRupiah(s.laba)}</td>
-                      <td className="py-3 text-right text-rose-deep font-bold tabular-nums">{formatRupiah(s.piutang)}</td>
-                      <td className="py-3 text-right text-emerald-deep font-bold tabular-nums">{formatRupiah(s.paid)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
-        {/* Bonus grants logs (col-span 1) */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-          <h2 className="text-heading text-base flex items-center gap-1.5">
-            <Gift className="text-amber-gold" /> Log Bon Bonus Bulan Ini
-          </h2>
-          <p className="text-gray-500 text-xs leading-relaxed">
-            Daftar bon penukaran hadiah produk gratis. Nilai omzet dan laba bon bonus tidak dihitung dalam laba HL utama.
-          </p>
-
-          <hr className="border-gray-50" />
-
-          {bonusLogs.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-xs">Belum ada bon bonus di periode ini.</div>
-          ) : (
-            <div className="space-y-3">
-              {bonusLogs.map((tx) => {
-                const c = customers.find(cust => cust.id === tx.customer_id);
-                const totalQty = tx.items.reduce((s, i) => s + i.quantity, 0);
+            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-3 pt-2">
+              {hourlyData.map(h => {
+                const intensity = h.count / maxHourlyCount;
                 return (
-                  <div key={tx.id} className="p-3 bg-amber-cream/40 border border-amber-soft/50 rounded-xl space-y-1 text-xs">
-                    <div className="flex justify-between font-bold text-charcoal-black">
-                      <span>{tx.nomor_bon}</span>
-                      <span>{totalQty} Box</span>
+                  <div key={h.hour} className="flex flex-col items-center gap-1.5 group">
+                    <div className="w-full bg-slate-50 border-2 border-slate-800 rounded-xl h-28 flex flex-col justify-end p-1 relative overflow-hidden">
+                      <div
+                        className="w-full transition-all duration-500 bg-[#CCFF00] rounded-lg border border-slate-800"
+                        style={{ height: `${Math.max(10, Math.round(intensity * 100))}%`, opacity: h.count > 0 ? 1 : 0.3 }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-slate-900/90 text-[#CCFF00] text-[10px] font-mono font-bold transition-all rounded-lg">
+                        {h.count} Trx
+                      </div>
                     </div>
-                    <div className="flex justify-between text-gray-500">
-                      <span>{c ? c.nama : "Umum"}</span>
-                      <span>{tx.tanggal}</span>
-                    </div>
+                    <span className="text-[10px] font-mono font-bold text-slate-600">{String(h.hour).padStart(2, '0')}:00</span>
                   </div>
                 );
               })}
             </div>
+          </div>
+
+          {/* Paywall Overlay for FREE tier */}
+          {isFree && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-2xl p-6 text-center border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B]">
+              <div className="w-12 h-12 bg-slate-900 text-[#CCFF00] border-2 border-slate-800 rounded-2xl flex items-center justify-center mb-3 shadow-[2px_2px_0px_#1E293B]">
+                <Lock size={24} />
+              </div>
+              <span className="text-[10px] font-mono font-black tracking-widest uppercase bg-slate-100 text-slate-800 px-3 py-1 rounded border border-slate-300 mb-2">
+                FITUR PAKET STARTER &amp; PRO
+              </span>
+              <h3 className="text-base font-extrabold text-slate-900 font-display uppercase">Heatmap Jam Sibuk Terkunci</h3>
+              <p className="text-xs font-sans text-slate-600 max-w-md mt-1 mb-4">
+                Analisis jam rame pembeli untuk optimasi staf toko Anda. Upgrade kontrak Anda untuk membuka akses.
+              </p>
+              <a
+                href="/billing"
+                className="btn-arcade inline-flex items-center gap-2 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] font-mono font-bold text-xs uppercase px-5 py-2.5 rounded-xl transition-all cursor-pointer"
+              >
+                <Sparkles size={14} /> Upgrade Paket Sekarang
+              </a>
+            </div>
           )}
         </div>
-      </div>
+      )}
+
+      {/* ── TAB 3: TOP 10 PRODUK (Gated for FREE) ── */}
+      {activeTab === 'top_products' && (
+        <div className="relative">
+          <div className={`bg-white p-6 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-4 ${
+            isFree ? 'filter blur-sm opacity-35 pointer-events-none select-none' : ''
+          }`}>
+            <h2 className="text-base font-extrabold text-slate-900 font-display uppercase flex items-center gap-2 border-b border-slate-200 pb-3">
+              <Trophy size={18} className="text-amber-500" /> Top 10 Produk Paling Laku
+            </h2>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse border border-slate-800 bg-white rounded-xl overflow-hidden">
+                <thead>
+                  <tr className="bg-slate-100 border-b-2 border-slate-800 font-mono text-slate-700 font-bold uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-4">PERINGKAT</th>
+                    <th className="py-3 px-4">NAMA PRODUK</th>
+                    <th className="py-3 px-4 text-center">TOTAL TERJUAL</th>
+                    <th className="py-3 px-4 text-right">TOTAL OMZET</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 font-mono text-slate-900">
+                  {topProducts.length > 0 ? (
+                    topProducts.map((p, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50 transition-all">
+                        <td className="py-3 px-4 font-bold">
+                          <span className={`w-7 h-7 border-2 border-slate-800 rounded-lg inline-flex items-center justify-center text-[10px] font-black ${
+                            idx === 0 ? 'bg-[#CCFF00] text-slate-900' : idx === 1 ? 'bg-slate-200 text-slate-900' : idx === 2 ? 'bg-amber-100 text-amber-900' : 'bg-slate-50 text-slate-700'
+                          }`}>
+                            #{idx + 1}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-bold font-sans text-sm">{p.name}</td>
+                        <td className="py-3 px-4 text-center font-bold">{p.totalQty} Pcs</td>
+                        <td className="py-3 px-4 text-right font-extrabold tabular-nums">{formatRupiah(p.totalOmzet)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="text-center py-8 text-slate-500 font-sans">Belum ada data penjualan produk.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Paywall Overlay for FREE tier */}
+          {isFree && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-2xl p-6 text-center border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B]">
+              <div className="w-12 h-12 bg-slate-900 text-[#CCFF00] border-2 border-slate-800 rounded-2xl flex items-center justify-center mb-3 shadow-[2px_2px_0px_#1E293B]">
+                <Lock size={24} />
+              </div>
+              <span className="text-[10px] font-mono font-black tracking-widest uppercase bg-slate-100 text-slate-800 px-3 py-1 rounded border border-slate-300 mb-2">
+                FITUR PAKET STARTER &amp; PRO
+              </span>
+              <h3 className="text-base font-extrabold text-slate-900 font-display uppercase">Top 10 Produk Terkunci</h3>
+              <p className="text-xs font-sans text-slate-600 max-w-md mt-1 mb-4">
+                Pantau 10 barang paling laris beserta kontribusi omzetnya. Upgrade kontrak Anda untuk membuka data lengkap.
+              </p>
+              <a
+                href="/billing"
+                className="btn-arcade inline-flex items-center gap-2 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] font-mono font-bold text-xs uppercase px-5 py-2.5 rounded-xl transition-all cursor-pointer"
+              >
+                <Sparkles size={14} /> Upgrade Paket Sekarang
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── TAB 4: VOID LOGS (Gated for FREE) ── */}
+      {activeTab === 'void_logs' && (
+        <div className="relative">
+          <div className={`bg-white p-6 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-4 ${
+            isFree ? 'filter blur-sm opacity-35 pointer-events-none select-none' : ''
+          }`}>
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h2 className="text-base font-extrabold text-slate-900 font-display uppercase flex items-center gap-2">
+                  <ShieldAlert size={18} className="text-rose-600" /> Void Log (Radar Batal Kasir)
+                </h2>
+                <p className="text-xs font-sans text-slate-600 mt-0.5">Merekam otomatis setiap kali kasir menghapus barang dari keranjang belanja.</p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse border border-slate-800 bg-white rounded-xl overflow-hidden">
+                <thead>
+                  <tr className="bg-slate-100 border-b-2 border-slate-800 font-mono text-slate-700 font-bold uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-4">WAKTU BATAL</th>
+                    <th className="py-3 px-4">NAMA KASIR</th>
+                    <th className="py-3 px-4">PRODUK DIBATALKAN</th>
+                    <th className="py-3 px-4 text-center">QTY DIHAPUS</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 font-mono text-slate-900">
+                  {voidLogs.length > 0 ? (
+                    voidLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-50 transition-all">
+                        <td className="py-3 px-4 text-slate-500 font-medium">
+                          {new Date(log.voided_at || log.created_at).toLocaleString('id-ID')}
+                        </td>
+                        <td className="py-3 px-4 font-bold">{log.cashier_name}</td>
+                        <td className="py-3 px-4 font-bold font-sans text-sm">{log.product_name}</td>
+                        <td className="py-3 px-4 text-center font-black">
+                          <span className="bg-rose-100 border border-rose-400 text-rose-800 px-2 py-0.5 rounded font-mono text-xs">
+                            -{log.quantity}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="text-center py-8 text-slate-500 font-sans">Tidak ada riwayat pembatalan item (Void Log bersih).</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Paywall Overlay for FREE tier */}
+          {isFree && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-2xl p-6 text-center border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B]">
+              <div className="w-12 h-12 bg-slate-900 text-[#CCFF00] border-2 border-slate-800 rounded-2xl flex items-center justify-center mb-3 shadow-[2px_2px_0px_#1E293B]">
+                <Lock size={24} />
+              </div>
+              <span className="text-[10px] font-mono font-black tracking-widest uppercase bg-slate-100 text-slate-800 px-3 py-1 rounded border border-slate-300 mb-2">
+                FITUR PAKET STARTER &amp; PRO
+              </span>
+              <h3 className="text-base font-extrabold text-slate-900 font-display uppercase">Radar Batal Kasir Terkunci</h3>
+              <p className="text-xs font-sans text-slate-600 max-w-md mt-1 mb-4">
+                Pengawasan pembatalan item kasir real-time untuk mencegah kecurangan toko.
+              </p>
+              <a
+                href="/billing"
+                className="btn-arcade inline-flex items-center gap-2 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] font-mono font-bold text-xs uppercase px-5 py-2.5 rounded-xl transition-all cursor-pointer"
+              >
+                <Sparkles size={14} /> Upgrade Paket Sekarang
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── MODAL PAYWALL CSV EXPORT (Non-PRO Users) ── */}
+      {showProModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border-2 border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-[8px_8px_0px_#1E293B] relative">
+            <button
+              onClick={() => setShowProModal(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-900 transition-colors cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="w-12 h-12 bg-slate-900 text-[#CCFF00] border-2 border-slate-800 rounded-2xl flex items-center justify-center font-bold shadow-[2px_2px_0px_#1E293B]">
+              <Sparkles size={22} />
+            </div>
+
+            <div>
+              <span className="text-[10px] font-mono font-black uppercase tracking-wider bg-slate-100 text-slate-900 px-2.5 py-0.5 rounded border border-slate-300">
+                KHUSUS PAKET PRO
+              </span>
+              <h3 className="text-base font-extrabold text-slate-900 font-display uppercase mt-2">
+                Fitur Unduh CSV Terkunci
+              </h3>
+              <p className="text-xs font-sans text-slate-600 mt-1">
+                Ekspor data laporan keuangan ke format spreadsheet memerlukan kontrak <strong className="text-slate-900">PRO / EKSEKUTIF</strong>.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-300 p-4 rounded-xl text-xs font-sans space-y-2">
+              <p className="font-bold flex items-center gap-1.5 text-slate-900 font-mono uppercase text-[11px]">
+                <CheckCircle2 size={15} className="text-emerald-600" /> Benefit Paket PRO:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-slate-700 pl-1">
+                <li>Unduh data laporan &amp; rekap keuangan ke format CSV</li>
+                <li>Hingga 10 Akun Kasir POS &amp; 3 Cabang Toko</li>
+                <li>Audit Log Immutable &amp; Rekonsiliasi Otomatis</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={() => setShowProModal(false)}
+                className="btn-arcade flex-1 py-2.5 border-2 border-slate-800 text-slate-700 font-mono font-bold text-xs uppercase bg-white hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+              >
+                Nanti Saja
+              </button>
+              <a
+                href="/billing"
+                className="btn-arcade flex-1 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] text-slate-900 font-mono font-bold text-xs uppercase text-center rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Sparkles size={14} /> Upgrade ke PRO
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL DATE RANGE CAP ERROR (Max 30 Days) ── */}
+      {dateCapError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border-2 border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-[8px_8px_0px_#1E293B] relative">
+            <button
+              onClick={() => setDateCapError('')}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-900 transition-colors cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="w-12 h-12 bg-rose-100 border-2 border-rose-500 text-rose-800 rounded-2xl flex items-center justify-center font-bold shadow-[2px_2px_0px_#E30022]">
+              <AlertTriangle size={22} />
+            </div>
+
+            <div>
+              <span className="text-[10px] font-mono font-black uppercase tracking-wider bg-rose-50 text-rose-800 border border-rose-300 px-2.5 py-0.5 rounded">
+                BATAS RENTANG EKSPOR CSV
+              </span>
+              <h3 className="text-base font-extrabold text-slate-900 font-display uppercase mt-2">
+                Batas Maksimal 30 Hari Ekspor
+              </h3>
+              <p className="text-xs font-sans text-slate-600 mt-1">
+                {dateCapError}
+              </p>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setDateCapError('')}
+                className="btn-arcade px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-[#CCFF00] border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] font-mono font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+              >
+                Mengerti &amp; Sesuaikan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

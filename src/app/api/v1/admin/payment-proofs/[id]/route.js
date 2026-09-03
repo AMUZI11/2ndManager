@@ -48,22 +48,32 @@ export async function POST(request, { params }) {
       const validUntil = new Date();
       validUntil.setDate(validUntil.getDate() + 30);
 
-      const plan = proof.plan_requested.toUpperCase();
-      const tier = plan === 'EKSEKUTIF' ? 'EKSEKUTIF' : (plan === 'PRO' || plan === 'JURAGAN' ? 'JURAGAN' : 'MAGANG');
-      const maxCashiers = tier === 'EKSEKUTIF' ? 10 : tier === 'JURAGAN' ? 5 : 2;
-      const maxBranches = tier === 'EKSEKUTIF' ? 5 : tier === 'JURAGAN' ? 3 : 1;
+      const rawPlan = (proof.plan_requested || 'MAGANG').trim().toUpperCase();
+      let tier = 'SUPERVISOR';
+      if (rawPlan === 'EKSEKUTIF' || rawPlan === 'PRO') {
+        tier = 'EKSEKUTIF';
+      } else if (rawPlan === 'MANAJER' || rawPlan === 'JURAGAN' || rawPlan === 'PLUS') {
+        tier = 'MANAJER';
+      } else if (rawPlan === 'SUPERVISOR' || rawPlan === 'STARTER' || rawPlan === 'STANDARD') {
+        tier = 'SUPERVISOR';
+      } else {
+        tier = 'MAGANG';
+      }
 
-      // 3. Update subscription toko sasaran
+      const maxCashiers = tier === 'EKSEKUTIF' ? 10 : tier === 'MANAJER' ? 5 : 2;
+      const maxBranches = tier === 'EKSEKUTIF' ? 3 : 1;
+
+      // 3. Upsert subscription toko sasaran
       await supabaseAdmin
         .from('subscriptions')
-        .update({
-          plan,
+        .upsert({
+          shop_id: proof.shop_id,
+          plan: tier,
           valid_until: validUntil.toISOString(),
           max_cashiers: maxCashiers,
           max_branches: maxBranches,
           updated_at: new Date().toISOString(),
-        })
-        .eq('shop_id', proof.shop_id);
+        }, { onConflict: 'shop_id' });
 
       // 4. Update tabel shops (tier, status ACTIVE, unchokehold)
       await supabaseAdmin
@@ -76,7 +86,21 @@ export async function POST(request, { params }) {
         })
         .eq('id', proof.shop_id);
 
-      // 5. Catat ke Immutable Audit Log
+      // 5. Update profile owner
+      const { data: ownerShop } = await supabaseAdmin
+        .from('shops')
+        .select('owner_id')
+        .eq('id', proof.shop_id)
+        .single();
+
+      if (ownerShop?.owner_id) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({ subscription_plan: tier })
+          .eq('id', ownerShop.owner_id);
+      }
+
+      // 6. Catat ke Immutable Audit Log
       try {
         await supabaseAdmin
           .from('admin_audit_logs')
@@ -85,17 +109,31 @@ export async function POST(request, { params }) {
             admin_email: user.email,
             action_type: 'PAYMENT_PROOF_APPROVED',
             target_shop_id: proof.shop_id,
-            reason: `Menyetujui bukti pembayaran untuk upgrade paket ${plan} (Tier: ${tier}).`,
+            reason: `Menyetujui bukti pembayaran untuk upgrade paket ${rawPlan} (Tier: ${tier}).`,
             ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1',
-            metadata: { proof_id: id, plan_requested: plan, tier }
+            metadata: { proof_id: id, plan_requested: rawPlan, tier }
           });
       } catch (aErr) {
         console.error('[Audit Log Error]', aErr);
       }
 
-      // 6. Broadcast pembukaan chokehold ke user side realtime channel
+      // 7. Broadcast realtime update ke channel toko sasaran
       try {
         const controlChannel = supabaseAdmin.channel(`shop_control:${proof.shop_id}`);
+        await controlChannel.send({
+          type: 'broadcast',
+          event: 'PLAN_UPDATED',
+          payload: {
+            event: 'PLAN_UPDATED',
+            shop_id: proof.shop_id,
+            plan: tier,
+            tier: tier,
+            operational_status: 'ACTIVE',
+            max_cashiers: maxCashiers,
+            max_branches: maxBranches,
+            timestamp: new Date().toISOString(),
+          },
+        });
         await controlChannel.send({
           type: 'broadcast',
           event: 'CHOKEHOLD_REVOKED',
@@ -109,7 +147,7 @@ export async function POST(request, { params }) {
         });
       } catch (cErr) {}
 
-      return successResponse({ message: `Berhasil menyetujui paket ${plan} (Tier: ${tier}) untuk toko.` });
+      return successResponse({ message: `Berhasil menyetujui paket ${rawPlan} (Tier: ${tier}) untuk toko.` });
     } else if (action === 'REJECT') {
       if (!rejection_reason?.trim()) {
         return errorResponse('Alasan penolakan wajib diisi.', 'VALIDATION_ERROR', 422);

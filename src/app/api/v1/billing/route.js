@@ -5,19 +5,34 @@ export const GET = withBossOnly(async (request, context, { user, profile, supaba
   try {
     const { data: userShop } = await supabase
       .from('user_shops')
-      .select('shop_id, shops(name)')
+      .select('shop_id, shops(id, name, subscription_tier, operational_status, cashier_limit)')
       .eq('user_id', user.id)
       .single();
 
     const shopId = userShop?.shop_id;
     if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
+    const shop = userShop?.shops;
+    const activeTier = shop?.subscription_tier && shop.subscription_tier !== 'TRIAL' ? shop.subscription_tier : 'MAGANG';
+
     // Ambil info subscription
-    const { data: subscription } = await supabase
+    let { data: subscription } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('shop_id', shopId)
-      .single();
+      .maybeSingle();
+
+    if (!subscription) {
+      subscription = {
+        shop_id: shopId,
+        plan: activeTier,
+        max_cashiers: shop?.cashier_limit || 1,
+        max_branches: 1,
+        valid_until: null,
+      };
+    } else if (activeTier !== 'MAGANG' && (!subscription.plan || subscription.plan === 'FREE')) {
+      subscription.plan = activeTier;
+    }
 
     // Ambil riwayat pengajuan bukti pembayaran
     const { data: paymentProofs } = await supabase
@@ -26,9 +41,15 @@ export const GET = withBossOnly(async (request, context, { user, profile, supaba
       .eq('shop_id', shopId)
       .order('created_at', { ascending: false });
 
+    const activePlan = subscription?.plan || activeTier || 'MAGANG';
+
     return successResponse({
       shop_id: shopId,
-      shop_name: userShop?.shops?.name || 'Toko Saya',
+      shop_name: shop?.name || 'Toko Saya',
+      plan: activePlan,
+      tier: activeTier,
+      operational_status: shop?.operational_status || 'ACTIVE',
+      cashier_limit: shop?.cashier_limit || 1,
       subscription,
       payment_proofs: paymentProofs || [],
     });

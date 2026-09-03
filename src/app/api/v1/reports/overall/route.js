@@ -1,118 +1,140 @@
-// GET /api/v1/reports/overall — Laporan keseluruhan semua pelanggan
-import { prisma } from '@/lib/prisma';
-import { withAuth, errorResponse, successResponse } from '@/lib/auth';
-import { formatTransaction, getFiveYearsAgoDate } from '@/lib/calculations';
+import { withBossOnly, errorResponse, successResponse, checkSubscriptionActive } from '@/lib/auth-helpers';
+import { canAccessFeature, checkQuotaLimit } from '@/lib/subscription';
 
-export const GET = withAuth(async (request) => {
+export const GET = withBossOnly(async (request, context, { user, profile, supabase }) => {
   try {
     const { searchParams } = new URL(request.url);
     const month = searchParams.get('month');
     const year = searchParams.get('year');
 
-    const fiveYearsAgo = getFiveYearsAgoDate();
+    const { data: userShop } = await supabase
+      .from('user_shops').select('shop_id').eq('user_id', user.id).single();
+    const shopId = userShop?.shop_id;
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
-    const where = {};
-    if (month && year) {
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
-      const effectiveStart = startDate > fiveYearsAgo ? startDate : fiveYearsAgo;
-      where.tanggal = { gte: effectiveStart, lte: endDate };
-    } else {
-      where.tanggal = { gte: fiveYearsAgo };
+    // Date range filter
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+    let startDate = fiveYearsAgo.toISOString().split('T')[0];
+    let endDate = new Date().toISOString().split('T')[0];
+
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+
+    if (startDateParam && endDateParam) {
+      startDate = startDateParam;
+      endDate = endDateParam;
+    } else if (month && year) {
+      const s = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const e = new Date(parseInt(year), parseInt(month), 0);
+      startDate = (s > fiveYearsAgo ? s : fiveYearsAgo).toISOString().split('T')[0];
+      endDate = e.toISOString().split('T')[0];
     }
 
-    // 1. Setup date ranges
-    const bonusWhere = {};
-    if (month && year) {
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
-      const effectiveStart = startDate > fiveYearsAgo ? startDate : fiveYearsAgo;
-      bonusWhere.granted_at = { gte: effectiveStart, lte: endDate };
-    } else {
-      bonusWhere.granted_at = { gte: fiveYearsAgo };
+    // Fetch user subscription plan
+    const { plan } = await checkSubscriptionActive(supabase, shopId);
+
+    // Server-side date validation & reporting gating
+    const diffDays = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 3600 * 24));
+    const dayCheck = checkQuotaLimit(plan, diffDays, 'max_report_days');
+    if (!dayCheck.allowed) {
+      return errorResponse(
+        `Rentang tanggal (${diffDays} hari) melebihi batas ${dayCheck.message}`,
+        'LIMIT_EXCEEDED',
+        403
+      );
     }
 
-    // 2. Aggregate transactions
-    const lunasAgg = await prisma.transaction.aggregate({
-      where: { ...where, status: 'Lunas', is_bonus: false },
-      _sum: { omzet_total: true, laba_total: true, amount_owed: true }
-    });
+    if (searchParams.get('export') === 'csv') {
+      if (!canAccessFeature(plan, 'export_csv')) {
+        return errorResponse(
+          'Fitur Ekspor CSV Historis Tanpa Batas hanya tersedia untuk Paket PRO. Silakan upgrade paket Anda.',
+          'LIMIT_EXCEEDED',
+          403
+        );
+      }
+    }
 
-    const piutangAgg = await prisma.transaction.aggregate({
-      where: { ...where, status: 'Piutang' },
-      _sum: { amount_owed: true }
-    });
+    // All transactions in range for this shop
+    const { data: transactions, error: txErr } = await supabase
+      .from('transactions')
+      .select(`
+        id, status, is_bonus, omzet_total, laba_total, amount_owed, customer_id, tanggal,
+        transaction_items (product_type_snapshot, line_omzet, is_bonus_item)
+      `)
+      .eq('shop_id', shopId)
+      .gte('tanggal', startDate)
+      .lte('tanggal', endDate);
 
-    const omzet_total = Number(lunasAgg._sum.omzet_total || 0n);
-    const laba_total = Number(lunasAgg._sum.laba_total || 0n);
-    const total_paid = Number(lunasAgg._sum.amount_owed || 0n);
-    const total_piutang = Number(piutangAgg._sum.amount_owed || 0n);
+    if (txErr) throw txErr;
 
-    // 3. Aggregate line item omzet grouped by product type (LM vs BR)
-    const itemsAgg = await prisma.transactionItem.groupBy({
-      by: ['product_type_snapshot'],
-      where: {
-        transaction: { ...where, status: 'Lunas', is_bonus: false },
-        is_bonus_item: false,
-      },
-      _sum: { line_omzet: true }
-    });
+    // Aggregate
+    let totalOmzetLunas = 0, totalLabaLunas = 0, totalPaid = 0, totalPiutang = 0;
+    let omzetLM = 0, omzetBR = 0;
+    const customerLunasMap = {}, customerPiutangMap = {};
 
-    const omzet_lm = Number(itemsAgg.find(i => i.product_type_snapshot === 'LM')?._sum?.line_omzet || 0n);
-    const omzet_br = Number(itemsAgg.find(i => i.product_type_snapshot === 'BR')?._sum?.line_omzet || 0n);
+    for (const tx of transactions) {
+      if (tx.status === 'Lunas' && !tx.is_bonus) {
+        totalOmzetLunas += Number(tx.omzet_total);
+        totalLabaLunas += Number(tx.laba_total);
+        totalPaid += Number(tx.amount_owed);
+        if (tx.customer_id) {
+          if (!customerLunasMap[tx.customer_id]) customerLunasMap[tx.customer_id] = { omzet: 0, laba: 0, paid: 0 };
+          customerLunasMap[tx.customer_id].omzet += Number(tx.omzet_total);
+          customerLunasMap[tx.customer_id].laba += Number(tx.laba_total);
+          customerLunasMap[tx.customer_id].paid += Number(tx.amount_owed);
+        }
+        for (const item of tx.transaction_items || []) {
+          if (!item.is_bonus_item) {
+            if (item.product_type_snapshot === 'LM') omzetLM += Number(item.line_omzet);
+            else if (item.product_type_snapshot === 'BR') omzetBR += Number(item.line_omzet);
+          }
+        }
+      } else if (tx.status === 'Piutang') {
+        totalPiutang += Number(tx.amount_owed);
+        if (tx.customer_id) {
+          if (!customerPiutangMap[tx.customer_id]) customerPiutangMap[tx.customer_id] = { piutang: 0 };
+          customerPiutangMap[tx.customer_id].piutang += Number(tx.amount_owed);
+        }
+      }
+    }
 
-    // 4. Calculate stats per customer
-    const customerLunas = await prisma.transaction.groupBy({
-      by: ['customer_id'],
-      where: { ...where, status: 'Lunas', is_bonus: false, customer_id: { not: null } },
-      _sum: { omzet_total: true, laba_total: true, amount_owed: true }
-    });
+    // Customer list
+    const { data: customers } = await supabase
+      .from('customers')
+      .select('id, nama')
+      .eq('shop_id', shopId)
+      .eq('is_deleted', false)
+      .order('nama', { ascending: true });
 
-    const customerPiutang = await prisma.transaction.groupBy({
-      by: ['customer_id'],
-      where: { ...where, status: 'Piutang', customer_id: { not: null } },
-      _sum: { amount_owed: true }
-    });
-
-    const customers = await prisma.customer.findMany({
-      where: { is_deleted: false },
-      orderBy: { nama: 'asc' },
-    });
-
-    const lunasMap = Object.fromEntries(customerLunas.map(c => [c.customer_id, c._sum]));
-    const piutangMap = Object.fromEntries(customerPiutang.map(c => [c.customer_id, c._sum]));
-
-    const by_customer = customers.map(c => {
-      const lSum = lunasMap[c.id] || { omzet_total: 0n, laba_total: 0n, amount_owed: 0n };
-      const pSum = piutangMap[c.id] || { amount_owed: 0n };
-
-      return {
-        customer_id: c.id,
-        nama: c.nama,
-        omzet_lunas: Number(lSum.omzet_total || 0n),
-        laba_lunas: Number(lSum.laba_total || 0n),
-        piutang: Number(pSum.amount_owed || 0n),
-        paid: Number(lSum.amount_owed || 0n),
-      };
-    }).filter(c => c.omzet_lunas > 0 || c.piutang > 0);
+    const by_customer = (customers || []).map(c => ({
+      customer_id: c.id,
+      nama: c.nama,
+      omzet_lunas: customerLunasMap[c.id]?.omzet || 0,
+      laba_lunas: customerLunasMap[c.id]?.laba || 0,
+      piutang: customerPiutangMap[c.id]?.piutang || 0,
+      paid: customerLunasMap[c.id]?.paid || 0,
+    })).filter(c => c.omzet_lunas > 0 || c.piutang > 0);
 
     // Bonus log
-    const bonusGrants = await prisma.bonusGrant.findMany({
-      where: bonusWhere,
-      include: { customer: true, transaction: true },
-      orderBy: { granted_at: 'desc' },
-    });
+    const { data: bonusGrants } = await supabase
+      .from('bonus_grants')
+      .select('*, customers(nama), transactions(nomor_bon)')
+      .eq('shop_id', shopId)
+      .gte('granted_at', startDate)
+      .lte('granted_at', endDate)
+      .order('granted_at', { ascending: false });
 
     return successResponse({
       period: { month: month ? parseInt(month) : null, year: year ? parseInt(year) : null },
-      total_omzet_lunas: { lm: omzet_lm, br: omzet_br, total: omzet_total },
-      total_laba_lunas: laba_total,
-      total_piutang_outstanding: total_piutang,
-      total_paid,
+      total_omzet_lunas: { lm: omzetLM, br: omzetBR, total: totalOmzetLunas },
+      total_laba_lunas: totalLabaLunas,
+      total_piutang_outstanding: totalPiutang,
+      total_paid: totalPaid,
       by_customer,
-      bonus_log: bonusGrants.map(g => ({
+      bonus_log: (bonusGrants || []).map(g => ({
         id: g.id,
-        customer_nama: g.customer.nama,
+        customer_nama: g.customers?.nama || 'Unknown',
         bonuses_granted: g.bonuses_granted,
         omzet_consumed: Number(g.omzet_consumed),
         granted_at: g.granted_at,

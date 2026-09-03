@@ -134,9 +134,8 @@ function AuthenticatedLayoutInner({ children }) {
           const billingRes = await fetch('/api/v1/billing');
           if (billingRes.ok) {
             const json = await billingRes.json();
-            if (json?.data?.subscription?.plan) {
-              setUserPlan(json.data.subscription.plan);
-            }
+            const activePlan = json?.data?.plan || json?.data?.subscription?.plan || json?.data?.tier || 'MAGANG';
+            setUserPlan(activePlan);
           }
         } catch (planErr) {
           console.error('[Plan fetch error]', planErr);
@@ -176,6 +175,42 @@ function AuthenticatedLayoutInner({ children }) {
 
     checkSession();
   }, [router, supabase]);
+
+  // Realtime plan synchronization from Admin Command Deck
+  useEffect(() => {
+    if (!currentShopId) return;
+
+    const channel = supabase.channel(`shop_control_user_${currentShopId}`);
+    channel.on('broadcast', { event: 'PLAN_UPDATED' }, (payload) => {
+      const newPlan = payload?.payload?.plan || payload?.payload?.tier;
+      if (newPlan) {
+        setUserPlan(newPlan);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('hl-plan-changed', { detail: { plan: newPlan } }));
+        }
+      }
+    });
+    channel.on('broadcast', { event: 'CHOKEHOLD_REVOKED' }, (payload) => {
+      const newPlan = payload?.payload?.tier;
+      if (newPlan) {
+        setUserPlan(newPlan);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('hl-plan-changed', { detail: { plan: newPlan } }));
+        }
+      }
+    });
+    channel.subscribe();
+
+    const handleLocalPlanChanged = (e) => {
+      if (e.detail?.plan) setUserPlan(e.detail.plan);
+    };
+    window.addEventListener('hl-plan-changed', handleLocalPlanChanged);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('hl-plan-changed', handleLocalPlanChanged);
+    };
+  }, [currentShopId, supabase]);
 
   // Status Symbol Logo Helper
   const renderBrandLogo = (isMobile = false) => {
