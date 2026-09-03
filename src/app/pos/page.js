@@ -694,7 +694,7 @@ export default function PosPage() {
         {/* ─────────────────────────────────────────────────────────────
             SISI KIRI (7-8 cols): Auto-Scanner Barcode & Katalog Produk
             ───────────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-7 xl:col-span-8 p-4 md:p-6 flex flex-col space-y-4 overflow-y-auto max-h-[calc(100vh-64px)]">
+        <div className="lg:col-span-7 xl:col-span-8 p-4 md:p-6 flex flex-col space-y-4 overflow-y-auto max-h-none lg:max-h-[calc(100vh-64px)]">
 
           {/* Barcode Auto-Scanner Bar (Solid Ground) */}
           <form onSubmit={handleBarcodeOrSearchSubmit} className="relative group">
@@ -828,7 +828,7 @@ export default function PosPage() {
         {/* ─────────────────────────────────────────────────────────────
             SISI KANAN (4-5 cols): Keranjang Kasir & Ringkasan Checkout (Zona Mesin)
             ───────────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-5 xl:col-span-4 bg-white border-t-2 lg:border-t-0 lg:border-l-2 border-slate-800 p-4 md:p-6 flex flex-col justify-between max-h-[calc(100vh-64px)] shadow-lg relative z-20">
+        <div className="lg:col-span-5 xl:col-span-4 bg-white border-t-2 lg:border-t-0 lg:border-l-2 border-slate-800 p-4 md:p-6 pb-24 sm:pb-28 lg:pb-6 flex flex-col justify-between max-h-none lg:max-h-[calc(100vh-64px)] shadow-lg relative z-20">
 
           <div className="space-y-4 flex-1 overflow-y-auto pr-1">
 

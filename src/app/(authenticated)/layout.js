@@ -23,12 +23,51 @@ function AuthenticatedLayoutInner({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [shops, setShops] = useState([]);
   const [currentShopId, setCurrentShopId] = useState('ALL');
 
   const [userPlan, setUserPlan] = useState('FREE');
   const [chokeholdLock, setChokeholdLock] = useState(null);
   const { registerTrigger, activeTutorial } = useTutorial();
+
+  // Virtual keyboard detection to auto-hide mobile dock
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        const isKeyboard = window.innerHeight - window.visualViewport.height > 150;
+        setIsKeyboardOpen(isKeyboard);
+      }
+    };
+
+    const handleFocusIn = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName)) {
+        setIsKeyboardOpen(true);
+      }
+    };
+
+    const handleFocusOut = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName)) {
+        setIsKeyboardOpen(false);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+    }
+    window.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+      }
+      window.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
 
   // Real-time Chokehold Status Listener
   useEffect(() => {
@@ -562,55 +601,81 @@ function AuthenticatedLayoutInner({ children }) {
         {children}
       </main>
 
-      {/* MOBILE BOTTOM NAVIGATION (Only on mobile < 768px) */}
-      <nav className="no-print md:hidden fixed bottom-4 left-4 right-4 h-20 bg-white/80 backdrop-blur-xl border-2 border-slate-800/40 shadow-[0_4px_20px_rgba(0,0,0,0.08)] rounded-2xl flex items-center justify-around px-2 z-[40]">
-        {navItems.slice(0, 2).map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              id={item.id}
-              href={item.href}
-              className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl gap-1 text-[11px] font-bold transition-all duration-200 ${
-                isActive ? 'text-slate-900 font-extrabold' : 'text-slate-600'
-              }`}
-            >
-              <Icon size={22} /> {item.label}
-            </Link>
-          );
-        })}
-
-        {/* Quick Action Bottom Sheet Trigger Button (+) */}
-        <button
-          type="button"
-          id="tour-nav-bon-baru"
-          onClick={() => setIsQuickActionOpen(true)}
-          className="flex flex-col items-center justify-center w-14 h-14 bg-slate-900 text-[#CCFF00] rounded-2xl transform -translate-y-4 border-2 border-slate-900 shadow-[3px_3px_0px_#1E293B] transition-all duration-200 active:scale-95 hover:scale-105 cursor-pointer font-extrabold text-2xl"
-          title="Aksi Cepat"
+      {/* ERGONOMIC FLOATING BOTTOM DOCK (Mobile < 768px) */}
+      {!isKeyboardOpen && (
+        <nav 
+          aria-label="Navigasi Bawah Mobile"
+          className="no-print md:hidden fixed bottom-0 left-0 right-0 z-40 pb-[env(safe-area-inset-bottom)] bg-white/95 backdrop-blur-xl border-t-2 border-zinc-900 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] select-none"
         >
-          +
-        </button>
-
-        {navItems.slice(2, 4).map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname.startsWith(item.href);
-          return (
+          <div className="flex items-center justify-around px-2 h-16 relative max-w-lg mx-auto">
+            {/* 1. Beranda */}
             <Link
-              key={item.href}
-              id={item.id}
-              href={item.href}
-              className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl gap-1 text-[11px] font-bold transition-all duration-200 ${
-                isActive ? 'text-slate-900 font-extrabold' : 'text-slate-600'
+              href="/dashboard"
+              className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 text-[10px] font-bold transition-all active:scale-95 ${
+                pathname === '/dashboard' ? 'text-zinc-950 font-black' : 'text-zinc-500 hover:text-zinc-800'
               }`}
             >
-              <Icon size={22} /> {item.label}
+              <div className={`p-1 rounded-lg transition-colors ${pathname === '/dashboard' ? 'bg-[#CCFF00]/30' : ''}`}>
+                <Home size={20} className={pathname === '/dashboard' ? 'stroke-[2.5]' : 'stroke-2'} />
+              </div>
+              <span className="font-sans">Beranda</span>
             </Link>
-          );
-        })}
-      </nav>
 
-      {/* BOTTOM SHEET MODAL (AKSI CEPAT BENTO BOX STYLE) */}
+            {/* 2. Produk */}
+            <Link
+              href="/products"
+              className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 text-[10px] font-bold transition-all active:scale-95 ${
+                pathname.startsWith('/products') ? 'text-zinc-950 font-black' : 'text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              <div className={`p-1 rounded-lg transition-colors ${pathname.startsWith('/products') ? 'bg-[#CCFF00]/30' : ''}`}>
+                <Package size={20} className={pathname.startsWith('/products') ? 'stroke-[2.5]' : 'stroke-2'} />
+              </div>
+              <span className="font-sans">Produk</span>
+            </Link>
+
+            {/* 3. HERO: KASIR (Elevated Neon Button) */}
+            <Link
+              href="/pos"
+              className="flex flex-col items-center justify-center -translate-y-3 px-2 focus:outline-none group active:scale-95"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-[#CCFF00] border-2 border-zinc-900 shadow-[3px_3px_0px_#1E293B] flex items-center justify-center text-zinc-950 transition-all duration-150 group-hover:scale-105">
+                <ShoppingCart size={24} className="stroke-[2.5]" />
+              </div>
+              <span className="text-[10px] font-black uppercase text-zinc-950 tracking-wider mt-0.5 bg-white/95 px-2 py-0.5 rounded-full border border-zinc-400 shadow-sm font-sans">
+                KASIR
+              </span>
+            </Link>
+
+            {/* 4. Transaksi */}
+            <Link
+              href="/transactions"
+              className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 text-[10px] font-bold transition-all active:scale-95 ${
+                pathname.startsWith('/transactions') ? 'text-zinc-950 font-black' : 'text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              <div className={`p-1 rounded-lg transition-colors ${pathname.startsWith('/transactions') ? 'bg-[#CCFF00]/30' : ''}`}>
+                <Receipt size={20} className={pathname.startsWith('/transactions') ? 'stroke-[2.5]' : 'stroke-2'} />
+              </div>
+              <span className="font-sans">Transaksi</span>
+            </Link>
+
+            {/* 5. Lainnya (Slide-Up Drawer Trigger) */}
+            <button
+              type="button"
+              onClick={() => setIsQuickActionOpen(true)}
+              className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 text-[10px] font-bold text-zinc-500 hover:text-zinc-800 transition-all active:scale-95 cursor-pointer"
+            >
+              <div className="p-1 rounded-lg hover:bg-zinc-100">
+                <Menu size={20} className="stroke-2" />
+              </div>
+              <span className="font-sans">Lainnya</span>
+            </button>
+          </div>
+        </nav>
+      )}
+
+      {/* BOTTOM SHEET MODAL (SLIDE-UP DRAWER "LAINNYA") */}
       {isQuickActionOpen && (
         <div 
           className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-4 sm:p-8 animate-fade-in"
@@ -623,7 +688,7 @@ function AuthenticatedLayoutInner({ children }) {
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 sticky top-0 bg-white/95 z-10 pt-1">
               <div className="flex items-center gap-3">
                 <span className="w-3 h-3 rounded-full bg-[#CCFF00] border border-slate-800" />
-                <h3 className="text-lg font-extrabold text-slate-900 font-sans">Menu Navigasi &amp; Aksi Cepat</h3>
+                <h3 className="text-lg font-extrabold text-slate-900 font-sans">Menu &amp; Fitur Tambahan</h3>
               </div>
               <button 
                 onClick={() => setIsQuickActionOpen(false)} 
@@ -633,85 +698,101 @@ function AuthenticatedLayoutInner({ children }) {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
-              <button
-                onClick={() => { setIsQuickActionOpen(false); router.push('/pos'); }}
-                className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-white border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl transition-all group min-h-[60px] cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#CCFF00] border border-slate-800 text-slate-900 flex items-center justify-center font-extrabold shrink-0">
-                    <ShoppingCart size={20} />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-base font-bold text-slate-900">Buka Mesin Kasir</p>
-                    <p className="text-xs text-slate-500 font-medium">Transaksi cepat &amp; cetak struk</p>
-                  </div>
-                </div>
-                <span className="text-sm font-extrabold text-slate-900 group-hover:translate-x-1 transition-transform">➔</span>
-              </button>
-
+            <div className="grid grid-cols-1 gap-2.5">
+              {/* Pelanggan */}
               <button
                 onClick={() => { setIsQuickActionOpen(false); router.push('/customers'); }}
-                className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-white border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl transition-all group min-h-[60px] cursor-pointer"
+                className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-white border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl transition-all group min-h-[56px] cursor-pointer active:scale-98"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 text-slate-900 flex items-center justify-center font-extrabold shrink-0">
                     <Users size={20} className="text-amber-800" />
                   </div>
                   <div className="text-left">
-                    <p className="text-base font-bold text-slate-900">Catat Kasbon Pelanggan</p>
-                    <p className="text-xs text-slate-500 font-medium">Kelola utang &amp; satpam WA</p>
+                    <p className="text-sm font-bold text-slate-900">Catat Kasbon &amp; Pelanggan</p>
+                    <p className="text-[11px] text-slate-500 font-medium">Kelola hutang piutang &amp; satpam WA</p>
                   </div>
                 </div>
                 <span className="text-sm font-extrabold text-slate-900 group-hover:translate-x-1 transition-transform">➔</span>
               </button>
 
-              <button
-                onClick={() => { setIsQuickActionOpen(false); router.push('/products'); }}
-                className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-white border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl transition-all group min-h-[60px] cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-300 text-slate-900 flex items-center justify-center font-extrabold shrink-0">
-                    <Package size={20} className="text-emerald-800" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-base font-bold text-slate-900">Stok &amp; Katalog Produk</p>
-                    <p className="text-xs text-slate-500 font-medium">Input barang jualan &amp; modal</p>
-                  </div>
-                </div>
-                <span className="text-sm font-extrabold text-slate-900 group-hover:translate-x-1 transition-transform">➔</span>
-              </button>
-
+              {/* Laporan */}
               <button
                 onClick={() => { setIsQuickActionOpen(false); router.push('/reporting'); }}
-                className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-white border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl transition-all group min-h-[60px] cursor-pointer"
+                className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-white border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl transition-all group min-h-[56px] cursor-pointer active:scale-98"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-100 border border-purple-300 text-slate-900 flex items-center justify-center font-extrabold shrink-0">
                     <FileText size={20} className="text-purple-800" />
                   </div>
                   <div className="text-left">
-                    <p className="text-base font-bold text-slate-900">Laporan Rekap Keuangan</p>
-                    <p className="text-xs text-slate-500 font-medium">Rekap omzet, laba, &amp; unduh PDF</p>
+                    <p className="text-sm font-bold text-slate-900">Laporan Rekap Keuangan</p>
+                    <p className="text-[11px] text-slate-500 font-medium">Omzet harian, laba rugi, &amp; unduh PDF</p>
                   </div>
                 </div>
                 <span className="text-sm font-extrabold text-slate-900 group-hover:translate-x-1 transition-transform">➔</span>
               </button>
 
+              {/* Billing */}
               <button
                 onClick={() => { setIsQuickActionOpen(false); router.push('/billing'); }}
-                className="w-full flex items-center justify-between p-3.5 bg-[#CCFF00] hover:bg-[#b3e600] border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl transition-all group min-h-[60px] cursor-pointer"
+                className="w-full flex items-center justify-between p-3 bg-[#CCFF00]/40 hover:bg-[#CCFF00]/60 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl transition-all group min-h-[56px] cursor-pointer active:scale-98"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-slate-900 text-[#CCFF00] flex items-center justify-center font-extrabold shrink-0">
                     <CreditCard size={20} />
                   </div>
                   <div className="text-left">
-                    <p className="text-base font-extrabold text-slate-900">Status Langganan Paket</p>
-                    <p className="text-xs text-slate-800 font-medium">Aktifkan Cloud &amp; Fitur PRO</p>
+                    <p className="text-sm font-extrabold text-slate-900">Kontrak Langganan Toko</p>
+                    <p className="text-[11px] text-slate-800 font-medium">Status paket, tagihan, &amp; upgrade</p>
                   </div>
                 </div>
                 <span className="text-sm font-extrabold text-slate-900 group-hover:translate-x-1 transition-transform">➔</span>
+              </button>
+
+              {/* Pengaturan */}
+              <button
+                onClick={() => { setIsQuickActionOpen(false); router.push('/settings'); }}
+                className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-white border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl transition-all group min-h-[56px] cursor-pointer active:scale-98"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 border border-blue-300 text-slate-900 flex items-center justify-center font-extrabold shrink-0">
+                    <Settings size={20} className="text-blue-800" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-slate-900">Pengaturan Toko</p>
+                    <p className="text-[11px] text-slate-500 font-medium">Printer thermal, profil toko, &amp; kasir</p>
+                  </div>
+                </div>
+                <span className="text-sm font-extrabold text-slate-900 group-hover:translate-x-1 transition-transform">➔</span>
+              </button>
+
+              {/* Bantuan */}
+              <button
+                onClick={() => { setIsQuickActionOpen(false); router.push('/help'); }}
+                className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-white border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl transition-all group min-h-[56px] cursor-pointer active:scale-98"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-300 text-slate-900 flex items-center justify-center font-extrabold shrink-0">
+                    <HelpCircle size={20} className="text-emerald-800" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-slate-900">Pusat Bantuan</p>
+                    <p className="text-[11px] text-slate-500 font-medium">Panduan pemakaian &amp; CS WhatsApp</p>
+                  </div>
+                </div>
+                <span className="text-sm font-extrabold text-slate-900 group-hover:translate-x-1 transition-transform">➔</span>
+              </button>
+
+              {/* Keluar */}
+              <button
+                onClick={() => {
+                  setIsQuickActionOpen(false);
+                  setIsLogoutConfirmOpen(true);
+                }}
+                className="w-full flex items-center justify-center gap-2 p-3 bg-slate-900 text-white hover:bg-slate-800 border-2 border-slate-900 font-mono text-xs font-bold uppercase rounded-xl transition-all min-h-[48px] cursor-pointer active:scale-98 mt-2"
+              >
+                <LogOut size={16} /> KELUAR SISTEM
               </button>
             </div>
           </div>
