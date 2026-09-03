@@ -360,15 +360,27 @@ function AuthenticatedLayoutInner({ children }) {
           </div>
 
           {session.isSuperadmin && (
-            <Link
-              href="/superadmin"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold bg-[#CCFF00] text-slate-900 border-2 border-slate-800 shadow-[3px_3px_0_#1E293B] hover:-translate-y-0.5 transition-all"
-            >
-              <span className="flex items-center gap-2">
-                <ShieldCheck size={18} /> SUPERADMIN
-              </span>
-              <span className="text-[10px] bg-slate-900 text-white px-1.5 py-0.5 font-mono rounded">SA</span>
-            </Link>
+            <div className="space-y-1.5">
+              <Link
+                href="/admin/dashboard"
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-black bg-[#09090B] text-[#CCFF00] border-2 border-slate-800 shadow-[3px_3px_0_#1E293B] hover:-translate-y-0.5 transition-all font-mono"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                  <span>COMMAND DECK</span>
+                </span>
+                <span className="text-[9px] bg-[#CCFF00] text-black px-1.5 py-0.5 rounded font-black tracking-widest">
+                  ADMIN
+                </span>
+              </Link>
+              <Link
+                href="/superadmin"
+                className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[11px] font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+              >
+                <span>Bukti Transfer</span>
+                <ShieldCheck size={13} />
+              </Link>
+            </div>
           )}
 
           <nav className={`space-y-2 ${billingFocusMode ? 'relative' : ''}`}>
