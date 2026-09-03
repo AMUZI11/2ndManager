@@ -1,8 +1,9 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { SUBSCRIPTION_PLANS, ADD_ONS, normalizePlan } from '@/lib/subscription';
-import { Sparkles, ShieldCheck, Check, X, AlertCircle, Upload, CheckCircle2, Clock } from 'lucide-react';
+import { Sparkles, ShieldCheck, Check, X, AlertCircle, Upload, CheckCircle2, Clock, ArrowLeft } from 'lucide-react';
 
 export default function BillingPage() {
   const supabase = createClient();
@@ -72,14 +73,6 @@ export default function BillingPage() {
     };
     window.addEventListener('hl-plan-changed', handlePlanUpdate);
     return () => window.removeEventListener('hl-plan-changed', handlePlanUpdate);
-  }, []);
-
-  // SIDEBAR FOCUS MODE
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent('billing_focus_mode', { detail: { active: true } }));
-    return () => {
-      window.dispatchEvent(new CustomEvent('billing_focus_mode', { detail: { active: false } }));
-    };
   }, []);
 
   const handleFileChange = (e) => {
@@ -158,6 +151,14 @@ export default function BillingPage() {
         
         {/* PAGE HEADER */}
         <div className="bg-white p-6 sm:p-8 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B]">
+          <div className="mb-4">
+            <Link
+              href="/dashboard"
+              className="btn-arcade inline-flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl font-mono text-xs font-bold uppercase transition-all cursor-pointer"
+            >
+              <ArrowLeft size={14} /> Kembali ke Dashboard
+            </Link>
+          </div>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 border border-slate-300 rounded-lg text-slate-800 font-mono text-[10px] font-bold uppercase mb-2">

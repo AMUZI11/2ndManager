@@ -27,7 +27,6 @@ function AuthenticatedLayoutInner({ children }) {
   const [currentShopId, setCurrentShopId] = useState('ALL');
 
   const [userPlan, setUserPlan] = useState('FREE');
-  const [billingFocusMode, setBillingFocusMode] = useState(false);
   const [chokeholdLock, setChokeholdLock] = useState(null);
   const { registerTrigger, activeTutorial } = useTutorial();
 
@@ -76,17 +75,6 @@ function AuthenticatedLayoutInner({ children }) {
       supabase.removeChannel(channel);
     };
   }, [currentShopId, supabase]);
-
-  // Billing Chokehold: disable nav links when on billing page
-  useEffect(() => {
-    const handleBillingFocus = (e) => {
-      setBillingFocusMode(e.detail?.active || false);
-    };
-    window.addEventListener('billing_focus_mode', handleBillingFocus);
-    // Also detect via pathname
-    setBillingFocusMode(pathname === '/billing');
-    return () => window.removeEventListener('billing_focus_mode', handleBillingFocus);
-  }, [pathname]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -418,24 +406,19 @@ function AuthenticatedLayoutInner({ children }) {
             </div>
           )}
 
-          <nav className={`space-y-2 ${billingFocusMode ? 'relative' : ''}`}>
+          <nav className="space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href);
-              const isBillingItem = item.href === '/billing';
-              const isDisabledByFocus = billingFocusMode && !isBillingItem && !isActive;
               return (
                 <Link
                   key={item.href}
                   id={item.id}
-                  href={isDisabledByFocus ? '#' : item.href}
-                  onClick={isDisabledByFocus ? (e) => e.preventDefault() : undefined}
+                  href={item.href}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold tracking-tight transition-all duration-150 min-h-[48px] ${
-                    isDisabledByFocus
-                      ? 'pointer-events-none opacity-30 text-zinc-400 border-2 border-transparent cursor-not-allowed'
-                      : isActive 
-                        ? 'bg-white/80 text-slate-900 border-2 border-slate-800 shadow-[3px_3px_0_#1E293B] font-bold' 
-                        : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 border-2 border-transparent hover:border-slate-800 hover:-translate-y-1 hover:shadow-[3px_3px_0_#1E293B]'
+                    isActive 
+                      ? 'bg-white/80 text-slate-900 border-2 border-slate-800 shadow-[3px_3px_0_#1E293B] font-bold' 
+                      : 'text-slate-700 hover:text-slate-900 hover:bg-white/50 border-2 border-transparent hover:border-slate-800 hover:-translate-y-1 hover:shadow-[3px_3px_0_#1E293B]'
                   }`}
                 >
                   <Icon size={18} className={isActive ? 'text-slate-900' : 'text-slate-600'} /> {item.label}
@@ -522,20 +505,16 @@ function AuthenticatedLayoutInner({ children }) {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname.startsWith(item.href);
-                const isBillingItem = item.href === '/billing';
-                const isDisabledByFocus = billingFocusMode && !isBillingItem && !isActive;
                 return (
                   <Link
                     key={item.href}
                     id={item.id}
-                    href={isDisabledByFocus ? '#' : item.href}
-                    onClick={isDisabledByFocus ? (e) => e.preventDefault() : () => setIsMobileMenuOpen(false)}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold tracking-tight transition-all min-h-[48px] ${
-                      isDisabledByFocus
-                        ? 'pointer-events-none opacity-30 text-zinc-400 border-2 border-transparent'
-                        : isActive 
-                          ? 'bg-[#CCFF00] text-slate-900 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] font-bold' 
-                          : 'text-slate-800 hover:bg-slate-100 border-2 border-transparent'
+                      isActive 
+                        ? 'bg-[#CCFF00] text-slate-900 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] font-bold' 
+                        : 'text-slate-800 hover:bg-slate-100 border-2 border-transparent'
                     }`}
                   >
                     <Icon size={18} /> {item.label}
