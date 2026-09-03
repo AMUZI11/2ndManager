@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useState } from 'react';
 import { ShieldAlert, MessageCircle, X, AlertTriangle } from 'lucide-react';
 
@@ -16,13 +16,30 @@ export default function PanicHelpModal({ isOpen, onClose, shopName = "Toko Saya"
 
   if (!isOpen) return null;
 
-  const handleSendWA = () => {
+  const handleSendWA = async () => {
     const now = new Date().toLocaleString('id-ID', {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
 
-    const messageText = `Halo Tim CS & Teknis HL Manager,
+    try {
+      fetch('/api/v1/support/panic-ticket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          issue_type: selectedIssue,
+          custom_note: customNote.trim(),
+          telemetry: {
+            screen: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : '',
+            client_time: now,
+          },
+        }),
+      }).catch((err) => console.warn('[Panic dispatch error]', err));
+    } catch (e) {
+      console.warn('[Panic dispatch exception]', e);
+    }
+
+    const messageText = `Halo Tim CS & Teknis 2ndManager,
 Saya memerlukan BANTUAN DARURAT operasional:
 
 🏪 Toko: ${shopName}

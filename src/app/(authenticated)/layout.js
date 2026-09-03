@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Users, Package, FileText, HelpCircle, LogOut, Settings, CreditCard, ShieldCheck, ShoppingCart, Menu, X, User, Receipt } from 'lucide-react';
+import { Home, Users, Package, FileText, HelpCircle, LogOut, Settings, CreditCard, ShieldCheck, ShoppingCart, Menu, X, User, Receipt, ShieldAlert } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { api } from '@/utils/api';
 import { useTutorial, TutorialProvider } from '@/components/TutorialEngine';
@@ -28,7 +28,54 @@ function AuthenticatedLayoutInner({ children }) {
 
   const [userPlan, setUserPlan] = useState('FREE');
   const [billingFocusMode, setBillingFocusMode] = useState(false);
+  const [chokeholdLock, setChokeholdLock] = useState(null);
   const { registerTrigger, activeTutorial } = useTutorial();
+
+  // Real-time Chokehold Status Listener
+  useEffect(() => {
+    if (!currentShopId || currentShopId === 'ALL') return;
+
+    async function checkShopStatus() {
+      try {
+        const { data: s } = await supabase
+          .from('shops')
+          .select('chokehold_active, operational_status')
+          .eq('id', currentShopId)
+          .single();
+
+        if (s?.chokehold_active || s?.operational_status === 'CHOKEHOLD') {
+          setChokeholdLock({
+            active: true,
+            reason: 'Tagihan langganan telah melampaui masa tenggang. Akses kasir dan transaksi toko terkunci sementara.',
+          });
+        } else {
+          setChokeholdLock(null);
+        }
+      } catch (e) {
+        console.warn('[Check chokehold error]', e);
+      }
+    }
+
+    checkShopStatus();
+
+    const channel = supabase
+      .channel(`shop_control:${currentShopId}`)
+      .on('broadcast', { event: 'STATUS_LOCK_UPDATE' }, (payload) => {
+        if (payload?.chokehold_active || payload?.operational_status === 'CHOKEHOLD') {
+          setChokeholdLock({
+            active: true,
+            reason: payload.reason || 'Tagihan langganan telah melampaui masa tenggang.',
+          });
+        } else {
+          setChokeholdLock(null);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentShopId, supabase]);
 
   // Billing Chokehold: disable nav links when on billing page
   useEffect(() => {
@@ -666,6 +713,51 @@ function AuthenticatedLayoutInner({ children }) {
         confirmLabel="YA, KELUAR"
         cancelLabel="BATAL"
       />
+
+      {/* Billing Chokehold Lockout Overlay */}
+      {chokeholdLock?.active && (
+        <div className="fixed inset-0 z-[9999] bg-zinc-950/95 backdrop-blur-2xl flex items-center justify-center p-6 text-center font-sans select-none animate-fadeIn">
+          <div className="max-w-md w-full bg-zinc-900 border-2 border-red-700 rounded-2xl p-6 space-y-4 shadow-[0_20px_60px_rgba(227,0,34,0.3)]">
+            <div className="w-14 h-14 rounded-xl bg-[#E30022] text-white flex items-center justify-center mx-auto border-2 border-red-500 shadow-[0_0_20px_rgba(227,0,34,0.6)]">
+              <ShieldAlert size={28} />
+            </div>
+
+            <div className="space-y-1">
+              <span className="font-mono text-[11px] font-black text-red-400 uppercase tracking-widest block">
+                [ BILLING CHOKEHOLD ACTIVE ]
+              </span>
+              <h2 className="font-heading font-black text-xl text-white uppercase tracking-tight">
+                Akses Toko Terkunci Sementara
+              </h2>
+              <p className="text-xs text-zinc-400 font-mono pt-1 leading-relaxed">
+                {chokeholdLock.reason || 'Tagihan langganan telah melampaui batas toleransi masa tenggang.'}
+              </p>
+            </div>
+
+            <div className="bg-zinc-950/80 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 font-mono space-y-1 text-left">
+              <p className="text-zinc-400">• Transaksi kasir &amp; navigasi toko dinonaktifkan sementara.</p>
+              <p className="text-zinc-400">• Hubungi pemilik toko atau CS 2ndManager untuk penyelesaian.</p>
+            </div>
+
+            <div className="pt-2 flex flex-col gap-2">
+              <Link
+                href="/billing"
+                className="w-full py-2.5 rounded-xl bg-[#CCFF00] hover:bg-[#b3e600] text-black font-black text-xs transition-colors flex items-center justify-center"
+              >
+                SELESAIKAN TAGIHAN LANGGANAN
+              </Link>
+              <a
+                href="https://wa.me/6281234567890?text=Halo%20Admin%2C%20toko%20saya%20terkunci%20Chokehold.%20Mohon%20bantuannya."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs transition-colors flex items-center justify-center"
+              >
+                Hubungi Layanan Bantuan CS
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       <SetupWizard
         isOpen={isWizardOpen}
