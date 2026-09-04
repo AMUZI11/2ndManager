@@ -1,7 +1,24 @@
 /**
  * 2ndManager Subscription & Feature Guard Configuration
  * Model: "Freemium Chokehold" & "Popcorn Pricing" (4 Tiers + Add-Ons)
+ * Delegating Single Source of Truth to @/config/tiers
  */
+
+import { 
+  TIER_CONFIG, 
+  normalizeTier, 
+  getTierConfig, 
+  calculateAdditiveCapacity, 
+  getWIBStartOfMonth 
+} from '@/config/tiers';
+
+export { 
+  TIER_CONFIG, 
+  normalizeTier, 
+  getTierConfig, 
+  calculateAdditiveCapacity, 
+  getWIBStartOfMonth 
+};
 
 export const ADD_ONS = {
   CASHIER: {
@@ -25,39 +42,39 @@ export const ADD_ONS = {
 export const SUBSCRIPTION_PLANS = {
   MAGANG: {
     id: 'MAGANG',
-    name: 'Kontrak Magang',
+    name: TIER_CONFIG.MAGANG.name,
     tier_label: 'TIER 0: THE FREE TRAP',
     badge: '[ DRAFT MAGANG ]',
-    price: 0,
+    price: TIER_CONFIG.MAGANG.price,
     price_formatted: 'Rp 0',
     period: '/bulan',
     desc: 'Uji coba terbatas untuk pembuktian sistem.',
     limits: {
-      max_branches: 1,
-      max_cashiers: 1,
-      max_transactions_monthly: 50,
-      max_report_days: 7,
-      max_sku: 50,
+      max_branches: TIER_CONFIG.MAGANG.maxBranches,
+      max_cashiers: TIER_CONFIG.MAGANG.maxCashiers,
+      max_transactions_monthly: TIER_CONFIG.MAGANG.maxMonthlyReceipts,
+      max_report_days: TIER_CONFIG.MAGANG.historyDays,
+      max_sku: TIER_CONFIG.MAGANG.maxProducts,
     },
     features: {
       pos_kiosk: true,
       sku_unlimited: false,
-      allow_kasbon: false,
-      wa_tagihan: false,
+      allow_kasbon: TIER_CONFIG.MAGANG.features.allow_kasbon,
+      wa_tagihan: TIER_CONFIG.MAGANG.features.wa_tagihan,
       print_receipt: true,
       price_override_lock: false,
       blind_closing_basic: false,
-      void_log: false,
+      void_log: TIER_CONFIG.MAGANG.features.void_log,
       diskon_bertingkat: false,
       stok_opname: false,
       laporan_kasir: false,
-      export_csv: false,
+      export_csv: TIER_CONFIG.MAGANG.features.export_csv,
       audit_log: false,
-      multi_branch: false,
+      multi_branch: TIER_CONFIG.MAGANG.features.multi_branch,
       api_access: false,
       custom_receipt: false,
-      auto_wa_report: false,
-      vip_support: false,
+      auto_wa_report: TIER_CONFIG.MAGANG.features.auto_wa_report,
+      vip_support: TIER_CONFIG.MAGANG.features.vip_support,
     },
     feature_list: [
       { text: 'Mesin Kasir POS Dasar', included: true },
@@ -72,39 +89,39 @@ export const SUBSCRIPTION_PLANS = {
 
   SUPERVISOR: {
     id: 'SUPERVISOR',
-    name: 'Kontrak Supervisor',
+    name: TIER_CONFIG.SUPERVISOR.name,
     tier_label: 'TIER 1: THE BASIC GATE',
     badge: '[ SUPERVISOR ]',
-    price: 149000,
+    price: TIER_CONFIG.SUPERVISOR.price,
     price_formatted: 'Rp 149.000',
     period: '/bulan',
     desc: 'Operasional toko dasar tanpa batas transaksi.',
     limits: {
-      max_branches: 1,
-      max_cashiers: 2,
-      max_transactions_monthly: 9999999, // Unlimited
-      max_report_days: 30,
-      max_sku: 999999,
+      max_branches: TIER_CONFIG.SUPERVISOR.maxBranches,
+      max_cashiers: TIER_CONFIG.SUPERVISOR.maxCashiers,
+      max_transactions_monthly: TIER_CONFIG.SUPERVISOR.maxMonthlyReceipts,
+      max_report_days: TIER_CONFIG.SUPERVISOR.historyDays,
+      max_sku: TIER_CONFIG.SUPERVISOR.maxProducts,
     },
     features: {
       pos_kiosk: true,
       sku_unlimited: true,
-      allow_kasbon: true,
-      wa_tagihan: true,
+      allow_kasbon: TIER_CONFIG.SUPERVISOR.features.allow_kasbon,
+      wa_tagihan: TIER_CONFIG.SUPERVISOR.features.wa_tagihan,
       print_receipt: true,
       price_override_lock: true,
       blind_closing_basic: true,
-      void_log: false,
+      void_log: TIER_CONFIG.SUPERVISOR.features.void_log,
       diskon_bertingkat: true,
       stok_opname: true,
       laporan_kasir: true,
-      export_csv: false,
+      export_csv: TIER_CONFIG.SUPERVISOR.features.export_csv,
       audit_log: false,
-      multi_branch: false,
+      multi_branch: TIER_CONFIG.SUPERVISOR.features.multi_branch,
       api_access: false,
       custom_receipt: false,
-      auto_wa_report: false,
-      vip_support: false,
+      auto_wa_report: TIER_CONFIG.SUPERVISOR.features.auto_wa_report,
+      vip_support: TIER_CONFIG.SUPERVISOR.features.vip_support,
     },
     feature_list: [
       { text: 'Transaksi (Struk) Unlimited', included: true },
@@ -119,39 +136,39 @@ export const SUBSCRIPTION_PLANS = {
 
   MANAJER: {
     id: 'MANAJER',
-    name: 'Kontrak Manajer Otonom',
+    name: TIER_CONFIG.MANAJER.name,
     tier_label: 'TIER 2: THE OVERPRICED DECOY',
     badge: '[ MANAJER OTONOM ]',
-    price: 349000,
+    price: TIER_CONFIG.MANAJER.price,
     price_formatted: 'Rp 349.000',
     period: '/bulan',
     desc: 'Pengawasan anti-fraud & audit stok otomatis.',
     limits: {
-      max_branches: 1,
-      max_cashiers: 5,
-      max_transactions_monthly: 9999999,
-      max_report_days: 365,
-      max_sku: 999999,
+      max_branches: TIER_CONFIG.MANAJER.maxBranches,
+      max_cashiers: TIER_CONFIG.MANAJER.maxCashiers,
+      max_transactions_monthly: TIER_CONFIG.MANAJER.maxMonthlyReceipts,
+      max_report_days: TIER_CONFIG.MANAJER.historyDays,
+      max_sku: TIER_CONFIG.MANAJER.maxProducts,
     },
     features: {
       pos_kiosk: true,
       sku_unlimited: true,
-      allow_kasbon: true,
-      wa_tagihan: true,
+      allow_kasbon: TIER_CONFIG.MANAJER.features.allow_kasbon,
+      wa_tagihan: TIER_CONFIG.MANAJER.features.wa_tagihan,
       print_receipt: true,
       price_override_lock: true,
       blind_closing_basic: true,
-      void_log: true,
+      void_log: TIER_CONFIG.MANAJER.features.void_log,
       diskon_bertingkat: true,
       stok_opname: true,
       laporan_kasir: true,
-      export_csv: true,
+      export_csv: TIER_CONFIG.MANAJER.features.export_csv,
       audit_log: true,
-      multi_branch: false,
+      multi_branch: TIER_CONFIG.MANAJER.features.multi_branch,
       api_access: false,
       custom_receipt: true,
-      auto_wa_report: false,
-      vip_support: false,
+      auto_wa_report: TIER_CONFIG.MANAJER.features.auto_wa_report,
+      vip_support: TIER_CONFIG.MANAJER.features.vip_support,
     },
     feature_list: [
       { text: 'Radar Kasir Nakal (Void/Selisih Log)', included: true },
@@ -166,40 +183,40 @@ export const SUBSCRIPTION_PLANS = {
 
   EKSEKUTIF: {
     id: 'EKSEKUTIF',
-    name: 'Kontrak Eksekutif',
+    name: TIER_CONFIG.EKSEKUTIF.name,
     tier_label: 'TIER 3: THE ULTIMATE TARGET',
     badge: 'REKOMENDASI MUTLAK',
     deal_header: 'CUMA +RP 50.000 DARI PAKET MANAJER',
-    price: 399000,
+    price: TIER_CONFIG.EKSEKUTIF.price,
     price_formatted: 'Rp 399.000',
     period: '/bulan',
     desc: 'Komando multi-cabang lengkap dengan asisten WhatsApp 24/7.',
     limits: {
-      max_branches: 3,
-      max_cashiers: 10,
-      max_transactions_monthly: 9999999,
-      max_report_days: 3650,
-      max_sku: 999999,
+      max_branches: TIER_CONFIG.EKSEKUTIF.maxBranches,
+      max_cashiers: TIER_CONFIG.EKSEKUTIF.maxCashiers,
+      max_transactions_monthly: TIER_CONFIG.EKSEKUTIF.maxMonthlyReceipts,
+      max_report_days: TIER_CONFIG.EKSEKUTIF.historyDays,
+      max_sku: TIER_CONFIG.EKSEKUTIF.maxProducts,
     },
     features: {
       pos_kiosk: true,
       sku_unlimited: true,
-      allow_kasbon: true,
-      wa_tagihan: true,
+      allow_kasbon: TIER_CONFIG.EKSEKUTIF.features.allow_kasbon,
+      wa_tagihan: TIER_CONFIG.EKSEKUTIF.features.wa_tagihan,
       print_receipt: true,
       price_override_lock: true,
       blind_closing_basic: true,
-      void_log: true,
+      void_log: TIER_CONFIG.EKSEKUTIF.features.void_log,
       diskon_bertingkat: true,
       stok_opname: true,
       laporan_kasir: true,
-      export_csv: true,
+      export_csv: TIER_CONFIG.EKSEKUTIF.features.export_csv,
       audit_log: true,
-      multi_branch: true,
+      multi_branch: TIER_CONFIG.EKSEKUTIF.features.multi_branch,
       api_access: true,
       custom_receipt: true,
-      auto_wa_report: true,
-      vip_support: true,
+      auto_wa_report: TIER_CONFIG.EKSEKUTIF.features.auto_wa_report,
+      vip_support: TIER_CONFIG.EKSEKUTIF.features.vip_support,
     },
     feature_list: [
       { text: 'Auto-Report WhatsApp Pukul 06:00 Pagi', included: true, star: true },
@@ -222,27 +239,17 @@ SUBSCRIPTION_PLANS.FREE = SUBSCRIPTION_PLANS.MAGANG;
 SUBSCRIPTION_PLANS.TRIAL = SUBSCRIPTION_PLANS.MAGANG;
 
 /**
- * Normalisasi nama plan ke format uppercase standar:
- * - MAGANG (Tier 0: FREE / TRIAL)
- * - SUPERVISOR (Tier 1: STARTER / STANDARD)
- * - MANAJER (Tier 2: JURAGAN / PLUS)
- * - EKSEKUTIF (Tier 3: PRO)
+ * Normalisasi nama plan ke format uppercase standar
  */
 export function normalizePlan(plan) {
-  if (!plan) return 'MAGANG';
-  const uppercase = String(plan).trim().toUpperCase();
-  if (uppercase === 'FREE' || uppercase === 'TRIAL' || uppercase === 'MAGANG') return 'MAGANG';
-  if (uppercase === 'STANDARD' || uppercase === 'STARTER' || uppercase === 'SUPERVISOR') return 'SUPERVISOR';
-  if (uppercase === 'JURAGAN' || uppercase === 'PLUS' || uppercase === 'MANAJER') return 'MANAJER';
-  if (uppercase === 'PRO' || uppercase === 'EKSEKUTIF') return 'EKSEKUTIF';
-  return SUBSCRIPTION_PLANS[uppercase] ? uppercase : 'MAGANG';
+  return normalizeTier(plan);
 }
 
 /**
  * Mengambil konfigurasi lengkap suatu paket (selalu valid, tidak pernah undefined)
  */
 export function getPlanConfig(userPlan) {
-  const planKey = normalizePlan(userPlan);
+  const planKey = normalizeTier(userPlan);
   return SUBSCRIPTION_PLANS[planKey] || SUBSCRIPTION_PLANS.MAGANG;
 }
 

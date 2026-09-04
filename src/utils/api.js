@@ -65,28 +65,43 @@ async function fetchAPI(path, options = {}) {
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
 
-  // Session expired
+  // Session expired or unauthenticated -> redirect to /login
   if (res.status === 401) {
     clearToken();
     if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-      window.location.reload();
+      window.location.href = '/login';
     }
     return null;
   }
 
-  const json = await res.json();
+  const contentType = res.headers.get('content-type') || '';
+  let json = {};
+  if (contentType.includes('application/json')) {
+    try {
+      json = await res.json();
+    } catch {
+      json = { message: 'Gagal memproses JSON response.' };
+    }
+  } else {
+    json = { message: 'Server mengembalikan respon non-JSON (HTML/Redirect).' };
+  }
+
   return { ok: res.ok, status: res.status, data: json };
 }
 
-// ─── CASCADING DISCOUNT (client-side fallback — tetap akurat) ────────────────
+// ─── CASCADING DISCOUNT (Iterative Rounding — Anti-Floating Point & Anti-NaN) ─
 
 export function calculateCascadingDiscount(basePrice, discountSteps) {
-  if (!discountSteps || discountSteps.length === 0) return Math.round(basePrice);
-  let price = Number(basePrice);
-  for (const pct of discountSteps) {
-    price = price * (1 - Number(pct) / 100);
+  if (!discountSteps || !Array.isArray(discountSteps) || discountSteps.length === 0) {
+    return Math.round(Number(basePrice) || 0);
   }
-  return Math.round(price);
+  let hargaAkhir = Number(basePrice) || 0;
+  for (const diskon of discountSteps) {
+    const nilaiDiskon = Number(diskon) || 0;
+    // Kalkulasi & pembulatan presisi per tahapan diskon (Anti-Floating Point)
+    hargaAkhir = Math.round(hargaAkhir - (hargaAkhir * (nilaiDiskon / 100)));
+  }
+  return Math.max(0, hargaAkhir);
 }
 
 // ─── API CLIENT OBJECT ───────────────────────────────────────────────────────
@@ -118,19 +133,12 @@ export const api = {
 
   getCurrentSession: () => {
     if (typeof window === 'undefined') return null;
-    const token = getToken();
-    if (!token) return null;
-    // Cek timeout 8 jam (AC-1, FR-1.6)
-    const sessionTime = sessionStorage.getItem('hl_session_time');
-    if (sessionTime) {
-      const elapsed = Date.now() - parseInt(sessionTime);
-      const EIGHT_HOURS = 8 * 60 * 60 * 1000;
-      if (elapsed > EIGHT_HOURS) {
-        clearToken();
-        return null;
-      }
+    const currentUser = sessionStorage.getItem('hl_current_user');
+    if (currentUser) {
+      try { return JSON.parse(currentUser); } catch { }
     }
-    return JSON.parse(sessionStorage.getItem('hl_current_user') || 'null');
+    // Fallback untuk Supabase Auth session
+    return { username: 'Operator', role: 'BOSS' };
   },
 
   // ── CATEGORIES ────────────────────────────────────────────────────────────
@@ -138,6 +146,12 @@ export const api = {
   getCategories: async () => {
     const res = await fetchAPI('/categories');
     return res?.data?.data || [];
+  },
+
+  seedDefaultCategories: async () => {
+    const res = await fetchAPI('/categories/seed-defaults', { method: 'POST' });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || 'Gagal memuat kategori standar');
   },
 
   addCategory: async (code, name) => {
@@ -360,7 +374,16 @@ export const api = {
       body: JSON.stringify(tx),
     });
     if (res?.ok) return { success: true, data: res.data.data };
-    return { success: false, message: res?.data?.message || 'Gagal menyimpan bon' };
+    return { 
+      success: false, 
+      status: res?.status,
+      code: res?.data?.code,
+      limit: res?.data?.limit,
+      current: res?.data?.current,
+      upgrade_required: Boolean(res?.data?.upgrade_required),
+      message: res?.data?.error || res?.data?.message || 'Gagal menyimpan bon',
+      raw: res?.data,
+    };
   },
 
   updateTransaction: async (id, updatedFields) => {
@@ -376,6 +399,17 @@ export const api = {
     const res = await fetchAPI(`/transactions/${id}`, { method: 'DELETE' });
     if (res?.ok) return { success: true };
     return { success: false, message: res?.data?.message || 'Gagal menghapus bon' };
+  },
+
+  logVoid: async (product_name, quantity) => {
+    try {
+      await fetchAPI('/void-logs', {
+        method: 'POST',
+        body: JSON.stringify({ product_name, quantity }),
+      });
+    } catch (e) {
+      console.warn('[logVoid] Failed to send void log:', e);
+    }
   },
 
   settleTransaction: async (id, tanggal_lunas) => {
@@ -481,6 +515,16 @@ export const api = {
     return res?.data?.data || [];
   },
 
+  getVoidLogs: async () => {
+    const res = await fetchAPI('/void-logs');
+    return res?.data?.data || [];
+  },
+
+  getBilling: async () => {
+    const res = await fetchAPI('/billing');
+    return res?.data?.data || null;
+  },
+
   backupData: async () => {
     const res = await fetchAPI('/admin/backup');
     if (res?.ok) return res.data.data;
@@ -494,6 +538,54 @@ export const api = {
     });
     if (res?.ok) return { success: true };
     throw new Error(res?.data?.message || 'Gagal memulihkan data cadangan.');
+  },
+
+  getBranches: async () => {
+    const res = await fetchAPI('/branches');
+    return res?.data?.data || [];
+  },
+
+  addBranch: async (name) => {
+    const res = await fetchAPI('/branches', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || 'Gagal menambahkan cabang');
+  },
+
+  getCashiers: async () => {
+    const res = await fetchAPI('/cashiers');
+    return res?.data?.data || [];
+  },
+
+  addCashier: async (data) => {
+    const res = await fetchAPI('/cashiers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || 'Gagal membuat akun kasir');
+  },
+
+  getShopProfile: async () => {
+    const res = await fetchAPI('/shops/profile');
+    return res?.data?.data || null;
+  },
+
+  updateShopProfile: async (data) => {
+    const res = await fetchAPI('/shops/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    if (res?.ok) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('hl_current_shop_name', data.name);
+        window.dispatchEvent(new CustomEvent('hl-shop-changed', { detail: { name: data.name } }));
+      }
+      return res.data.data;
+    }
+    throw new Error(res?.data?.message || 'Gagal memperbarui profil toko');
   },
 };
 

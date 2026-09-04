@@ -1,17 +1,12 @@
-// GET  /api/v1/transactions   — list transaksi dengan filter
-// POST /api/v1/transactions   — buat bon baru
-import { prisma } from '@/lib/prisma';
-import { withAuth, errorResponse, successResponse } from '@/lib/auth';
-import {
-  calculateCascadingDiscount,
-  calculateTransactionTotals,
-  formatTransaction,
-  getFiveYearsAgoDate,
-} from '@/lib/calculations';
-import { transactionSchema } from '@/lib/validation';
+// GET  /api/v1/transactions  — list transaksi dengan filter
+// POST /api/v1/transactions  — buat bon baru (dengan idempotency key)
+import { withAuthSupabase, errorResponse, successResponse, checkSubscriptionActive } from '@/lib/auth-helpers';
+import { calculateCascadingDiscount, calculateTransactionTotals } from '@/lib/calculations';
+import { getPlanConfig } from '@/lib/subscription';
+import { getTierConfig, getWIBStartOfMonth } from '@/config/tiers';
 import { logActivity } from '@/lib/audit';
 
-export const GET = withAuth(async (request) => {
+export const GET = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -20,74 +15,158 @@ export const GET = withAuth(async (request) => {
     const year = searchParams.get('year');
     const is_bonus = searchParams.get('is_bonus');
 
-    const fiveYearsAgo = getFiveYearsAgoDate();
+    // Tentukan shop_id
+    let shopId = profile.shop_id;
+    if (profile.role === 'BOSS') {
+      const { data: userShop } = await supabase
+        .from('user_shops').select('shop_id').eq('user_id', user.id).single();
+      shopId = userShop?.shop_id;
+    }
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
-    const where = {};
-    if (status) where.status = status;
-    if (customer_id) where.customer_id = customer_id;
-    if (is_bonus) where.is_bonus = is_bonus === 'true';
+    let query = supabase
+      .from('transactions')
+      .select(`
+        *,
+        transaction_items (*, products (id, nama, tipe, barcode)),
+        customers (id, nama, phone)
+      `)
+      .eq('shop_id', shopId)
+      .order('tanggal', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (status) query = query.eq('status', status);
+    if (customer_id) query = query.eq('customer_id', customer_id);
+    if (is_bonus) query = query.eq('is_bonus', is_bonus === 'true');
     if (month && year) {
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
-      const effectiveStart = startDate > fiveYearsAgo ? startDate : fiveYearsAgo;
-      where.tanggal = { gte: effectiveStart, lte: endDate };
+      const start = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString().split('T')[0];
+      const end = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
+      query = query.gte('tanggal', start).lte('tanggal', end);
     } else {
-      where.tanggal = { gte: fiveYearsAgo };
+      // Default: 5 tahun terakhir
+      const fiveYearsAgo = new Date();
+      fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+      query = query.gte('tanggal', fiveYearsAgo.toISOString().split('T')[0]);
     }
 
-    const transactions = await prisma.transaction.findMany({
-      where,
-      include: {
-        items: { include: { product: true } },
-        customer: true,
-      },
-      orderBy: { tanggal: 'desc' },
-    });
+    const { data: transactions, error } = await query;
+    if (error) throw error;
 
-    return successResponse(transactions.map(formatTransaction));
+    return successResponse(transactions);
   } catch (error) {
     console.error('[GET /transactions]', error);
     return errorResponse('Gagal memuat daftar transaksi.', 'SERVER_ERROR', 500);
   }
 });
 
-export const POST = withAuth(async (request, context, user) => {
+export const POST = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
   try {
     const body = await request.json();
-    const parsed = transactionSchema.safeParse(body);
-    if (!parsed.success) {
-      return errorResponse(parsed.error.errors[0].message, 'VALIDATION_ERROR', 422, parsed.error.format());
-    }
-    const { nomor_bon, tanggal, customer_id, ongkir, deskripsi, is_bonus, items } = parsed.data;
+    const { nomor_bon, tanggal, customer_id, ongkir, deskripsi, is_bonus, items, idempotency_key, status } = body;
 
-    // Cek duplikat nomor bon (AC-4.2)
-    const existing = await prisma.transaction.findUnique({ where: { nomor_bon: nomor_bon.trim() } });
+    // ── Idempotency check (Koreksi Kritis #3) ──────────────────────────
+    // Cek apakah transaksi dengan key ini sudah pernah diproses
+    if (idempotency_key) {
+      const { data: existing } = await supabase
+        .from('transactions')
+        .select('id, nomor_bon')
+        .eq('idempotency_key', idempotency_key)
+        .single();
+      if (existing) {
+        // Kembalikan transaksi yang sudah ada — bukan error, bukan duplikat
+        const { data: fullTx } = await supabase
+          .from('transactions')
+          .select('*, transaction_items(*, products(*)), customers(*)')
+          .eq('id', existing.id)
+          .single();
+        return successResponse(fullTx);
+      }
+    }
+
+    // Tentukan shop_id
+    let shopId = profile.shop_id;
+    if (profile.role === 'BOSS') {
+      const { data: userShop } = await supabase
+        .from('user_shops').select('shop_id').eq('user_id', user.id).single();
+      shopId = userShop?.shop_id;
+    }
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
+
+    // Validasi dasar
+    if (!nomor_bon?.trim()) return errorResponse('Nomor bon wajib diisi.', 'VALIDATION_ERROR', 422);
+    if (!items?.length) return errorResponse('Bon harus memiliki minimal 1 item.', 'VALIDATION_ERROR', 422);
+
+    // Cek plan dan kuota bulanan serta izin fitur
+    const txStatus = status || 'Piutang';
+    const { plan } = await checkSubscriptionActive(supabase, shopId);
+    const tierConfig = getTierConfig(plan);
+
+    // Chokepoint 2: Pencegahan Jebakan Struk (#51 Atomic Lock)
+    if (tierConfig.maxMonthlyReceipts !== Infinity) {
+      const startOfMonth = getWIBStartOfMonth();
+      const { count: currentMonthTxCount, error: countErr } = await supabase
+        .from('transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('shop_id', shopId)
+        .gte('created_at', startOfMonth);
+
+      if (!countErr && typeof currentMonthTxCount === 'number' && currentMonthTxCount >= tierConfig.maxMonthlyReceipts) {
+        return Response.json({
+          error: `Batas kuota transaksi bulanan telah tercapai (${tierConfig.maxMonthlyReceipts}/${tierConfig.maxMonthlyReceipts}). Tingkatkan paket Anda ke Supervisor Shift untuk transaksi tanpa batas.`,
+          code: 'RECEIPT_LIMIT_REACHED',
+          limit: tierConfig.maxMonthlyReceipts,
+          current: currentMonthTxCount,
+          upgrade_required: true,
+        }, { status: 402 });
+      }
+    }
+
+    // Cek izin Kasbon (Piutang)
+    if (txStatus === 'Piutang' && !tierConfig.features.allow_kasbon) {
+      return errorResponse('Paket Anda tidak mengizinkan pencatatan Kasbon. Silakan upgrade paket.', 'FEATURE_LOCKED', 403);
+    }
+
+    // Cek duplikat nomor bon dalam toko ini
+    const { data: existing } = await supabase
+      .from('transactions')
+      .select('id')
+      .eq('shop_id', shopId)
+      .eq('nomor_bon', nomor_bon.trim())
+      .single();
     if (existing) {
-      return errorResponse(`Nomor bon "${nomor_bon}" sudah digunakan. Silakan gunakan nomor lain.`, 'CONFLICT', 409);
+      return errorResponse(`Nomor bon "${nomor_bon}" sudah digunakan.`, 'CONFLICT', 409);
     }
 
-    // Ambil customer dan diskonnya
-    const customer = await prisma.customer.findUnique({
-      where: { id: customer_id, is_deleted: false },
-      include: { discounts: true },
-    });
-    if (!customer) {
-      return errorResponse('Pelanggan tidak ditemukan.', 'NOT_FOUND', 404);
-    }
+    // Ambil pelanggan dan diskon
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('*, customer_discounts(*)')
+      .eq('id', customer_id)
+      .eq('shop_id', shopId)
+      .eq('is_deleted', false)
+      .single();
+    if (!customer) return errorResponse('Pelanggan tidak ditemukan.', 'NOT_FOUND', 404);
 
-    // Build dynamic discounts map: { [categoryCode]: number[] }
+    // Build discounts map: { [categoryCode]: number[] }
     const discountsMap = {};
-    (customer?.discounts || []).forEach(d => {
+    (customer.customer_discounts || []).forEach(d => {
       if (!discountsMap[d.product_type]) discountsMap[d.product_type] = [];
       discountsMap[d.product_type].push({ step_order: d.step_order, pct: Number(d.percentage) });
     });
     for (const code of Object.keys(discountsMap)) {
-      discountsMap[code] = discountsMap[code].sort((a, b) => a.step_order - b.step_order).map(s => s.pct);
+      discountsMap[code] = discountsMap[code]
+        .sort((a, b) => a.step_order - b.step_order)
+        .map(s => s.pct);
     }
 
-    // Proses setiap item — kalkulasi harga diskon & snapshot
+    // Proses setiap item
     const processedItems = await Promise.all(items.map(async (item) => {
-      const product = await prisma.product.findUnique({ where: { id: item.product_id } });
+      const { data: product } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', item.product_id)
+        .eq('shop_id', shopId)
+        .single();
       if (!product) throw new Error(`Produk ${item.product_id} tidak ditemukan`);
 
       const discountSteps = discountsMap[product.tipe] || [];
@@ -101,58 +180,87 @@ export const POST = withAuth(async (request, context, user) => {
         product_type_snapshot: product.tipe,
         harga_base_snapshot: product.harga_base,
         harga_modal_snapshot: product.harga_modal,
-        discounted_unit_price: BigInt(discounted_unit_price),
+        discounted_unit_price,
         is_bonus_item: item.is_bonus_item || false,
       };
     }));
 
-    // Hitung totals
-    const { omzet_total, laba_total, amount_owed, items_with_calcs } = calculateTransactionTotals(
-      processedItems.map(i => ({
-        ...i,
-        discounted_unit_price: Number(i.discounted_unit_price),
-        harga_modal_snapshot: Number(i.harga_modal_snapshot),
-      })),
-      ongkir
-    );
+    const { omzet_total, laba_total, amount_owed, items_with_calcs } =
+      calculateTransactionTotals(processedItems, ongkir || 0);
 
-    // Simpan transaksi
-    const transaction = await prisma.transaction.create({
-      data: {
+    // Insert transaksi
+    const { data: transaction, error: txErr } = await supabase
+      .from('transactions')
+      .insert({
+        shop_id: shopId,
         nomor_bon: nomor_bon.trim(),
-        tanggal: tanggal ? new Date(tanggal) : new Date(),
-        customer_id: customer_id,
-        ongkir: ongkir,
+        idempotency_key: idempotency_key || null,
+        tanggal: tanggal ? new Date(tanggal).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        customer_id,
+        ongkir: parseInt(ongkir || 0, 10),
         deskripsi: deskripsi || null,
-        is_bonus,
-        status: 'Piutang',
-        omzet_total: BigInt(omzet_total),
-        laba_total: BigInt(laba_total),
-        amount_owed: BigInt(amount_owed),
-        items: {
-          create: items_with_calcs.map(i => ({
-            product_id: i.product_id,
-            quantity: i.quantity,
-            product_type_snapshot: i.product_type_snapshot,
-            harga_base_snapshot: BigInt(Number(i.harga_base_snapshot)),
-            harga_modal_snapshot: BigInt(Number(i.harga_modal_snapshot)),
-            discounted_unit_price: BigInt(i.discounted_unit_price || 0),
-            line_omzet: BigInt(i.line_omzet),
-            line_laba: BigInt(i.line_laba),
-            is_bonus_item: i.is_bonus_item,
-          })),
-        },
-      },
-      include: { items: { include: { product: true } }, customer: true },
-    });
+        is_bonus: is_bonus || false,
+        status: status || 'Piutang', // Use provided status or default to Piutang
+        omzet_total,
+        laba_total,
+        amount_owed,
+        created_by: user.id,
+      })
+      .select()
+      .single();
 
-    await logActivity(user.username, 'Buat Bon', `Membuat bon "${transaction.nomor_bon}" untuk "${customer.nama}" dengan total tagihan Rp${Number(transaction.amount_owed).toLocaleString('id-ID')}`);
+    if (txErr) throw txErr;
 
-    return successResponse(formatTransaction(transaction), 201);
+    // Insert items
+    const itemsToInsert = items_with_calcs.map(i => ({
+      transaction_id: transaction.id,
+      product_id: i.product_id,
+      quantity: i.quantity,
+      product_type_snapshot: i.product_type_snapshot,
+      harga_base_snapshot: Number(i.harga_base_snapshot),
+      harga_modal_snapshot: Number(i.harga_modal_snapshot),
+      discounted_unit_price: i.discounted_unit_price || 0,
+      line_omzet: i.line_omzet,
+      line_laba: i.line_laba,
+      is_bonus_item: i.is_bonus_item,
+    }));
+
+    const { error: itemsErr } = await supabase.from('transaction_items').insert(itemsToInsert);
+    if (itemsErr) throw itemsErr;
+
+    // Potong stok produk di database (UPDATE products SET stock = stock - qty)
+    for (const item of items_with_calcs) {
+      if (item.product_id) {
+        const { data: prod } = await supabase
+          .from('products')
+          .select('stock')
+          .eq('id', item.product_id)
+          .single();
+        if (prod) {
+          const updatedStock = (prod.stock || 0) - item.quantity;
+          await supabase
+            .from('products')
+            .update({ stock: updatedStock, updated_at: new Date().toISOString() })
+            .eq('id', item.product_id);
+        }
+      }
+    }
+
+    // Fetch full transaction
+    const { data: fullTx } = await supabase
+      .from('transactions')
+      .select('*, transaction_items(*, products(*)), customers(*)')
+      .eq('id', transaction.id)
+      .single();
+
+    await logActivity(supabase, shopId, profile.username || user.email, 'Buat Bon',
+      `Bon "${transaction.nomor_bon}" untuk "${customer.nama}" total Rp${Number(amount_owed).toLocaleString('id-ID')}`);
+
+    return successResponse(fullTx, 201);
   } catch (error) {
     console.error('[POST /transactions]', error);
-    if (error.code === 'P2002') {
-      return errorResponse('Nomor bon sudah digunakan. Silakan gunakan nomor lain.', 'CONFLICT', 409);
+    if (error.code === '23505') {
+      return errorResponse('Nomor bon sudah digunakan.', 'CONFLICT', 409);
     }
     return errorResponse(`Gagal menyimpan bon: ${error.message}`, 'SERVER_ERROR', 500);
   }

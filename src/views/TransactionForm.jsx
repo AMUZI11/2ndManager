@@ -334,7 +334,13 @@ export default function TransactionForm({ setView, editTransactionId }) {
           setView("dashboard");
         }, 1500);
       } else {
-        setErrorMsg(result.message);
+        if (result.status === 402 || result.code === 'RECEIPT_LIMIT_REACHED' || result.upgrade_required) {
+          setErrorMsg(
+            `${result.message || 'Batas kuota transaksi bulanan telah tercapai (50/50).'} Kunjungi menu Billing untuk upgrade paket.`
+          );
+        } else {
+          setErrorMsg(result.message);
+        }
       }
     } catch (err) {
       setErrorMsg(err.message || "Gagal menyimpan nota penjualan.");

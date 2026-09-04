@@ -16,6 +16,7 @@ import {
   Filter
 } from 'lucide-react';
 import ChokeholdModal from '@/components/admin/ChokeholdModal';
+import { normalizeTier, TIER_CONFIG } from '@/config/tiers';
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState([]);
@@ -181,8 +182,10 @@ export default function TenantsPage() {
               ) : (
                 tenants.map((t) => {
                   const ownerPhone = t.owner?.raw_user_meta_data?.phone || t.owner?.email || '-';
-                  const tier = t.subscription_tier || t.subscriptions?.[0]?.plan || 'TRIAL';
-                  const cashiers = `${t.active_cashiers_count || 1} / ${t.cashier_limit || 1}`;
+                  const tier = normalizeTier(t.subscription_tier || t.subscriptions?.[0]?.plan || 'MAGANG');
+                  const baseCashiers = TIER_CONFIG[tier]?.maxCashiers || 1;
+                  const currentLimit = t.cashier_limit || baseCashiers;
+                  const hasOverride = currentLimit !== baseCashiers;
 
                   return (
                     <tr key={t.id} className="hover:bg-zinc-850/60 transition-colors h-10">
@@ -198,8 +201,15 @@ export default function TenantsPage() {
                       <td className="py-1.5 px-3 font-mono text-zinc-300 text-[11px] uppercase font-semibold">
                         {tier}
                       </td>
-                      <td className="py-1.5 px-3 font-mono text-zinc-400 text-[11px]">
-                        {cashiers}
+                      <td className="py-1.5 px-3 font-mono text-[11px]">
+                        <span className={hasOverride ? 'text-emerald-400 font-bold' : 'text-zinc-400'}>
+                          {t.active_cashiers_count || 1} / {currentLimit}
+                        </span>
+                        {hasOverride && (
+                          <span className="ml-1 text-[9px] px-1 py-0.2 bg-emerald-950/80 border border-emerald-800 text-emerald-300 rounded font-mono font-bold">
+                            +{currentLimit - baseCashiers}
+                          </span>
+                        )}
                       </td>
                       <td className="py-1.5 px-3">
                         {getStatusBadge(t.operational_status, t.chokehold_active)}

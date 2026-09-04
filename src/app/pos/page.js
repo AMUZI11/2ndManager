@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/client';
 import { api, calculateCascadingDiscount } from '@/utils/api';
 import { canAccessFeature } from '@/lib/subscription';
 import PaywallModal from '@/components/ui/PaywallModal';
+import UpgradePromptModal from '@/components/pos/UpgradePromptModal';
 
 // Web Audio API beep sound for barcode scanner feedback
 function playScannerBeep() {
@@ -157,6 +158,10 @@ export default function PosPage() {
   // Struk Modal
   const [completedTx, setCompletedTx] = useState(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+
+  // Upgrade Limit Modal (#51 Atomic Lock)
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [upgradeModalData, setUpgradeModalData] = useState(null);
 
   // Blind Closing Modal
   const [isBlindClosingOpen, setIsBlindClosingOpen] = useState(false);
@@ -512,7 +517,16 @@ export default function PosPage() {
 
       setIsReceiptModalOpen(true);
     } else {
-      setErrorMessage(res.message || 'Gagal menyimpan transaksi. Coba lagi.');
+      if (res.status === 402 || res.code === 'RECEIPT_LIMIT_REACHED' || res.upgrade_required) {
+        setUpgradeModalData({
+          limit: res.limit || 50,
+          current: res.current || 50,
+          message: res.message,
+        });
+        setIsUpgradeModalOpen(true);
+      } else {
+        setErrorMessage(res.message || 'Gagal menyimpan transaksi. Coba lagi.');
+      }
     }
   };
 
@@ -1326,6 +1340,13 @@ export default function PosPage() {
         message={paywallConfig.message}
         targetPlan={paywallConfig.targetPlan}
         priceLabel={paywallConfig.priceLabel}
+      />
+
+      {/* ── MODAL UPGRADE KONTRAK (#51 ATOMIC LOCK) ── */}
+      <UpgradePromptModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        errorData={upgradeModalData}
       />
 
     </div>

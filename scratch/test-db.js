@@ -1,0 +1,1 @@
+// Scratch DB test script

@@ -2,6 +2,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse } from '@/lib/auth-helpers';
+import { getTierConfig } from '@/config/tiers';
 
 export async function POST(request, { params }) {
   try {
@@ -60,8 +61,9 @@ export async function POST(request, { params }) {
         tier = 'MAGANG';
       }
 
-      const maxCashiers = tier === 'EKSEKUTIF' ? 10 : tier === 'MANAJER' ? 5 : 2;
-      const maxBranches = tier === 'EKSEKUTIF' ? 3 : 1;
+      const tierConfig = getTierConfig(tier);
+      const maxCashiers = tierConfig.maxCashiers;
+      const maxBranches = tierConfig.maxBranches;
 
       // 3. Upsert subscription toko sasaran
       await supabaseAdmin
