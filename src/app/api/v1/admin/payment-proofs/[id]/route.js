@@ -119,32 +119,33 @@ export async function POST(request, { params }) {
 
       // 7. Broadcast realtime update ke channel toko sasaran
       try {
-        const controlChannel = supabaseAdmin.channel(`shop_control:${proof.shop_id}`);
-        await controlChannel.send({
-          type: 'broadcast',
+        const payloadPlan = {
           event: 'PLAN_UPDATED',
-          payload: {
-            event: 'PLAN_UPDATED',
-            shop_id: proof.shop_id,
-            plan: tier,
-            tier: tier,
-            operational_status: 'ACTIVE',
-            max_cashiers: maxCashiers,
-            max_branches: maxBranches,
-            timestamp: new Date().toISOString(),
-          },
-        });
-        await controlChannel.send({
-          type: 'broadcast',
+          shop_id: proof.shop_id,
+          plan: tier,
+          tier: tier,
+          operational_status: 'ACTIVE',
+          max_cashiers: maxCashiers,
+          max_branches: maxBranches,
+          timestamp: new Date().toISOString(),
+        };
+
+        const payloadChokehold = {
           event: 'CHOKEHOLD_REVOKED',
-          payload: {
-            event: 'CHOKEHOLD_REVOKED',
-            shop_id: proof.shop_id,
-            tier,
-            operational_status: 'ACTIVE',
-            timestamp: new Date().toISOString(),
-          },
-        });
+          shop_id: proof.shop_id,
+          tier,
+          operational_status: 'ACTIVE',
+          timestamp: new Date().toISOString(),
+        };
+
+        // Broadcast ke channel standar dan user channel
+        const controlChannel = supabaseAdmin.channel(`shop_control:${proof.shop_id}`);
+        await controlChannel.send({ type: 'broadcast', event: 'PLAN_UPDATED', payload: payloadPlan });
+        await controlChannel.send({ type: 'broadcast', event: 'CHOKEHOLD_REVOKED', payload: payloadChokehold });
+
+        const userChannel = supabaseAdmin.channel(`shop_control_user_${proof.shop_id}`);
+        await userChannel.send({ type: 'broadcast', event: 'PLAN_UPDATED', payload: payloadPlan });
+        await userChannel.send({ type: 'broadcast', event: 'CHOKEHOLD_REVOKED', payload: payloadChokehold });
       } catch (cErr) {}
 
       return successResponse({ message: `Berhasil menyetujui paket ${rawPlan} (Tier: ${tier}) untuk toko.` });

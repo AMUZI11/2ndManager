@@ -108,6 +108,24 @@ function AuthenticatedLayoutInner({ children }) {
           setChokeholdLock(null);
         }
       })
+      .on('broadcast', { event: 'PLAN_UPDATED' }, (payload) => {
+        const newPlan = payload?.payload?.plan || payload?.payload?.tier;
+        if (newPlan) {
+          setUserPlan(newPlan);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('hl-plan-changed', { detail: { plan: newPlan } }));
+          }
+        }
+      })
+      .on('broadcast', { event: 'CHOKEHOLD_REVOKED' }, (payload) => {
+        const newPlan = payload?.payload?.tier;
+        if (newPlan) {
+          setUserPlan(newPlan);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('hl-plan-changed', { detail: { plan: newPlan } }));
+          }
+        }
+      })
       .subscribe();
 
     return () => {
