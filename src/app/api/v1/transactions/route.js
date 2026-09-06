@@ -159,27 +159,43 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
         .map(s => s.pct);
     }
 
-    // Proses setiap item
+    // Proses setiap item dengan resolusi satuan bertingkat (Multi-Tier)
     const processedItems = await Promise.all(items.map(async (item) => {
       const { data: product } = await supabase
         .from('products')
-        .select('*')
+        .select('*, product_units(*)')
         .eq('id', item.product_id)
         .eq('shop_id', shopId)
         .single();
       if (!product) throw new Error(`Produk ${item.product_id} tidak ditemukan`);
 
+      // Resolusi unit: jika item.unit_id diberikan, cari di product.product_units
+      let unit = null;
+      if (item.unit_id && product.product_units) {
+        unit = product.product_units.find(u => u.id === item.unit_id);
+      }
+      if (!unit && product.product_units) {
+        unit = product.product_units.find(u => u.is_base_unit);
+      }
+
+      const multiplier = unit?.multiplier_to_base || 1;
+      const basePrice = unit ? Number(unit.price) : Number(product.harga_base);
+      const unitCost = Number(product.harga_modal) * multiplier;
+
       const discountSteps = discountsMap[product.tipe] || [];
       const discounted_unit_price = item.is_bonus_item
         ? 0
-        : calculateCascadingDiscount(Number(product.harga_base), discountSteps);
+        : calculateCascadingDiscount(basePrice, discountSteps);
 
       return {
         product_id: product.id,
         quantity: item.quantity,
+        unit_id: unit?.id || null,
+        unit_name: unit?.unit_name || 'Pcs',
+        multiplier_to_base: multiplier,
         product_type_snapshot: product.tipe,
-        harga_base_snapshot: product.harga_base,
-        harga_modal_snapshot: product.harga_modal,
+        harga_base_snapshot: basePrice,
+        harga_modal_snapshot: unitCost,
         discounted_unit_price,
         is_bonus_item: item.is_bonus_item || false,
       };
@@ -228,20 +244,30 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     const { error: itemsErr } = await supabase.from('transaction_items').insert(itemsToInsert);
     if (itemsErr) throw itemsErr;
 
-    // Potong stok produk di database (UPDATE products SET stock = stock - qty)
+    // Potong stok produk di database secara ATOMIK via RPC mutate_product_stock
+    // dan catat mutasi stok di tabel stock_mutations
     for (const item of items_with_calcs) {
       if (item.product_id) {
-        const { data: prod } = await supabase
-          .from('products')
-          .select('stock')
-          .eq('id', item.product_id)
-          .single();
-        if (prod) {
-          const updatedStock = (prod.stock || 0) - item.quantity;
-          await supabase
-            .from('products')
-            .update({ stock: updatedStock, updated_at: new Date().toISOString() })
-            .eq('id', item.product_id);
+        const qtyToDeduct = item.quantity * (item.multiplier_to_base || 1);
+        try {
+          await supabase.rpc('mutate_product_stock', {
+            p_product_id: item.product_id,
+            p_qty: -qtyToDeduct
+          });
+
+          await supabase.from('stock_mutations').insert({
+            shop_id: shopId,
+            product_id: item.product_id,
+            mutation_type: 'SALE',
+            unit_id: item.unit_id || null,
+            unit_name: item.unit_name || 'Pcs',
+            quantity_units: item.quantity,
+            quantity_base: qtyToDeduct,
+            notes: `Penjualan Kasir Bon #${transaction.nomor_bon}`,
+            created_by: user.id
+          });
+        } catch (stockErr) {
+          console.error('[POST /transactions] Atomic stock mutation failed:', stockErr);
         }
       }
     }

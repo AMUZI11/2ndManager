@@ -15,6 +15,7 @@ import { api, calculateCascadingDiscount } from '@/utils/api';
 import { canAccessFeature } from '@/lib/subscription';
 import PaywallModal from '@/components/ui/PaywallModal';
 import UpgradePromptModal from '@/components/pos/UpgradePromptModal';
+import AssetLoanModal from '@/components/customers/AssetLoanModal';
 
 // Web Audio API beep sound for barcode scanner feedback
 function playScannerBeep() {
@@ -172,6 +173,10 @@ export default function PosPage() {
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [paywallConfig, setPaywallConfig] = useState({});
 
+  // Asset Loan Modal (Fase 1: Tabung Rolling Gas & Galon)
+  const [isAssetLoanModalOpen, setIsAssetLoanModalOpen] = useState(false);
+  const [assetLoanModalMode, setAssetLoanModalMode] = useState('RETURN');
+
   // Auto-scanner barcode ref
   const barcodeInputRef = useRef(null);
 
@@ -314,7 +319,32 @@ export default function PosPage() {
     const query = searchQuery.trim();
     if (!query) return;
 
-    // 1. Cari exact match di barcode
+    // 1. CARI RUJUKAN UTAMA: product_units.barcode (Chokepoint 2)
+    let matchedUnit = null;
+    let unitProduct = null;
+
+    for (const p of products) {
+      if (p.product_units && p.product_units.length > 0) {
+        const u = p.product_units.find(
+          (u) => u.barcode && u.barcode.toLowerCase() === query.toLowerCase()
+        );
+        if (u) {
+          matchedUnit = u;
+          unitProduct = p;
+          break;
+        }
+      }
+    }
+
+    if (matchedUnit && unitProduct) {
+      addToCart(unitProduct, matchedUnit);
+      playScannerBeep();
+      setSearchQuery('');
+      showToast(`Scanned (${matchedUnit.unit_name}): ${unitProduct.nama}`);
+      return;
+    }
+
+    // 2. Fallback: Cari di products.barcode
     const barcodeMatch = products.find(
       (p) => p.barcode && p.barcode.toLowerCase() === query.toLowerCase()
     );
@@ -327,7 +357,7 @@ export default function PosPage() {
       return;
     }
 
-    // 2. Jika bukan barcode exact match, filter list produk
+    // 3. Jika bukan barcode exact match, filter list produk
     const nameMatches = products.filter((p) =>
       p.nama.toLowerCase().includes(query.toLowerCase())
     );
@@ -357,37 +387,53 @@ export default function PosPage() {
     return map;
   }, [selectedCustomer]);
 
-  // Tambah produk ke keranjang (Negative Stock Handler: transaksi tetap jalan walau stok 0)
-  const addToCart = (product) => {
+  // Tambah produk ke keranjang (dengan dukungan Multi-Tier Unit)
+  const addToCart = (product, specificUnit = null) => {
     if (product.stock <= 0) {
       showToast(`⚠️ Stok "${product.nama}" 0 (Transaksi Tetap Berjalan)`);
     }
 
+    let unit = specificUnit;
+    if (!unit && product.product_units && product.product_units.length > 0) {
+      unit = product.product_units.find((u) => u.is_base_unit) || product.product_units[0];
+    }
+
+    const unitId = unit?.id || null;
+    const unitName = unit?.unit_name || 'Pcs';
+    const multiplier = unit?.multiplier_to_base || 1;
+    const unitPrice = unit ? Number(unit.price) : Number(product.harga_base);
+    const unitCost = Number(product.harga_modal) * multiplier;
+    const cartKey = unitId ? `${product.id}_${unitId}` : product.id;
+
     setCartItems((prevItems) => {
-      const existingIndex = prevItems.findIndex((item) => item.product_id === product.id);
+      const existingIndex = prevItems.findIndex(
+        (item) => (item.cartKey || item.product_id) === cartKey
+      );
+
       if (existingIndex > -1) {
         const updated = [...prevItems];
-        const currentQty = updated[existingIndex].quantity;
-        if (currentQty + 1 > product.stock) {
-          showToast(`⚠️ Stok tercatat ${product.stock} unit. Penambahan tetap diizinkan.`);
-        }
         updated[existingIndex].quantity += 1;
         return updated;
       }
 
       // Hitung unit price setelah diskon bertingkat (jika ada)
       const discountSteps = customerDiscountsMap[product.tipe] || [];
-      const discountedUnitPrice = calculateCascadingDiscount(Number(product.harga_base), discountSteps);
+      const discountedUnitPrice = calculateCascadingDiscount(unitPrice, discountSteps);
 
       return [
         ...prevItems,
         {
+          cartKey,
           product_id: product.id,
-          nama: product.nama,
+          unit_id: unitId,
+          unit_name: unitName,
+          multiplier_to_base: multiplier,
+          nama: unit && !unit.is_base_unit ? `${product.nama} (${unitName})` : product.nama,
+          product_name_base: product.nama,
           tipe: product.tipe,
-          barcode: product.barcode,
-          harga_base: Number(product.harga_base),
-          harga_modal: Number(product.harga_modal),
+          barcode: unit?.barcode || product.barcode,
+          harga_base: unitPrice,
+          harga_modal: unitCost,
           discounted_unit_price: discountedUnitPrice,
           discount_steps: discountSteps,
           quantity: 1,
@@ -398,10 +444,10 @@ export default function PosPage() {
     });
   };
 
-  // Update kuantitas item keranjang (dengan debounced & grouped void logging)
-  const updateCartQty = (productId, delta) => {
+  // Update kuantitas item keranjang
+  const updateCartQty = (cartKey, delta) => {
     if (delta < 0) {
-      const targetItem = cartItems.find((i) => i.product_id === productId);
+      const targetItem = cartItems.find((i) => (i.cartKey || i.product_id) === cartKey);
       if (targetItem) {
         queueVoidLog(targetItem.nama, Math.abs(delta));
       }
@@ -410,11 +456,8 @@ export default function PosPage() {
     setCartItems((prevItems) =>
       prevItems
         .map((item) => {
-          if (item.product_id === productId) {
+          if ((item.cartKey || item.product_id) === cartKey) {
             const newQty = item.quantity + delta;
-            if (newQty > item.stock) {
-              showToast(`⚠️ Stok tercatat (${item.stock} unit).`);
-            }
             return newQty > 0 ? { ...item, quantity: newQty } : null;
           }
           return item;
@@ -423,10 +466,12 @@ export default function PosPage() {
     );
   };
 
-  // Hapus item dari keranjang (dengan debounced & grouped Void Log)
+  // Hapus item dari keranjang
   const removeFromCart = (item) => {
     queueVoidLog(item.nama, item.quantity);
-    setCartItems((prevItems) => prevItems.filter((i) => i.product_id !== item.product_id));
+    setCartItems((prevItems) =>
+      prevItems.filter((i) => (i.cartKey || i.product_id) !== (item.cartKey || item.product_id))
+    );
     showToast(`Dibatalkan: ${item.nama}`);
   };
 
@@ -495,6 +540,9 @@ export default function PosPage() {
       status: paymentStatus,
       items: cartItems.map((item) => ({
         product_id: item.product_id,
+        unit_id: item.unit_id || null,
+        unit_name: item.unit_name || 'Pcs',
+        multiplier_to_base: item.multiplier_to_base || 1,
         quantity: item.quantity,
         is_bonus_item: item.is_bonus_item,
       })),
@@ -768,13 +816,12 @@ export default function PosPage() {
               const isStockLow = product.stock <= (product.reorder_threshold || 5);
 
               return (
-                <button
+                <div
                   key={product.id}
                   onClick={() => addToCart(product)}
-                  disabled={isStockOut}
-                  className={`btn-arcade bg-white border-2 rounded-2xl p-4 text-left flex flex-col justify-between h-36 transition-all duration-150 cursor-pointer relative overflow-hidden group shadow-[3px_3px_0px_#1E293B] hover:-translate-y-1 hover:shadow-[5px_5px_0px_#1E293B] ${
+                  className={`btn-arcade bg-white border-2 rounded-2xl p-3.5 text-left flex flex-col justify-between min-h-[150px] transition-all duration-150 cursor-pointer relative overflow-hidden group shadow-[3px_3px_0px_#1E293B] hover:-translate-y-1 hover:shadow-[5px_5px_0px_#1E293B] ${
                     isStockOut
-                      ? 'border-slate-300 opacity-40 bg-slate-100 cursor-not-allowed shadow-none'
+                      ? 'border-slate-300 opacity-60 bg-slate-50'
                       : isStockLow
                       ? 'border-amber-500 hover:border-slate-800'
                       : 'border-slate-800 hover:border-slate-900'
@@ -793,17 +840,43 @@ export default function PosPage() {
                   </div>
 
                   {/* Name */}
-                  <div className="my-auto">
-                    <h3 className="font-bold text-sm sm:text-base text-slate-900 line-clamp-2 leading-tight group-hover:text-slate-900 transition-colors font-sans">
+                  <div className="my-1.5">
+                    <h3 className="font-bold text-sm text-slate-900 line-clamp-2 leading-tight group-hover:text-slate-900 transition-colors font-sans">
                       {product.nama}
                     </h3>
+
+                    {/* Segmented Pills for Multi-Tier Units */}
+                    {product.product_units && product.product_units.length > 1 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>
+                        {[...product.product_units]
+                          .sort((a, b) => b.multiplier_to_base - a.multiplier_to_base)
+                          .map((u) => (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToCart(product, u);
+                                playScannerBeep();
+                                showToast(`+1 ${u.unit_name}: ${product.nama}`);
+                              }}
+                              className="px-1.5 py-0.5 text-[9px] font-mono font-black uppercase bg-amber-200 hover:bg-amber-300 text-slate-900 border border-slate-800 rounded shadow-[1px_1px_0px_#1E293B] cursor-pointer active:translate-x-0.5 active:translate-y-0.5 transition-all"
+                              title={`Tambah 1 ${u.unit_name} (Rp ${Number(u.price).toLocaleString('id-ID')})`}
+                            >
+                              {u.unit_name} ({u.multiplier_to_base})
+                            </button>
+                          ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Price & Stock Badge */}
-                  <div className="flex items-end justify-between w-full pt-1.5 border-t border-slate-200">
+                  <div className="flex items-end justify-between w-full pt-1.5 border-t border-slate-200 mt-auto">
                     <div>
-                      <span className="text-[10px] text-slate-500 font-mono block">Harga Base</span>
-                      <span className="font-extrabold text-sm sm:text-base text-slate-900 font-mono">
+                      <span className="text-[10px] text-slate-500 font-mono block">
+                        {product.product_units && product.product_units.length > 1 ? 'Eceran' : 'Harga Base'}
+                      </span>
+                      <span className="font-extrabold text-sm text-slate-900 font-mono">
                         {formatRupiah(product.harga_base)}
                       </span>
                     </div>
@@ -825,7 +898,7 @@ export default function PosPage() {
                       )}
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -898,6 +971,55 @@ export default function PosPage() {
                   </option>
                 ))}
               </select>
+
+              {/* Status Pinjaman Tabung / Galon Pelanggan (Fase 1) */}
+              {selectedCustomer && (
+                <div className="p-2.5 bg-amber-50 border-2 border-slate-800 rounded-xl flex items-center justify-between gap-2 shadow-[2px_2px_0px_#1E293B]">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-mono font-bold uppercase text-slate-600">
+                      Tabung &amp; Galon Pelanggan
+                    </div>
+                    {(() => {
+                      const activeLoans = Object.entries(selectedCustomer.loaned_assets || {})
+                        .filter(([_, qty]) => parseInt(qty, 10) > 0);
+                      if (activeLoans.length === 0) {
+                        return <span className="text-xs font-semibold text-slate-700">Tidak ada pinjaman aktif</span>;
+                      }
+                      return (
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {activeLoans.map(([t, qty]) => (
+                            <span key={t} className="px-1.5 py-0.5 bg-amber-200 border border-slate-800 text-[10px] font-mono font-black text-slate-900 rounded">
+                              ⚠️ {qty}× {t}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAssetLoanModalMode('RETURN');
+                        setIsAssetLoanModalOpen(true);
+                      }}
+                      className="px-2 py-1 bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-mono font-bold text-[10px] uppercase border border-slate-800 rounded shadow-[1px_1px_0px_#1E293B] cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+                    >
+                      Terima
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAssetLoanModalMode('LOAN');
+                        setIsAssetLoanModalOpen(true);
+                      }}
+                      className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-900 font-mono font-bold text-[10px] uppercase border border-slate-800 rounded shadow-[1px_1px_0px_#1E293B] cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+                    >
+                      Pinjam
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Item Keranjang List (Zero Zebra Stripes - Pure Clean Line Dividers) */}
@@ -1348,6 +1470,29 @@ export default function PosPage() {
         onClose={() => setIsUpgradeModalOpen(false)}
         errorData={upgradeModalData}
       />
+
+      {/* ── MODAL PELACAK TABUNG & GALON (FASE 1) ── */}
+      {selectedCustomer && (
+        <AssetLoanModal
+          customer={selectedCustomer}
+          isOpen={isAssetLoanModalOpen}
+          initialMode={assetLoanModalMode}
+          onClose={() => setIsAssetLoanModalOpen(false)}
+          onSuccess={async (res) => {
+            // Update customer data in local state
+            if (res?.updated_loaned_assets) {
+              const updatedCust = {
+                ...selectedCustomer,
+                loaned_assets: res.updated_loaned_assets,
+              };
+              setSelectedCustomer(updatedCust);
+              setCustomers((prev) =>
+                prev.map((c) => (c.id === selectedCustomer.id ? updatedCust : c))
+              );
+            }
+          }}
+        />
+      )}
 
     </div>
   );

@@ -2,6 +2,16 @@
  * src/config/tiers.js
  * Single Source of Truth for Subscription Tiers & Feature Gates
  * Canonical 4 Tiers: MAGANG (0), SUPERVISOR (1), MANAJER (2), EKSEKUTIF (3)
+ *
+ * Fase 1 Additions:
+ * - maxMultiUnitSKU: jumlah produk yang boleh punya multi-satuan
+ * - maxActiveLoans: jumlah pinjaman aset fisik aktif per toko
+ * - features.multi_unit: akses fitur konversi satuan
+ * - features.margin_guard: alarm kenaikan HPP saat kulakan
+ * - features.auto_reprice: tombol 1-klik adjust harga saat HPP naik
+ * - features.print_label_queue: antrean cetak label rak
+ * - features.asset_tracker: pelacakan tabung gas & galon
+ * - features.wa_asset_recap: kirim rekap pinjaman via WhatsApp
  */
 
 export const TIER_CONFIG = {
@@ -14,6 +24,8 @@ export const TIER_CONFIG = {
     maxCashiers: 1,
     maxMonthlyReceipts: 50,
     maxProducts: 50,
+    maxMultiUnitSKU: 0,
+    maxActiveLoans: 0,
     historyDays: 7,
     features: {
       allow_kasbon: false,
@@ -23,6 +35,12 @@ export const TIER_CONFIG = {
       export_csv: false,
       multi_branch: false,
       vip_support: false,
+      multi_unit: false,
+      margin_guard: false,
+      auto_reprice: false,
+      print_label_queue: false,
+      asset_tracker: false,
+      wa_asset_recap: false,
     },
   },
   SUPERVISOR: {
@@ -34,6 +52,8 @@ export const TIER_CONFIG = {
     maxCashiers: 2,
     maxMonthlyReceipts: Infinity,
     maxProducts: Infinity,
+    maxMultiUnitSKU: 15,
+    maxActiveLoans: 20,
     historyDays: 30,
     features: {
       allow_kasbon: true,
@@ -43,6 +63,12 @@ export const TIER_CONFIG = {
       export_csv: false,
       multi_branch: false,
       vip_support: false,
+      multi_unit: true,
+      margin_guard: true,
+      auto_reprice: false,
+      print_label_queue: false,
+      asset_tracker: true,
+      wa_asset_recap: false,
     },
   },
   MANAJER: {
@@ -54,6 +80,8 @@ export const TIER_CONFIG = {
     maxCashiers: 5,
     maxMonthlyReceipts: Infinity,
     maxProducts: Infinity,
+    maxMultiUnitSKU: Infinity,
+    maxActiveLoans: Infinity,
     historyDays: 365,
     features: {
       allow_kasbon: true,
@@ -63,6 +91,12 @@ export const TIER_CONFIG = {
       export_csv: true,
       multi_branch: false,
       vip_support: false,
+      multi_unit: true,
+      margin_guard: true,
+      auto_reprice: true,
+      print_label_queue: true,
+      asset_tracker: true,
+      wa_asset_recap: true,
     },
   },
   EKSEKUTIF: {
@@ -74,6 +108,8 @@ export const TIER_CONFIG = {
     maxCashiers: 10,
     maxMonthlyReceipts: Infinity,
     maxProducts: Infinity,
+    maxMultiUnitSKU: Infinity,
+    maxActiveLoans: Infinity,
     historyDays: 3650,
     features: {
       allow_kasbon: true,
@@ -83,6 +119,12 @@ export const TIER_CONFIG = {
       export_csv: true,
       multi_branch: true,
       vip_support: true,
+      multi_unit: true,
+      margin_guard: true,
+      auto_reprice: true,
+      print_label_queue: true,
+      asset_tracker: true,
+      wa_asset_recap: true,
     },
   },
 };

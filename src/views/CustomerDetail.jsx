@@ -1,10 +1,11 @@
 "use client";
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChevronRight, Calendar, CreditCard, Gift, Printer, CheckCircle2, ChevronLeft, X, Download } from 'lucide-react';
+import { ChevronRight, Calendar, CreditCard, Gift, Printer, CheckCircle2, ChevronLeft, X, Download, Flame } from 'lucide-react';
 import { api } from '../utils/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { useTutorial } from '../components/TutorialEngine';
 import { exportToCSV } from '../utils/export';
+import AssetLoanModal from '../components/customers/AssetLoanModal';
 
 export default function CustomerDetail({ customerId, setView, setEditTransactionId }) {
   const { registerTrigger } = useTutorial();
@@ -20,6 +21,10 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
   const [settleTxId, setSettleTxId] = useState(null);
   const [tanggalLunas, setTanggalLunas] = useState(() => new Date().toISOString().split('T')[0]);
   const [deleteTxId, setDeleteTxId] = useState(null);
+
+  // Asset Loans Modal State
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [assetModalMode, setAssetModalMode] = useState('RETURN');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -103,10 +108,10 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
 
   if (loading || !customer) {
     return (
-      <div className="min-h-[400px] flex items-center justify-center">
+      <div className="min-h-[400px] flex items-center justify-center bg-kw-bg">
         <div className="text-center space-y-2">
-          <div className="w-8 h-8 border-4 border-navy-bright border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-semibold text-charcoal-medium">Memuat data pelanggan...</p>
+          <div className="w-8 h-8 border-4 border-kw-terra border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-lg font-semibold text-kw-text">Memuat data pelanggan...</p>
         </div>
       </div>
     );
@@ -196,7 +201,7 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
         <body>
           <div class="header">
             <h1 class="title">${title}</h1>
-            <p class="sub">HL Manager Pro • Master Financial Record</p>
+            <p class="sub">2ndManager • Master Financial Record</p>
           </div>
           
           <div class="meta">
@@ -239,7 +244,7 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
           <div class="clear"></div>
 
           <div class="footer">
-            Dokumen ini dihasilkan secara otomatis oleh HL Manager Pro. Cetakan sah tanpa tanda tangan fisik.
+            Dokumen ini dihasilkan secara otomatis oleh 2ndManager. Cetakan sah tanpa tanda tangan fisik.
           </div>
 
           <script>
@@ -283,34 +288,47 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-32">
       {/* Title Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white rounded-2xl p-6 border border-gray-100 shadow-sm gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white rounded-2xl p-6 border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] gap-4">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setView("customers")} 
-            className="p-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200/60 rounded-xl text-gray-500 transition-colors"
+            className="btn-arcade p-2.5 bg-white hover:bg-slate-50 border-2 border-slate-800 rounded-xl text-slate-900 transition-colors shadow-[2px_2px_0px_#1E293B] cursor-pointer"
+            title="Kembali ke Daftar Pelanggan"
           >
             <ChevronLeft size={20} />
           </button>
           <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-hero text-xl">{customer.nama}</h1>
-              <div className="flex gap-2">
-                <span className="bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-full">
-                  LM: {customer.discounts_lm && customer.discounts_lm.length > 0 ? customer.discounts_lm.map(d => `${d}%`).join(' + ') : '0%'}
-                </span>
-                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full">
-                  BR: {customer.discounts_br && customer.discounts_br.length > 0 ? customer.discounts_br.map(d => `${d}%`).join(' + ') : '0%'}
-                </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-display uppercase tracking-tight">{customer.nama}</h1>
+              <div className="flex gap-1.5 font-mono text-[10px] flex-wrap">
+                {customer.discounts && Object.keys(customer.discounts).length > 0 ? (
+                  Object.entries(customer.discounts)
+                    .filter(([_, steps]) => Array.isArray(steps) && steps.some(d => Number(d) > 0))
+                    .map(([code, steps]) => (
+                      <span key={code} className="bg-slate-100 text-slate-900 font-bold px-2 py-0.5 border border-slate-300 rounded shadow-sm">
+                        {code}: {steps.filter(d => Number(d) > 0).map(d => `${d}%`).join(' + ')}
+                      </span>
+                    ))
+                ) : (
+                  <>
+                    <span className="bg-slate-100 text-slate-900 font-bold px-2 py-0.5 border border-slate-300 rounded">
+                      LM: {customer.discounts_lm && customer.discounts_lm.length > 0 ? customer.discounts_lm.map(d => `${d}%`).join(' + ') : '0%'}
+                    </span>
+                    <span className="bg-slate-100 text-slate-900 font-bold px-2 py-0.5 border border-slate-300 rounded">
+                      BR: {customer.discounts_br && customer.discounts_br.length > 0 ? customer.discounts_br.map(d => `${d}%`).join(' + ') : '0%'}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
-            <p className="text-gray-500 text-xs mt-1">Status dan riwayat transaksi bulanan lengkap. Target Bonus: {formatRupiah(customer.bonus_threshold)}</p>
+            <p className="text-xs text-slate-600 font-mono mt-1">Buku Kasbon &amp; Riwayat Belanja. Target Bonus: {formatRupiah(customer.bonus_threshold)}</p>
           </div>
         </div>
 
         {/* Month Selector Dropdown */}
-        <div className="relative w-full sm:w-auto">
+        <div className="w-full sm:w-auto">
           <select 
             id="cust-detail-month-select"
             value={selectedMonth}
@@ -318,7 +336,7 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
               setSelectedMonth(e.target.value);
               registerTrigger("cust-detail-month-select", "change");
             }}
-            className="w-full sm:w-56 h-12 bg-navy-light text-navy-deep border-2 border-navy-ice rounded-xl px-4 text-xs font-bold outline-none transition-all cursor-pointer"
+            className="w-full sm:w-56 h-11 bg-slate-50 text-slate-900 border-2 border-slate-800 rounded-xl px-3 text-xs font-mono font-bold outline-none transition-all cursor-pointer focus:ring-2 focus:ring-[#CCFF00]"
           >
             {availableMonths.length === 0 ? (
               <option value={selectedMonth}>{getMonthLabel(selectedMonth)}</option>
@@ -331,12 +349,74 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
         </div>
       </div>
 
-      {/* Monthly Stats Cards Row */}
+      {/* Pelacak Tabung Gas & Galon (Fase 1) */}
+      {customer && (
+        <div className="bg-white border-2 border-slate-800 rounded-2xl p-5 shadow-[4px_4px_0px_#1E293B] space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Flame className="w-5 h-5 text-amber-500" />
+              <h3 className="font-extrabold text-sm text-slate-900 font-display uppercase tracking-tight">
+                Status Pinjaman Tabung Gas &amp; Galon
+              </h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setAssetModalMode('RETURN');
+                  setIsAssetModalOpen(true);
+                }}
+                className="btn-arcade text-[11px] font-mono font-bold uppercase bg-emerald-400 hover:bg-emerald-300 text-slate-900 px-3 py-1.5 rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] cursor-pointer"
+              >
+                ↩️ Terima Pengembalian
+              </button>
+              <button
+                onClick={() => {
+                  setAssetModalMode('LOAN');
+                  setIsAssetModalOpen(true);
+                }}
+                className="btn-arcade text-[11px] font-mono font-bold uppercase bg-white hover:bg-slate-100 text-slate-900 px-3 py-1.5 rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] cursor-pointer"
+              >
+                ➕ Catat Pinjam
+              </button>
+            </div>
+          </div>
+
+          {(() => {
+            const activeLoans = Object.entries(customer.loaned_assets || {})
+              .filter(([_, qty]) => parseInt(qty, 10) > 0);
+            if (activeLoans.length === 0) {
+              return (
+                <p className="text-xs font-mono text-slate-500 py-1">
+                  ✅ Tidak ada aset fisik tabung gas atau galon yang sedang dipinjam oleh {customer.nama}.
+                </p>
+              );
+            }
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                {activeLoans.map(([assetType, qty]) => (
+                  <div key={assetType} className="p-3 bg-amber-50 border-2 border-slate-800 rounded-xl">
+                    <div className="text-[10px] font-mono font-bold text-slate-600 uppercase truncate">
+                      {assetType}
+                    </div>
+                    <div className="text-xl font-black text-slate-900 font-mono mt-0.5">
+                      {qty} <span className="text-xs font-bold text-slate-500">Unit</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Monthly Stats Cards Row (The Comic Quartet) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Monthly Piutang */}
-        <div id="cust-detail-piutang-card" className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 space-y-2">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">🔴 Piutang Bulan Ini</p>
-          <p className="text-2xl font-extrabold text-rose-deep tabular-nums">{formatRupiah(summary.piutang)}</p>
+        <div id="cust-detail-piutang-card" className="bg-white border-2 border-slate-800 rounded-2xl p-5 space-y-2 shadow-[3px_3px_0px_#1E293B]">
+          <p className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-rose-500 rounded-full border border-slate-800 block" /> Piutang Bulan Ini
+          </p>
+          <p className="text-2xl font-extrabold font-mono text-rose-600 tabular-nums">{formatRupiah(summary.piutang)}</p>
           {summary.piutang > 0 ? (
             <button 
               id="cust-detail-settle-month-btn"
@@ -344,51 +424,57 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
                 handleOpenSettleMonth();
                 registerTrigger("cust-detail-settle-month-btn", "click");
               }}
-              className="text-[11px] font-bold text-emerald-deep hover:underline mt-1 block"
+              className="btn-arcade text-[10px] font-mono font-bold uppercase bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg mt-1 block cursor-pointer"
             >
-              Setor Pelunasan Bulan Ini
+              Setor Pelunasan Bulan Ini &rarr;
             </button>
           ) : (
-            <p className="text-[11px] font-semibold text-emerald-deep mt-1 flex items-center gap-1">
-              <CheckCircle2 size={12} /> Lunas sepenuhnya
+            <p className="text-[11px] font-mono font-bold text-emerald-700 mt-1 flex items-center gap-1">
+              <CheckCircle2 size={13} /> Lunas sepenuhnya
             </p>
           )}
         </div>
 
         {/* Card 2: Monthly Paid */}
-        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 space-y-2">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">🟢 Terbayar Bulan Ini</p>
-          <p className="text-2xl font-extrabold text-emerald-deep tabular-nums">{formatRupiah(summary.lunas)}</p>
-          <p className="text-[11px] text-gray-500 mt-1">Uang tunai yang sudah diterima</p>
+        <div className="bg-white border-2 border-slate-800 rounded-2xl p-5 space-y-2 shadow-[3px_3px_0px_#1E293B]">
+          <p className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-slate-900 rounded-full border border-slate-800 block" /> Terbayar Bulan Ini
+          </p>
+          <p className="text-2xl font-extrabold font-mono text-slate-900 tabular-nums">{formatRupiah(summary.lunas)}</p>
+          <p className="text-[10px] font-mono text-slate-500 mt-1">Uang tunai kasir masuk</p>
         </div>
 
         {/* Card 3: Omzet Breakdown (LM vs BR) */}
-        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 space-y-2 lg:col-span-1">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">📊 Omzet Lunas (LM / BR)</p>
-          <p className="text-sm font-bold text-charcoal-medium tabular-nums mt-2">
+        <div className="bg-white border-2 border-slate-800 rounded-2xl p-5 space-y-2 shadow-[3px_3px_0px_#1E293B]">
+          <p className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-[#CCFF00] rounded-full border border-slate-800 block" /> Omzet Lunas
+          </p>
+          <p className="text-xs font-mono font-bold text-slate-900 tabular-nums mt-2">
             LM: {formatRupiah(summary.omzet_lm)}
           </p>
-          <p className="text-sm font-bold text-charcoal-medium tabular-nums">
+          <p className="text-xs font-mono font-bold text-slate-900 tabular-nums">
             BR: {formatRupiah(summary.omzet_br)}
           </p>
         </div>
 
         {/* Card 4: Monthly Laba */}
-        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 space-y-2">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">💜 Laba Bersih Bulan Ini</p>
-          <p className="text-2xl font-extrabold text-navy-deep tabular-nums">{formatRupiah(summary.laba_total)}</p>
-          <p className="text-[11px] text-gray-500 mt-1">Untung bersih recognized (Lunas)</p>
+        <div className="bg-white border-2 border-slate-800 rounded-2xl p-5 space-y-2 shadow-[3px_3px_0px_#1E293B]">
+          <p className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full border border-slate-800 block" /> Laba Bersih
+          </p>
+          <p className="text-2xl font-extrabold font-mono text-emerald-800 tabular-nums">{formatRupiah(summary.laba_total)}</p>
+          <p className="text-[10px] font-mono text-slate-500 mt-1">Laba real setelah HPP</p>
         </div>
       </div>
 
       {/* Export Report Actions Card */}
-      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-wrap gap-3">
+      <div className="bg-white rounded-2xl p-4 border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] flex flex-wrap gap-3">
         <button 
           id="cust-detail-print-transactions-btn"
           onClick={() => handlePrint(`Laporan Transaksi - ${customer.nama}`, "all")}
-          className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-xs font-bold text-charcoal-medium transition-all cursor-pointer"
+          className="btn-arcade flex items-center gap-1.5 px-4 py-2 border-2 border-slate-800 rounded-xl hover:bg-slate-50 text-xs font-mono font-bold uppercase text-slate-900 transition-all cursor-pointer shadow-[2px_2px_0px_#1E293B]"
         >
-          <Printer size={16} /> Cetak Rekap Transaksi (PDF)
+          <Printer size={15} /> Cetak Rekap Transaksi (PDF)
         </button>
 
         <button 
@@ -397,66 +483,71 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
             handlePrint(`Surat Tagihan Piutang - ${customer.nama}`, "piutang");
             registerTrigger("cust-detail-print-piutang-btn", "click");
           }}
-          className="flex items-center gap-1.5 px-4 py-2.5 border border-rose-light bg-rose-light/10 rounded-xl hover:bg-rose-light/20 text-xs font-bold text-rose-deep transition-all cursor-pointer"
+          className="btn-arcade flex items-center gap-1.5 px-4 py-2 border-2 border-slate-800 bg-rose-50 hover:bg-rose-100 rounded-xl text-xs font-mono font-bold uppercase text-rose-900 transition-all cursor-pointer shadow-[2px_2px_0px_#1E293B]"
         >
-          <Printer size={16} /> Cetak Surat Piutang (PDF)
+          <Printer size={15} /> Cetak Surat Piutang (PDF)
         </button>
 
         <button 
           onClick={handleExportCSV}
-          className="flex items-center gap-1.5 px-4 py-2.5 border border-amber-soft bg-amber-cream/40 rounded-xl hover:bg-amber-soft/20 text-xs font-bold text-amber-deep transition-all cursor-pointer"
+          className="btn-arcade flex items-center gap-1.5 px-4 py-2 border-2 border-slate-800 bg-slate-50 hover:bg-slate-100 text-xs font-mono font-bold uppercase text-slate-900 transition-all cursor-pointer shadow-[2px_2px_0px_#1E293B]"
         >
-          <Download size={16} /> Unduh CSV Riwayat
+          <Download size={15} /> Unduh CSV Riwayat
         </button>
       </div>
 
-      {/* Transaction List Card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-        <h3 className="text-subheading text-base">
-          Daftar Nota Bulan <strong>{getMonthLabel(selectedMonth)}</strong>
-        </h3>
+      {/* Transaction List Card (Zona Mesin) */}
+      <div className="bg-white rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+          <h3 className="text-base font-extrabold text-slate-900 font-display uppercase">
+            Daftar Nota Bulan {getMonthLabel(selectedMonth)}
+          </h3>
+          <span className="text-xs font-mono font-bold text-slate-500">
+            TOTAL: {filteredMonthTx.length} NOTA
+          </span>
+        </div>
 
         <div className="overflow-x-auto">
           {filteredMonthTx.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-sm">Tidak ada transaksi di bulan ini.</div>
+            <div className="text-center py-8 text-slate-400 font-mono text-xs">Tidak ada transaksi di bulan ini.</div>
           ) : (
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse border border-slate-800 bg-white rounded-xl overflow-hidden">
               <thead>
-                <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase font-semibold pb-3">
-                  <th className="pb-3">No. Bon</th>
-                  <th className="pb-3">Tanggal</th>
-                  <th className="pb-3 text-right">Omzet</th>
-                  <th className="pb-3 text-right">Ongkir</th>
-                  <th className="pb-3 text-right">Total Tagihan</th>
-                  <th className="pb-3 text-center">Status</th>
-                  <th className="pb-3 text-center">Tanggal Bayar</th>
-                  <th className="pb-3 text-center">Aksi</th>
+                <tr className="bg-slate-100 border-b-2 border-slate-800 text-[11px] font-mono text-slate-700 font-bold uppercase tracking-wider">
+                  <th className="py-3 px-3">NO. BON</th>
+                  <th className="py-3 px-3">TANGGAL</th>
+                  <th className="py-3 px-3 text-right">OMZET</th>
+                  <th className="py-3 px-3 text-right">ONGKIR</th>
+                  <th className="py-3 px-3 text-right">TOTAL</th>
+                  <th className="py-3 px-3 text-center">STATUS</th>
+                  <th className="py-3 px-3 text-center">TGL BAYAR</th>
+                  <th className="py-3 px-3 text-center">AKSI</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 text-sm">
+              <tbody className="divide-y divide-slate-200 text-xs font-mono text-slate-900">
                 {filteredMonthTx.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="py-3 font-semibold text-charcoal-black flex items-center gap-1">
-                      {t.nomor_bon}
+                  <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-3 px-3 font-bold text-slate-900">
+                      <span>{t.nomor_bon}</span>
                       {t.is_bonus && (
-                        <span className="bg-amber-gold/20 text-amber-deep text-[10px] px-1 rounded font-bold uppercase">Bonus</span>
+                        <span className="ml-1.5 bg-[#CCFF00] border border-slate-800 text-slate-900 text-[9px] px-1.5 py-0.2 rounded font-bold uppercase">Bonus</span>
                       )}
                     </td>
-                    <td className="py-3 text-gray-500">{t.tanggal}</td>
-                    <td className="py-3 text-right font-semibold tabular-nums">{formatRupiah(t.omzet_total)}</td>
-                    <td className="py-3 text-right text-gray-500 tabular-nums">{formatRupiah(t.ongkir)}</td>
-                    <td className="py-3 text-right font-bold tabular-nums text-navy-deep">{formatRupiah(t.amount_owed)}</td>
-                    <td className="py-3 text-center">
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                    <td className="py-3 px-3 text-slate-600">{t.tanggal}</td>
+                    <td className="py-3 px-3 text-right font-bold tabular-nums">{formatRupiah(t.omzet_total)}</td>
+                    <td className="py-3 px-3 text-right text-slate-500 tabular-nums">{formatRupiah(t.ongkir)}</td>
+                    <td className="py-3 px-3 text-right font-extrabold tabular-nums text-slate-900">{formatRupiah(t.amount_owed)}</td>
+                    <td className="py-3 px-3 text-center">
+                      <span className={`inline-block px-2.5 py-0.5 border-2 rounded font-mono text-[10px] font-bold uppercase shadow-[1px_1px_0px_#1E293B] ${
                         t.status === 'Lunas' 
-                          ? 'bg-emerald-mint text-emerald-deep' 
-                          : 'bg-rose-light text-rose-deep'
+                          ? 'border-slate-800 bg-[#CCFF00] text-slate-900' 
+                          : 'border-rose-600 bg-rose-100 text-rose-800'
                       }`}>
                         {t.status}
                       </span>
                     </td>
-                    <td className="py-3 text-center text-xs text-gray-500 font-semibold">{t.tanggal_lunas || "-"}</td>
-                    <td className="py-3 text-center">
+                    <td className="py-3 px-3 text-center text-slate-500">{t.tanggal_lunas || "-"}</td>
+                    <td className="py-3 px-3 text-center">
                       <div className="flex items-center justify-center gap-2">
                         {t.status === "Piutang" ? (
                           <button 
@@ -465,12 +556,12 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
                               handleOpenSettleSingle(t.id);
                               registerTrigger(`cust-detail-settle-btn-${t.id}`, "click");
                             }}
-                            className="bg-emerald-medium hover:bg-emerald-deep text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
+                            className="btn-arcade bg-[#CCFF00] hover:bg-[#b3e600] border border-slate-800 text-slate-900 text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer"
                           >
                             Setor Lunas
                           </button>
                         ) : (
-                          <span className="text-gray-400 text-xs font-semibold">Selesai</span>
+                          <span className="text-slate-400 text-[10px] font-mono">Selesai</span>
                         )}
                         <button 
                           id={`cust-detail-edit-btn-${t.id}`}
@@ -479,13 +570,13 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
                             setView("transaction-form");
                             registerTrigger(`cust-detail-edit-btn-${t.id}`, "click");
                           }}
-                          className="text-xs text-navy-bright hover:underline font-bold"
+                          className="text-[11px] font-mono font-bold text-slate-900 hover:underline cursor-pointer"
                         >
                           Ubah
                         </button>
                         <button 
                           onClick={() => setDeleteTxId(t.id)}
-                          className="text-xs text-rose-deep hover:underline font-bold cursor-pointer"
+                          className="text-[11px] font-mono font-bold text-rose-600 hover:underline cursor-pointer"
                         >
                           Hapus
                         </button>
@@ -499,64 +590,65 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
         </div>
       </div>
 
-      {/* Settle Modal */}
+      {/* Settle Modal (Pop-Art Glass) */}
       {isSettleModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full shadow-2xl p-6 relative">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+          <div className="bg-white border-2 border-slate-800 rounded-3xl max-w-sm w-full p-6 shadow-[8px_8px_0px_#1E293B] relative">
             <button 
               onClick={() => setIsSettleModalOpen(false)}
-              className="absolute right-6 top-6 p-1 text-gray-400 hover:bg-gray-100 rounded-full"
+              className="absolute right-5 top-5 p-1 text-slate-500 hover:text-slate-900 cursor-pointer"
             >
               <X size={20} />
             </button>
 
-            <h2 className="text-heading text-lg mb-2 flex items-center gap-1.5 text-emerald-deep">
-              <CreditCard /> Setor Pelunasan
+            <h2 className="text-base font-extrabold mb-1 flex items-center gap-1.5 text-slate-900 font-display uppercase">
+              <CreditCard size={18} /> Setor Pelunasan
             </h2>
-            <p className="text-gray-500 text-xs mb-4">
+            <p className="text-slate-600 text-xs font-sans mb-4">
               {settleType === "single" 
                 ? "Simpan pelunasan nota ini ke kas." 
                 : `Simpan pelunasan semua nota outstanding bulan ${getMonthLabel(selectedMonth)}.`}
             </p>
 
             <form onSubmit={handleConfirmSettle} className="space-y-4">
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-charcoal-medium uppercase">Tanggal Pelunasan *</label>
+              <div className="space-y-1">
+                <label className="block text-xs font-mono font-bold text-slate-700 uppercase">Tanggal Pelunasan *</label>
                 <input 
                   type="date" 
                   id="settle-date-input"
                   value={tanggalLunas} 
                   onChange={(e) => setTanggalLunas(e.target.value)}
-                  className="w-full h-12 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 text-sm focus:border-navy-bright focus:bg-white outline-none transition-all font-semibold"
+                  className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl px-3 text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-[#CCFF00] outline-none transition-all"
                   required
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-2 pt-2">
                 <button 
                   type="button" 
                   onClick={() => setIsSettleModalOpen(false)}
-                  className="flex-1 border-2 border-gray-200 text-charcoal-medium font-bold h-12 rounded-xl text-sm hover:bg-gray-50"
+                  className="btn-arcade flex-1 border-2 border-slate-800 bg-white text-slate-700 font-mono font-bold text-xs uppercase h-11 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button 
                   type="submit"
                   id="settle-confirm-btn"
-                  className="flex-1 bg-gradient-to-r from-emerald-medium to-emerald-deep hover:from-emerald-deep hover:to-emerald-medium text-white font-bold h-12 rounded-xl text-sm shadow-md"
+                  className="btn-arcade flex-1 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] font-mono font-bold text-xs uppercase h-11 rounded-xl transition-colors cursor-pointer"
                 >
-                  Konfirmasi Lunas
+                  Konfirmasi
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
       {/* Custom Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={deleteTxId !== null}
         title="Hapus Transaksi"
-        message="Apakah Bapak/Ibu yakin ingin menghapus bon ini secara permanen? Tindakan ini tidak dapat dibatalkan."
+        message="Apakah Anda yakin ingin menghapus bon ini secara permanen? Tindakan ini tidak dapat dibatalkan."
         onConfirm={async () => {
           try {
             await api.deleteTransaction(deleteTxId);
@@ -570,6 +662,19 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
         confirmLabel="YA, HAPUS"
         cancelLabel="BATAL"
       />
+
+      {/* Asset Loan Modal */}
+      {customer && (
+        <AssetLoanModal
+          customer={customer}
+          isOpen={isAssetModalOpen}
+          initialMode={assetModalMode}
+          onClose={() => setIsAssetModalOpen(false)}
+          onSuccess={async () => {
+            await loadData();
+          }}
+        />
+      )}
     </div>
   );
 }

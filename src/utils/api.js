@@ -587,6 +587,90 @@ export const api = {
     }
     throw new Error(res?.data?.message || 'Gagal memperbarui profil toko');
   },
+
+  // ── FASE 1: PRODUCT UNITS (MULTI-TIER CONVERSION) ─────────────────────────
+
+  getProductUnits: async (productId) => {
+    const res = await fetchAPI(`/products/${productId}/units`);
+    return res?.data?.data || [];
+  },
+
+  addProductUnit: async (productId, unitData) => {
+    const res = await fetchAPI(`/products/${productId}/units`, {
+      method: 'POST',
+      body: JSON.stringify(unitData),
+    });
+    if (res?.ok) return res.data.data;
+    if (res?.status === 402) {
+      const err = new Error(res.data?.error || 'Batas kuota produk multi-satuan tercapai');
+      err.upgradeRequired = true;
+      err.code = res.data?.code;
+      throw err;
+    }
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal menambahkan satuan');
+  },
+
+  updateProductUnit: async (productId, unitData) => {
+    const res = await fetchAPI(`/products/${productId}/units`, {
+      method: 'PUT',
+      body: JSON.stringify(unitData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || 'Gagal memperbarui satuan');
+  },
+
+  deleteProductUnit: async (productId, unitId) => {
+    const res = await fetchAPI(`/products/${productId}/units?unit_id=${unitId}`, {
+      method: 'DELETE',
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || 'Gagal menghapus satuan');
+  },
+
+  // ── FASE 1: QUICK STOCK-IN & MARGIN GUARD ─────────────────────────────────
+
+  createStockIn: async (stockInData) => {
+    const res = await fetchAPI('/stock-in', {
+      method: 'POST',
+      body: JSON.stringify(stockInData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal mencatat kulakan');
+  },
+
+  getStockInHistory: async (productId = null, limit = 20) => {
+    const url = productId ? `/stock-in?product_id=${productId}&limit=${limit}` : `/stock-in?limit=${limit}`;
+    const res = await fetchAPI(url);
+    return res?.data?.data || [];
+  },
+
+  // ── FASE 1: ASSET LOANS (TABUNG GAS & GALON) ──────────────────────────────
+
+  createAssetLoan: async (loanData) => {
+    const res = await fetchAPI('/asset-loans', {
+      method: 'POST',
+      body: JSON.stringify(loanData),
+    });
+    if (res?.ok) return res.data.data;
+    if (res?.status === 402) {
+      const err = new Error(res.data?.error || 'Batas kuota tabung aktif tercapai');
+      err.upgradeRequired = true;
+      err.code = res.data?.code;
+      throw err;
+    }
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal mencatat mutasi aset');
+  },
+
+  getAssetLoans: async (customerId = null, limit = 50) => {
+    const url = customerId ? `/asset-loans?customer_id=${customerId}&limit=${limit}` : `/asset-loans?limit=${limit}`;
+    const res = await fetchAPI(url);
+    return res?.data?.data || [];
+  },
+
+  getAssetLoanSummary: async () => {
+    const res = await fetchAPI('/asset-loans?summary=true');
+    return res?.data?.data || { asset_summary: {}, total_active_loans: 0, customers_with_loans: [] };
+  },
 };
 
 // Re-export MockDB alias untuk backwards compatibility (migrasi bertahap)
