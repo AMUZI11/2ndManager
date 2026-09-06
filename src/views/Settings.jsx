@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { KeyRound, ShieldAlert, CheckCircle2, AlertTriangle, Eye, EyeOff, Loader2, User, Database, Upload, Download, History, Store, UserPlus, Building2, Users } from 'lucide-react';
 import { api } from '../utils/api';
 import { checkCapacityLimit } from '../lib/subscription';
+import { normalizeTier } from '../config/tiers';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function Settings() {
@@ -54,6 +55,8 @@ export default function Settings() {
   const [cashiers, setCashiers] = useState([]);
 
   const [billingData, setBillingData] = useState(null);
+  const activePlan = normalizeTier(billingData?.plan || billingData?.tier || billingData?.subscription?.plan);
+  const isEksekutif = activePlan === 'EKSEKUTIF';
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [quotaMessage, setQuotaMessage] = useState("");
 
@@ -236,6 +239,14 @@ export default function Settings() {
       setBranchError("Nama cabang wajib diisi.");
       return;
     }
+
+    const quotaCheck = checkCapacityLimit(activePlan, branches.length + 1, 'branch');
+    if (!quotaCheck.allowed) {
+      setIsQuotaModalOpen(true);
+      setQuotaMessage(quotaCheck.message || "Batas Cabang Tercapai. Silakan Upgrade Kontrak Anda ke Paket Eksekutif.");
+      return;
+    }
+
     setBranchLoading(true);
     try {
       await api.addBranch(newBranchName.trim());
@@ -253,13 +264,12 @@ export default function Settings() {
     e.preventDefault();
     setCashierError("");
     setCashierSuccess("");
-    const currentPlan = billingData?.subscription?.plan || 'MAGANG';
     const cashierAddOns = billingData?.add_ons?.find(a => a.addon_id === 'CASHIER')?.quantity || 0;
-    const quotaCheck = checkCapacityLimit(currentPlan, cashiers.length + 1, 'cashier', cashierAddOns);
+    const quotaCheck = checkCapacityLimit(activePlan, cashiers.length + 1, 'cashier', cashierAddOns);
     
     if (!quotaCheck.allowed) {
       setIsQuotaModalOpen(true);
-      setQuotaMessage("Batas Kasir Tercapai. Beli Add-On (+Rp 50.000) atau Upgrade Kontrak Anda.");
+      setQuotaMessage(quotaCheck.message || "Batas Kasir Tercapai. Beli Add-On (+Rp 50.000) atau Upgrade Kontrak Anda.");
       return;
     }
 
@@ -851,19 +861,44 @@ PETUNJUK PENTING UNTUK BAPAK/IBU:
 
         {/* Section 3: Manajemen Cabang & Akun Kasir */}
         <div className="bg-white border-2 border-slate-800 rounded-2xl p-6 shadow-[4px_4px_0px_#1E293B] space-y-4 lg:col-span-2">
-          {/* PRO Paywall Banner Overlay */}
-          <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-xl text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <span className="flex items-center gap-2 font-bold">
-              <span>🔒</span>
-              <span>Manajemen Cabang &amp; Multi-Kasir (Fitur Paket PRO &amp; Eksekutif)</span>
-            </span>
-            <button 
-              onClick={() => router.push('/billing')} 
-              className="btn-arcade bg-slate-900 text-[#CCFF00] hover:bg-slate-800 text-[10px] px-3 py-1.5 rounded-lg font-mono font-bold cursor-pointer transition-all shrink-0 uppercase"
-            >
-              Upgrade Paket PRO ➔
-            </button>
-          </div>
+          {/* Branch & Multi-Cashier Plan Status Banner */}
+          {isEksekutif ? (
+            <div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-950 px-4 py-3 rounded-xl text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[2px_2px_0px_#10B981]">
+              <div className="flex items-center gap-2.5 font-bold">
+                <span className="text-base">🏢</span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="uppercase tracking-wider font-extrabold text-emerald-900">Akses Penuh: Paket Eksekutif Aktif</span>
+                    <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold font-mono">AKTIF</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 font-normal font-sans mt-0.5">
+                    Cabang terdaftar: <strong>{branches.length} / 3 Cabang</strong> • Akun kasir terdaftar: <strong>{cashiers.length} / 10 Kasir</strong>
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => router.push('/billing')} 
+                className="btn-arcade bg-slate-900 text-[#CCFF00] hover:bg-slate-800 text-[10px] px-3 py-1.5 rounded-lg font-mono font-bold cursor-pointer transition-all shrink-0 uppercase border border-slate-800"
+              >
+                Kelola Langganan ➔
+              </button>
+            </div>
+          ) : (
+            <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-xl text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <span className="flex items-center gap-2 font-bold">
+                <span>🔒</span>
+                <span>Manajemen Cabang &amp; Multi-Kasir (Fitur Paket Eksekutif)</span>
+              </span>
+              <button 
+                type="button"
+                onClick={() => router.push('/billing')} 
+                className="btn-arcade bg-slate-900 text-[#CCFF00] hover:bg-slate-800 text-[10px] px-3 py-1.5 rounded-lg font-mono font-bold cursor-pointer transition-all shrink-0 uppercase"
+              >
+                Upgrade ke Eksekutif ➔
+              </button>
+            </div>
+          )}
 
           <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
             <div className="w-9 h-9 bg-slate-900 text-[#CCFF00] border-2 border-slate-800 rounded-xl flex items-center justify-center shadow-[1px_1px_0px_#1E293B]">
@@ -1103,13 +1138,13 @@ PETUNJUK PENTING UNTUK BAPAK/IBU:
               <span>Unduh Cadangan (.hldata)</span>
             </button>
 
-            <button
-              onClick={() => router.push('/billing')}
-              className="btn-arcade bg-slate-900 hover:bg-slate-800 text-[#CCFF00] border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] font-mono font-bold text-xs uppercase p-4 rounded-xl transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer text-center"
-            >
-              <span>🔒 Auto Cloud Sync</span>
-              <span className="text-[10px] text-slate-300">Khusus Paket PRO</span>
-            </button>
+            <div className="bg-slate-900 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] font-mono font-bold text-xs uppercase p-4 rounded-xl flex flex-col items-center justify-center gap-1.5 text-center">
+              <div className="flex items-center gap-2 text-[#CCFF00]">
+                <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse"></span>
+                <span>Cloud Database Live</span>
+              </div>
+              <span className="text-[10px] text-slate-300 font-sans font-normal">Tersinkronisasi Otomatis di Supabase</span>
+            </div>
           </div>
 
           {/* Restore File Input */}

@@ -48,7 +48,7 @@ export const GET = withBossOnly(async (request, context, { user, profile, supaba
     if (searchParams.get('export') === 'csv') {
       if (!canAccessFeature(plan, 'export_csv')) {
         return errorResponse(
-          'Fitur Ekspor CSV Historis Tanpa Batas hanya tersedia untuk Paket PRO. Silakan upgrade paket Anda.',
+          'Fitur Ekspor CSV Historis Tanpa Batas hanya tersedia untuk Paket Supervisor ke atas. Silakan upgrade paket Anda.',
           'LIMIT_EXCEEDED',
           403
         );

@@ -56,7 +56,7 @@ export const POST = withBossOnly(async (request, context, { user, profile, supab
       .select('id')
       .eq('owner_id', user.id);
 
-    const shopIds = (bossShops && bossShops.length > 0) ? bossShops.map((s) => s.id) : [userShop.shop_id];
+    const shopIds = (bossShops && bossShops.length > 0) ? bossShops.map((s) => s.id) : [mainShopId];
 
     const { count } = await supabase
       .from('profiles')

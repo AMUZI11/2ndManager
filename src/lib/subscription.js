@@ -334,16 +334,28 @@ export function getFeatureValue(userPlan, featureName) {
  */
 export function checkCapacityLimit(userPlan, currentCount, entityType, addOnsPurchased = 0) {
   const config = getPlanConfig(userPlan);
-  const baseLimit = entityType === 'branch' 
+  const baseLimit = (entityType === 'branch' || entityType === 'max_branches')
     ? config.limits.max_branches 
-    : entityType === 'cashier' 
+    : (entityType === 'cashier' || entityType === 'max_cashiers')
     ? config.limits.max_cashiers 
+    : (entityType === 'sku' || entityType === 'max_sku')
+    ? config.limits.max_sku
+    : (entityType === 'report_days' || entityType === 'max_report_days')
+    ? config.limits.max_report_days
     : config.limits.max_transactions_monthly;
 
   const totalAllowed = baseLimit + addOnsPurchased;
 
   if (currentCount > totalAllowed) {
-    const entityLabel = entityType === 'branch' ? 'cabang toko' : entityType === 'cashier' ? 'akun kasir' : 'transaksi';
+    const entityLabel = (entityType === 'branch' || entityType === 'max_branches')
+      ? 'cabang toko' 
+      : (entityType === 'cashier' || entityType === 'max_cashiers')
+      ? 'akun kasir' 
+      : (entityType === 'sku' || entityType === 'max_sku')
+      ? 'produk SKU'
+      : (entityType === 'report_days' || entityType === 'max_report_days')
+      ? 'hari laporan'
+      : 'transaksi';
     return {
       allowed: false,
       baseLimit,

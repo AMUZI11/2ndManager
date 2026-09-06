@@ -804,23 +804,23 @@ export default function Reporting() {
 
             <div>
               <span className="text-[10px] font-mono font-black uppercase tracking-wider bg-slate-100 text-slate-900 px-2.5 py-0.5 rounded border border-slate-300">
-                KHUSUS PAKET PRO
+                KHUSUS PAKET BERBAYAR
               </span>
               <h3 className="text-base font-extrabold text-slate-900 font-display uppercase mt-2">
                 Fitur Unduh CSV Terkunci
               </h3>
               <p className="text-xs font-sans text-slate-600 mt-1">
-                Ekspor data laporan keuangan ke format spreadsheet memerlukan kontrak <strong className="text-slate-900">PRO / EKSEKUTIF</strong>.
+                Ekspor data laporan keuangan ke format spreadsheet memerlukan paket <strong className="text-slate-900">Supervisor, Manajer, atau Eksekutif</strong>.
               </p>
             </div>
 
             <div className="bg-slate-50 border border-slate-300 p-4 rounded-xl text-xs font-sans space-y-2">
               <p className="font-bold flex items-center gap-1.5 text-slate-900 font-mono uppercase text-[11px]">
-                <CheckCircle2 size={15} className="text-emerald-600" /> Benefit Paket PRO:
+                <CheckCircle2 size={15} className="text-emerald-600" /> Benefit Upgrade Paket:
               </p>
               <ul className="list-disc list-inside space-y-1 text-slate-700 pl-1">
-                <li>Unduh data laporan &amp; rekap keuangan ke format CSV</li>
-                <li>Hingga 10 Akun Kasir POS &amp; 3 Cabang Toko</li>
+                <li>Unduh data laporan &amp; rekap keuangan ke format CSV tanpa batas</li>
+                <li>Mendukung banyak akun kasir &amp; multi-cabang (Paket Eksekutif)</li>
                 <li>Audit Log Immutable &amp; Rekonsiliasi Otomatis</li>
               </ul>
             </div>
@@ -836,7 +836,7 @@ export default function Reporting() {
                 href="/billing"
                 className="btn-arcade flex-1 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] text-slate-900 font-mono font-bold text-xs uppercase text-center rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Sparkles size={14} /> Upgrade ke PRO
+                <Sparkles size={14} /> Lihat Paket Langganan
               </a>
             </div>
           </div>
