@@ -73,6 +73,7 @@ export default function ProductManagement() {
   const [isUnitModalOpen, setIsUnitModalOpen] = useState(false);
   const [selectedUnitProduct, setSelectedUnitProduct] = useState(null);
   const [isStockInModalOpen, setIsStockInModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     loadProducts();
@@ -248,7 +249,10 @@ export default function ProductManagement() {
             <ShoppingBag size={16} /> 🛒 BELANJA PASAR
           </Link>
           <button 
-            onClick={() => setIsStockInModalOpen(true)}
+            onClick={() => {
+              setSelectedProduct(null);
+              setIsStockInModalOpen(true);
+            }}
             className="btn-arcade bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-mono font-bold text-xs uppercase h-11 px-4 rounded-xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] transition-all flex items-center gap-2 cursor-pointer"
           >
             <PackagePlus size={16} /> + CATAT KULAKAN
@@ -895,6 +899,7 @@ export default function ProductManagement() {
         initialProduct={selectedProduct}
         onClose={() => {
           setIsStockInModalOpen(false);
+          setSelectedProduct(null);
         }}
         onStockAdded={async () => {
           await loadProducts();
