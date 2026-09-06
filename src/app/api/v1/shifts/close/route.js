@@ -95,7 +95,7 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     if (shift_id) {
       const { data: s } = await supabase
         .from('cashier_shifts')
-        .select('*, cashier:profiles!cashier_id(id, nama, role)')
+        .select('*, cashier:profiles!cashier_id(id, username, role)')
         .eq('id', shift_id)
         .eq('shop_id', shopId)
         .eq('status', 'OPEN')
@@ -104,7 +104,7 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     } else {
       const { data: s } = await supabase
         .from('cashier_shifts')
-        .select('*, cashier:profiles!cashier_id(id, nama, role)')
+        .select('*, cashier:profiles!cashier_id(id, username, role)')
         .eq('shop_id', shopId)
         .eq('status', 'OPEN')
         .order('start_time', { ascending: false })
@@ -237,10 +237,10 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     if (handover_to) {
       const { data: nextCashier } = await supabase
         .from('profiles')
-        .select('id, nama')
+        .select('id, username')
         .eq('id', handover_to)
         .maybeSingle();
-      handoverToName = nextCashier?.nama || null;
+      handoverToName = nextCashier?.username || null;
     }
 
     // 6. Update Shift menjadi CLOSED dengan hasil audit rekonsiliasi
@@ -264,7 +264,7 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
         updated_at: endTime,
       })
       .eq('id', shift.id)
-      .select('*, cashier:profiles!cashier_id(id, nama, role)')
+      .select('*, cashier:profiles!cashier_id(id, username, role)')
       .single();
 
     if (closeErr) throw closeErr;
@@ -275,7 +275,7 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
       waRecapText = generateShiftRecapWhatsAppMessage({
         shopName: shop?.name,
         shiftNumber: shift.shift_number,
-        cashierName: shift.cashier?.nama || profile.nama || 'Kasir',
+        cashierName: shift.cashier?.username || profile.username || 'Kasir',
         startTime,
         endTime,
         startingCash,

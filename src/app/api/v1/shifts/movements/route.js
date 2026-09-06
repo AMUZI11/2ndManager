@@ -24,7 +24,7 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
 
     let query = supabase
       .from('cash_drawer_movements')
-      .select('*, created_by:profiles!created_by(id, nama, role)')
+      .select('*, created_by:profiles!created_by(id, username, role)')
       .eq('shop_id', shopId)
       .order('created_at', { ascending: false });
 
@@ -103,7 +103,7 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
         notes: notes.trim(),
         created_by: profile.id,
       })
-      .select('*, created_by:profiles!created_by(id, nama, role)')
+      .select('*, created_by:profiles!created_by(id, username, role)')
       .single();
 
     if (insertErr) throw insertErr;

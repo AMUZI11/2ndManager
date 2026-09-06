@@ -67,7 +67,7 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
         notes: notes?.trim() || null,
         start_time: new Date().toISOString(),
       })
-      .select('*, cashier:profiles!cashier_id(id, nama, role)')
+      .select('*, cashier:profiles!cashier_id(id, username, role)')
       .single();
 
     if (insertErr) throw insertErr;

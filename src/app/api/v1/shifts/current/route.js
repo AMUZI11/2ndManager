@@ -20,7 +20,7 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
 
     const { data: activeShift, error: shiftErr } = await supabase
       .from('cashier_shifts')
-      .select('*, cashier:profiles!cashier_id(id, nama, role)')
+      .select('*, cashier:profiles!cashier_id(id, username, role)')
       .eq('shop_id', shopId)
       .eq('status', 'OPEN')
       .order('start_time', { ascending: false })
@@ -36,7 +36,7 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
     // Ambil mutasi kas laci operasional untuk shift ini
     const { data: movements, error: movErr } = await supabase
       .from('cash_drawer_movements')
-      .select('id, movement_type, category, amount, notes, created_at, created_by:profiles!created_by(nama)')
+      .select('id, movement_type, category, amount, notes, created_at, created_by:profiles!created_by(id, username)')
       .eq('shift_id', activeShift.id)
       .order('created_at', { ascending: false });
 
