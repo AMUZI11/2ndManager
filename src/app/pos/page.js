@@ -7,7 +7,7 @@ import {
   Barcode, Search, ShoppingBag, Plus, Minus, Trash2, CheckCircle2,
   Printer, Send, RefreshCw, LogOut, ArrowLeft, Store, UserCheck,
   AlertTriangle, ShieldCheck, AlertCircle, Sparkles, CreditCard, Wallet,
-  Package, Lock, Wifi, WifiOff
+  Package, Lock, Wifi, WifiOff, PiggyBank, Coins
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
@@ -16,6 +16,7 @@ import { canAccessFeature } from '@/lib/subscription';
 import PaywallModal from '@/components/ui/PaywallModal';
 import UpgradePromptModal from '@/components/pos/UpgradePromptModal';
 import AssetLoanModal from '@/components/customers/AssetLoanModal';
+import SmartChangeModal from '@/components/pos/SmartChangeModal';
 
 // Web Audio API beep sound for barcode scanner feedback
 function playScannerBeep() {
@@ -177,6 +178,13 @@ export default function PosPage() {
   const [isAssetLoanModalOpen, setIsAssetLoanModalOpen] = useState(false);
   const [assetLoanModalMode, setAssetLoanModalMode] = useState('RETURN');
 
+  // Celengan & Smart Change (Fase 2)
+  const [isSmartChangeOpen, setIsSmartChangeOpen] = useState(false);
+  const [cashTendered, setCashTendered] = useState('');
+  const [customerBalance, setCustomerBalance] = useState(0);
+  const [customerPiutang, setCustomerPiutang] = useState(0);
+  const [useCustomerBalance, setUseCustomerBalance] = useState(0);
+
   // Auto-scanner barcode ref
   const barcodeInputRef = useRef(null);
 
@@ -312,6 +320,28 @@ export default function PosPage() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3000);
   };
+
+  // ── Load Saldo Celengan & Piutang Pelanggan ──────────────────────────────────
+  useEffect(() => {
+    async function loadCustomerFinancials() {
+      if (!selectedCustomer?.id) {
+        setCustomerBalance(0);
+        setCustomerPiutang(0);
+        setUseCustomerBalance(0);
+        return;
+      }
+      try {
+        const res = await api.getCustomerBalance(selectedCustomer.id);
+        if (res) {
+          setCustomerBalance(Number(res.balance || 0));
+          setCustomerPiutang(Number(res.debt || 0));
+        }
+      } catch (err) {
+        console.error('[POS Load Customer Balance Error]', err);
+      }
+    }
+    loadCustomerFinancials();
+  }, [selectedCustomer?.id]);
 
   // ── Auto-Scanner & Barcode Handler ──────────────────────────────────────────
   const handleBarcodeOrSearchSubmit = (e) => {
@@ -512,6 +542,83 @@ export default function PosPage() {
   }, [cartItems, ongkir]);
 
   // ── Checkout / Submit Bon ────────────────────────────────────────────────────
+  const executeTransaction = async (options = {}) => {
+    setSubmitting(true);
+    setErrorMessage('');
+
+    const targetCustId = options.assignedCustomerId || (selectedCustomer ? selectedCustomer.id : null);
+    const netPayable = Math.max(0, totals.totalOmzet - useCustomerBalance);
+    const cashNum = cashTendered !== '' ? Number(cashTendered) : netPayable;
+
+    const payload = {
+      nomor_bon: nomorBon.trim(),
+      idempotency_key: cartIdRef.current, // Koreksi Kritis #3 (server-side unique validation)
+      tanggal: new Date().toISOString().split('T')[0],
+      customer_id: targetCustId,
+      ongkir: Number(ongkir || 0),
+      deskripsi: deskripsi.trim() || null,
+      is_bonus: false,
+      status: paymentStatus,
+      use_customer_balance: useCustomerBalance > 0 ? useCustomerBalance : 0,
+      change_allocation: options.changeAllocation || null,
+      items: cartItems.map((item) => ({
+        product_id: item.product_id,
+        unit_id: item.unit_id || null,
+        unit_name: item.unit_name || 'Pcs',
+        multiplier_to_base: item.multiplier_to_base || 1,
+        quantity: item.quantity,
+        is_bonus_item: item.is_bonus_item,
+      })),
+    };
+
+    const res = await api.addTransaction(payload);
+    setSubmitting(false);
+
+    if (res.success) {
+      const activeCust = targetCustId ? (customers.find(c => c.id === targetCustId) || selectedCustomer) : null;
+      setCompletedTx({
+        ...res.data,
+        cart_snapshot: cartItems,
+        customer_name: activeCust ? activeCust.nama : 'Umum (Non-Pelanggan)',
+        customer_phone: activeCust ? activeCust.phone : null,
+        total_final: totals.totalOmzet,
+        net_payable: netPayable,
+        use_customer_balance: useCustomerBalance,
+        cash_tendered: cashNum,
+        change_returned: Math.max(0, cashNum - netPayable),
+        change_allocation: options.changeAllocation,
+        change_allocation_result: res.data?.change_allocation_result || null,
+        payment_status: paymentStatus,
+        cashier_name: profile?.username || user?.email?.split('@')[0],
+        shop_name: shopName,
+      });
+
+      // Update saldo / piutang state locally if mutated
+      if (res.data?.change_allocation_result?.current_balance !== undefined) {
+        setCustomerBalance(Number(res.data.change_allocation_result.current_balance));
+      } else if (useCustomerBalance > 0) {
+        setCustomerBalance(prev => Math.max(0, prev - useCustomerBalance));
+      }
+
+      if (res.data?.change_allocation_result?.leftover_debt !== undefined) {
+        setCustomerPiutang(Number(res.data.change_allocation_result.leftover_debt));
+      }
+
+      setIsReceiptModalOpen(true);
+    } else {
+      if (res.status === 402 || res.code === 'RECEIPT_LIMIT_REACHED' || res.upgrade_required) {
+        setUpgradeModalData({
+          limit: res.limit || 50,
+          current: res.current || 50,
+          message: res.message,
+        });
+        setIsUpgradeModalOpen(true);
+      } else {
+        setErrorMessage(res.message || 'Gagal menyimpan transaksi. Coba lagi.');
+      }
+    }
+  };
+
   const handleCheckout = async () => {
     setErrorMessage('');
     if (cartItems.length === 0) {
@@ -527,55 +634,47 @@ export default function PosPage() {
       return;
     }
 
-    setSubmitting(true);
+    const netPayable = Math.max(0, totals.totalOmzet - useCustomerBalance);
+    const cashNum = Number(cashTendered || 0);
 
-    const payload = {
-      nomor_bon: nomorBon.trim(),
-      idempotency_key: cartIdRef.current, // Koreksi Kritis #3 (server-side unique validation)
-      tanggal: new Date().toISOString().split('T')[0],
-      customer_id: selectedCustomer ? selectedCustomer.id : null,
-      ongkir: Number(ongkir || 0),
-      deskripsi: deskripsi.trim() || null,
-      is_bonus: false,
-      status: paymentStatus,
-      items: cartItems.map((item) => ({
-        product_id: item.product_id,
-        unit_id: item.unit_id || null,
-        unit_name: item.unit_name || 'Pcs',
-        multiplier_to_base: item.multiplier_to_base || 1,
-        quantity: item.quantity,
-        is_bonus_item: item.is_bonus_item,
-      })),
-    };
-
-    const res = await api.addTransaction(payload);
-    setSubmitting(false);
-
-    if (res.success) {
-      setCompletedTx({
-        ...res.data,
-        cart_snapshot: cartItems,
-        customer_name: selectedCustomer ? selectedCustomer.nama : 'Umum (Non-Pelanggan)',
-        customer_phone: selectedCustomer ? selectedCustomer.phone : null,
-        total_final: totals.totalOmzet,
-        payment_status: paymentStatus,
-        cashier_name: profile?.username || user?.email?.split('@')[0],
-        shop_name: shopName,
-      });
-
-      setIsReceiptModalOpen(true);
-    } else {
-      if (res.status === 402 || res.code === 'RECEIPT_LIMIT_REACHED' || res.upgrade_required) {
-        setUpgradeModalData({
-          limit: res.limit || 50,
-          current: res.current || 50,
-          message: res.message,
-        });
-        setIsUpgradeModalOpen(true);
-      } else {
-        setErrorMessage(res.message || 'Gagal menyimpan transaksi. Coba lagi.');
-      }
+    // Validasi uang kurang jika kasir menginput tunai
+    if (paymentStatus === 'Lunas' && cashTendered !== '' && cashNum < netPayable) {
+      setErrorMessage(`Uang tunai yang diterima (${formatRupiah(cashNum)}) kurang dari sisa tagihan (${formatRupiah(netPayable)}).`);
+      return;
     }
+
+    // Jika ada kembalian dan bayar tunai (Lunas), buka Smart Change Modal
+    if (paymentStatus === 'Lunas' && cashTendered !== '' && cashNum > netPayable) {
+      setIsSmartChangeOpen(true);
+      return;
+    }
+
+    // Jika uang pas atau tanpa nominal tunai, langsung proses
+    await executeTransaction();
+  };
+
+  const handleSmartChangeAllocation = async (allocation) => {
+    setIsSmartChangeOpen(false);
+    let assignedCust = selectedCustomer;
+
+    if (allocation.customer && (!selectedCustomer || selectedCustomer.id !== allocation.customer.id)) {
+      assignedCust = allocation.customer;
+      setSelectedCustomer(allocation.customer);
+      setCustomers((prev) => {
+        if (!prev.find((c) => c.id === allocation.customer.id)) {
+          return [...prev, allocation.customer];
+        }
+        return prev;
+      });
+    }
+
+    await executeTransaction({
+      changeAllocation: allocation.type !== 'NONE' ? {
+        type: allocation.type,
+        amount: allocation.amount,
+      } : null,
+      assignedCustomerId: assignedCust?.id || null,
+    });
   };
 
   // ── Keyboard Shortcuts (F1: Search, F2: Checkout, Esc: Close Modals) ───────
@@ -623,6 +722,10 @@ export default function PosPage() {
     setIsWaPopupBlocked(false);
     setCartItems([]);
     setSelectedCustomer(null);
+    setCustomerBalance(0);
+    setCustomerPiutang(0);
+    setUseCustomerBalance(0);
+    setCashTendered('');
     setPaymentStatus('Lunas');
     setOngkir(0);
     setDeskripsi('');
@@ -1020,6 +1123,49 @@ export default function PosPage() {
                   </div>
                 </div>
               )}
+
+              {/* Celengan & Tabungan Pelanggan (Fase 2) */}
+              {selectedCustomer && (
+                <div className="space-y-1.5 pt-1">
+                  {customerBalance > 0 && (
+                    <div className="p-2.5 bg-emerald-50 border-2 border-slate-800 rounded-xl flex items-center justify-between gap-2 shadow-[2px_2px_0px_#1E293B]">
+                      <div className="flex items-center gap-2">
+                        <PiggyBank size={18} className="text-emerald-700 shrink-0" />
+                        <div>
+                          <div className="text-[10px] font-mono font-bold uppercase text-slate-600">Saldo Celengan</div>
+                          <div className="text-xs font-mono font-black text-emerald-800">{formatRupiah(customerBalance)}</div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (useCustomerBalance > 0) {
+                            setUseCustomerBalance(0);
+                          } else {
+                            setUseCustomerBalance(Math.min(customerBalance, totals.totalOmzet));
+                          }
+                        }}
+                        className={`px-2.5 py-1 text-[10px] font-mono font-bold uppercase border border-slate-800 rounded shadow-[1px_1px_0px_#1E293B] cursor-pointer active:translate-x-0.5 active:translate-y-0.5 transition-all ${
+                          useCustomerBalance > 0
+                            ? 'bg-rose-500 text-white hover:bg-rose-600'
+                            : 'bg-[#CCFF00] text-slate-900 hover:bg-[#bbf000]'
+                        }`}
+                      >
+                        {useCustomerBalance > 0 ? 'Batal Pakai' : 'Pakai Saldo'}
+                      </button>
+                    </div>
+                  )}
+
+                  {customerPiutang > 0 && (
+                    <div className="px-2.5 py-1.5 bg-rose-50 border border-slate-400 rounded-lg flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-rose-800 font-bold flex items-center gap-1">
+                        <AlertTriangle size={12} className="text-rose-600" /> Ada Kasbon:
+                      </span>
+                      <span className="text-rose-900 font-black">{formatRupiah(customerPiutang)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Item Keranjang List (Zero Zebra Stripes - Pure Clean Line Dividers) */}
@@ -1150,6 +1296,60 @@ export default function PosPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Input Uang Tunai Diterima (Smart Change Readiness) */}
+              {paymentStatus === 'Lunas' && (
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-mono font-bold text-slate-700 uppercase">
+                      Uang Diterima / Tunai (Rp)
+                    </label>
+                    {cashTendered !== '' && Number(cashTendered) > Math.max(0, totals.totalOmzet - useCustomerBalance) && (
+                      <span className="text-[11px] font-mono font-bold text-emerald-700 flex items-center gap-1">
+                        <Coins size={12} /> Kembalian: {formatRupiah(Number(cashTendered) - Math.max(0, totals.totalOmzet - useCustomerBalance))}
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    value={cashTendered}
+                    onChange={(e) => setCashTendered(e.target.value)}
+                    placeholder={`Uang Pas (${formatRupiah(Math.max(0, totals.totalOmzet - useCustomerBalance))})`}
+                    className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl px-3 text-sm font-mono font-bold text-slate-900 shadow-xs focus:ring-2 focus:ring-[#CCFF00] outline-none transition-all"
+                  />
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setCashTendered(String(Math.max(0, totals.totalOmzet - useCustomerBalance)))}
+                      className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-[10px] font-mono font-bold rounded border border-slate-400 cursor-pointer"
+                    >
+                      Uang Pas
+                    </button>
+                    {[10000, 20000, 50000, 100000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => {
+                          const cur = Number(cashTendered || 0);
+                          setCashTendered(String(cur + amt));
+                        }}
+                        className="px-2 py-1 bg-white hover:bg-slate-50 text-slate-800 text-[10px] font-mono font-bold rounded border border-slate-400 cursor-pointer shadow-xs"
+                      >
+                        +{amt / 1000}rb
+                      </button>
+                    ))}
+                    {cashTendered !== '' && (
+                      <button
+                        type="button"
+                        onClick={() => setCashTendered('')}
+                        className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-mono font-bold rounded border border-rose-300 cursor-pointer ml-auto"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1175,6 +1375,13 @@ export default function PosPage() {
                 </div>
               )}
 
+              {useCustomerBalance > 0 && (
+                <div className="flex justify-between text-xs font-mono font-bold text-emerald-700">
+                  <span>Potongan Saldo Celengan</span>
+                  <span>- {formatRupiah(useCustomerBalance)}</span>
+                </div>
+              )}
+
               {/* Tampilkan Laba HANYA jika role = BOSS (kerahasiaan margin untuk CASHIER) */}
               {profile?.role === 'BOSS' && (
                 <div className="flex justify-between text-xs font-mono font-bold text-emerald-800 pt-1 border-t border-dashed border-slate-300">
@@ -1185,9 +1392,11 @@ export default function PosPage() {
 
               {/* TOTAL HARGA: Geist Mono Figures */}
               <div className="flex justify-between items-baseline pt-2 border-t border-slate-300">
-                <span className="text-xs font-mono font-bold text-slate-800 uppercase">TOTAL PEMBAYARAN</span>
+                <span className="text-xs font-mono font-bold text-slate-800 uppercase">
+                  {useCustomerBalance > 0 ? 'SISA DIBAYAR' : 'TOTAL PEMBAYARAN'}
+                </span>
                 <span className="text-2xl sm:text-3xl font-mono font-extrabold tracking-tight text-slate-900">
-                  {formatRupiah(totals.totalOmzet)}
+                  {formatRupiah(Math.max(0, totals.totalOmzet - useCustomerBalance))}
                 </span>
               </div>
             </div>
@@ -1283,6 +1492,32 @@ export default function PosPage() {
                   <span>TOTAL:</span>
                   <span>{formatRupiah(completedTx.total_final)}</span>
                 </div>
+                {Number(completedTx.use_customer_balance || 0) > 0 && (
+                  <div className="flex justify-between text-emerald-700 font-bold">
+                    <span>Celengan:</span>
+                    <span>- {formatRupiah(completedTx.use_customer_balance)}</span>
+                  </div>
+                )}
+                {Number(completedTx.cash_tendered || 0) > 0 && (
+                  <div className="flex justify-between text-slate-600">
+                    <span>Tunai Diterima:</span>
+                    <span>{formatRupiah(completedTx.cash_tendered)}</span>
+                  </div>
+                )}
+                {Number(completedTx.change_returned || 0) > 0 && (
+                  <div className="flex justify-between text-slate-600">
+                    <span>Kembalian:</span>
+                    <span>{formatRupiah(completedTx.change_returned)}</span>
+                  </div>
+                )}
+                {completedTx.change_allocation && (
+                  <div className="flex justify-between text-emerald-700 font-bold border-t border-dashed border-slate-300 pt-1">
+                    <span>
+                      {completedTx.change_allocation.type === 'KASBON' ? 'Alokasi ke Kasbon:' : 'Masuk Celengan:'}
+                    </span>
+                    <span>{formatRupiah(completedTx.change_allocation.amount)}</span>
+                  </div>
+                )}
               </div>
 
               <div className="text-center pt-2 text-[10px] text-slate-500">
@@ -1314,11 +1549,22 @@ export default function PosPage() {
                         return;
                       }
 
+                      let changeDetail = '';
+                      if (Number(completedTx.use_customer_balance || 0) > 0) {
+                        changeDetail += `Pakai Saldo Celengan: -${formatRupiah(completedTx.use_customer_balance)}\n`;
+                      }
+                      if (completedTx.change_allocation) {
+                        changeDetail += completedTx.change_allocation.type === 'KASBON'
+                          ? `Kembalian dipotongkan Kasbon: ${formatRupiah(completedTx.change_allocation.amount)}\n`
+                          : `Kembalian disimpan ke Celengan: ${formatRupiah(completedTx.change_allocation.amount)}\n`;
+                      }
+
                       const waText =
                         `*STRUK PENJUALAN ${completedTx.shop_name}*\n` +
                         `No Bon: ${completedTx.nomor_bon}\n` +
                         `Pelanggan: ${completedTx.customer_name}\n` +
                         `Total: ${formatRupiah(completedTx.total_final)}\n` +
+                        changeDetail +
                         `Status: ${completedTx.payment_status}\n\n` +
                         `Terima kasih sudah berbelanja!`;
                       handleOpenWhatsApp(completedTx.customer_phone, waText);
@@ -1493,6 +1739,18 @@ export default function PosPage() {
           }}
         />
       )}
+
+      {/* ── MODAL SMART CHANGE (FASE 2: CELENGAN & KEMBALIAN) ── */}
+      <SmartChangeModal
+        isOpen={isSmartChangeOpen}
+        onClose={() => setIsSmartChangeOpen(false)}
+        totalOmzet={Math.max(0, totals.totalOmzet - useCustomerBalance)}
+        cashReceived={Number(cashTendered || 0)}
+        selectedCustomer={selectedCustomer}
+        customerPiutang={customerPiutang}
+        customerBalance={customerBalance}
+        onConfirmAllocation={handleSmartChangeAllocation}
+      />
 
     </div>
   );

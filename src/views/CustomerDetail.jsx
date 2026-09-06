@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChevronRight, Calendar, CreditCard, Gift, Printer, CheckCircle2, ChevronLeft, X, Download, Flame } from 'lucide-react';
+import { ChevronRight, Calendar, CreditCard, Gift, Printer, CheckCircle2, ChevronLeft, X, Download, Flame, PiggyBank, Coins, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { api } from '../utils/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { useTutorial } from '../components/TutorialEngine';
@@ -26,12 +26,23 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [assetModalMode, setAssetModalMode] = useState('RETURN');
 
+  // Celengan Saldo (Fase 2)
+  const [balanceInfo, setBalanceInfo] = useState({ balance: 0, mutations: [] });
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const customers = await api.getCustomers();
       const cust = customers.find(c => c.id === customerId);
       setCustomer(cust);
+
+      // Load Celengan Saldo
+      try {
+        const bal = await api.getCustomerBalance(customerId);
+        setBalanceInfo(bal || { balance: 0, mutations: [] });
+      } catch (e) {
+        console.warn('[CustomerDetail] Gagal load balance:', e);
+      }
 
       const allTx = await api.getTransactions();
       const filteredTx = allTx.filter(t => t.customer_id === customerId);
@@ -406,6 +417,82 @@ export default function CustomerDetail({ customerId, setView, setEditTransaction
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* Celengan & Tabungan Saldo Pelanggan (Fase 2) */}
+      {customer && (
+        <div className="bg-white border-2 border-slate-800 rounded-2xl p-5 shadow-[4px_4px_0px_#1E293B] space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <PiggyBank className="w-5 h-5 text-emerald-600" />
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900 font-display uppercase tracking-tight">
+                  Celengan &amp; Saldo Tabungan Pelanggan
+                </h3>
+                <p className="text-[11px] text-slate-500 font-sans">
+                  Sisa kembalian belanja yang disimpan dan dapat dipakai belanja berikutnya
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-slate-500">Saldo Aktif:</span>
+              <span className="text-xl font-black font-mono text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-300">
+                {formatRupiah(balanceInfo.balance)}
+              </span>
+            </div>
+          </div>
+
+          {/* Riwayat Mutasi Celengan */}
+          {balanceInfo.mutations && balanceInfo.mutations.length > 0 ? (
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">
+                5 Mutasi Terakhir:
+              </span>
+              <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden text-xs font-sans">
+                {balanceInfo.mutations.slice(0, 5).map((m) => (
+                  <div key={m.id} className="p-2.5 bg-slate-50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] ${
+                        m.mutation_type === 'DEPOSIT' ? 'bg-emerald-100 text-emerald-800' :
+                        m.mutation_type === 'KASBON_PAYMENT' ? 'bg-indigo-100 text-indigo-800' :
+                        'bg-rose-100 text-rose-800'
+                      }`}>
+                        {m.mutation_type === 'DEPOSIT' ? '↓' : m.mutation_type === 'KASBON_PAYMENT' ? '✓' : '↑'}
+                      </span>
+                      <div>
+                        <span className="font-bold text-slate-800 block">
+                          {m.mutation_type === 'DEPOSIT' ? 'Tabungan Kembalian' :
+                           m.mutation_type === 'KASBON_PAYMENT' ? 'Pelunasan Kasbon' :
+                           m.mutation_type === 'WITHDRAW' ? 'Dipakai Belanja' : 'Penyesuaian Saldo'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {new Date(m.created_at).toLocaleDateString('id-ID')} • {m.notes || '-'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right font-mono">
+                      <span className={`font-bold block ${
+                        m.mutation_type === 'DEPOSIT' ? 'text-emerald-700' :
+                        m.mutation_type === 'KASBON_PAYMENT' ? 'text-indigo-700' :
+                        'text-slate-900'
+                      }`}>
+                        {m.mutation_type === 'DEPOSIT' ? '+' : '-'}{formatRupiah(m.amount)}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Saldo: {formatRupiah(m.current_balance)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs font-mono text-slate-500 py-1">
+              Belum ada mutasi celengan untuk pelanggan ini. Kembalian belanja di POS dapat disimpan ke celengan.
+            </p>
+          )}
         </div>
       )}
 

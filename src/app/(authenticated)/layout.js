@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Users, Package, FileText, HelpCircle, LogOut, Settings, CreditCard, ShieldCheck, ShoppingCart, Menu, X, User, Receipt, ShieldAlert } from 'lucide-react';
+import { Home, Users, Package, FileText, HelpCircle, LogOut, Settings, CreditCard, ShieldCheck, ShoppingCart, Menu, X, User, Receipt, ShieldAlert, HandCoins } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { api } from '@/utils/api';
 import { useTutorial, TutorialProvider } from '@/components/TutorialEngine';
@@ -403,6 +403,7 @@ function AuthenticatedLayoutInner({ children }) {
     { href: '/transactions', label: 'Pita Transaksi', icon: Receipt, id: 'tour-nav-transactions' },
     { href: '/customers', label: 'Pelanggan', icon: Users, id: 'tour-nav-customers' },
     { href: '/products', label: 'Produk', icon: Package, id: 'tour-nav-products' },
+    { href: '/consignments', label: 'Buku Titip Jual', icon: HandCoins, id: 'tour-nav-consignments' },
     { href: '/reporting', label: 'Laporan', icon: FileText, id: 'tour-nav-laporan' },
     { href: '/billing', label: 'Langganan', icon: CreditCard, id: 'tour-nav-billing' },
     { href: '/help', label: 'Bantuan', icon: HelpCircle, id: 'tour-nav-help' },

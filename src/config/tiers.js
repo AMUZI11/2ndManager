@@ -26,6 +26,7 @@ export const TIER_CONFIG = {
     maxProducts: 50,
     maxMultiUnitSKU: 0,
     maxActiveLoans: 0,
+    maxConsignmentVendors: 0,
     historyDays: 7,
     features: {
       allow_kasbon: false,
@@ -41,6 +42,9 @@ export const TIER_CONFIG = {
       print_label_queue: false,
       asset_tracker: false,
       wa_asset_recap: false,
+      consignment: false,
+      customer_deposit: false,
+      wa_consignment_recap: false,
     },
   },
   SUPERVISOR: {
@@ -54,6 +58,7 @@ export const TIER_CONFIG = {
     maxProducts: Infinity,
     maxMultiUnitSKU: 15,
     maxActiveLoans: 20,
+    maxConsignmentVendors: 3,
     historyDays: 30,
     features: {
       allow_kasbon: true,
@@ -69,6 +74,9 @@ export const TIER_CONFIG = {
       print_label_queue: false,
       asset_tracker: true,
       wa_asset_recap: false,
+      consignment: true,
+      customer_deposit: true,
+      wa_consignment_recap: false,
     },
   },
   MANAJER: {
@@ -82,6 +90,7 @@ export const TIER_CONFIG = {
     maxProducts: Infinity,
     maxMultiUnitSKU: Infinity,
     maxActiveLoans: Infinity,
+    maxConsignmentVendors: Infinity,
     historyDays: 365,
     features: {
       allow_kasbon: true,
@@ -97,6 +106,9 @@ export const TIER_CONFIG = {
       print_label_queue: true,
       asset_tracker: true,
       wa_asset_recap: true,
+      consignment: true,
+      customer_deposit: true,
+      wa_consignment_recap: true,
     },
   },
   EKSEKUTIF: {
@@ -110,6 +122,7 @@ export const TIER_CONFIG = {
     maxProducts: Infinity,
     maxMultiUnitSKU: Infinity,
     maxActiveLoans: Infinity,
+    maxConsignmentVendors: Infinity,
     historyDays: 3650,
     features: {
       allow_kasbon: true,
@@ -125,6 +138,9 @@ export const TIER_CONFIG = {
       print_label_queue: true,
       asset_tracker: true,
       wa_asset_recap: true,
+      consignment: true,
+      customer_deposit: true,
+      wa_consignment_recap: true,
     },
   },
 };

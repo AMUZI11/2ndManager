@@ -671,6 +671,71 @@ export const api = {
     const res = await fetchAPI('/asset-loans?summary=true');
     return res?.data?.data || { asset_summary: {}, total_active_loans: 0, customers_with_loans: [] };
   },
+
+  // ── FASE 2: BUKU KONSINYASI TITIP JUAL ─────────────────────────────────────
+
+  getConsignmentVendors: async () => {
+    const res = await fetchAPI('/consignments/vendors');
+    return res?.data?.data || [];
+  },
+
+  createConsignmentVendor: async (vendorData) => {
+    const res = await fetchAPI('/consignments/vendors', {
+      method: 'POST',
+      body: JSON.stringify(vendorData),
+    });
+    if (res?.ok) return res.data.data;
+    if (res?.status === 403) {
+      const err = new Error(res.data?.error || 'Batas vendor konsinyasi tercapai');
+      err.upgradeRequired = true;
+      err.code = res.data?.code;
+      throw err;
+    }
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal menambahkan vendor');
+  },
+
+  getConsignmentBatches: async ({ status, vendor_id } = {}) => {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (vendor_id) params.set('vendor_id', vendor_id);
+    const query = params.toString() ? `?${params}` : '';
+    const res = await fetchAPI(`/consignments/batches${query}`);
+    return res?.data?.data || [];
+  },
+
+  createConsignmentBatch: async (batchData) => {
+    const res = await fetchAPI('/consignments/batches', {
+      method: 'POST',
+      body: JSON.stringify(batchData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal mencatat penerimaan konsinyasi');
+  },
+
+  settleConsignmentBatch: async (batchId, settleData) => {
+    const res = await fetchAPI(`/consignments/batches/${batchId}/settle`, {
+      method: 'POST',
+      body: JSON.stringify(settleData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal menyelesaikan settlement konsinyasi');
+  },
+
+  // ── FASE 2: CELENGAN & SALDO TABUNGAN PELANGGAN ───────────────────────────
+
+  getCustomerBalance: async (customerId) => {
+    const res = await fetchAPI(`/customers/${customerId}/balance`);
+    return res?.data?.data || { balance: 0, mutations: [] };
+  },
+
+  mutateCustomerBalance: async (customerId, balanceData) => {
+    const res = await fetchAPI(`/customers/${customerId}/balance`, {
+      method: 'POST',
+      body: JSON.stringify(balanceData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal mengubah saldo celengan');
+  },
 };
 
 // Re-export MockDB alias untuk backwards compatibility (migrasi bertahap)

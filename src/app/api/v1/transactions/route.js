@@ -272,6 +272,56 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
       }
     }
 
+    // Eksekusi Pemotongan Saldo Celengan Pelanggan (Jika Digunakan untuk Bayar Belanja)
+    if (body.use_customer_balance && Number(body.use_customer_balance) > 0 && customer_id) {
+      try {
+        await supabase.rpc('mutate_customer_balance', {
+          p_customer_id: customer_id,
+          p_delta: -Number(body.use_customer_balance),
+          p_mutation_type: 'WITHDRAW',
+          p_shop_id: shopId,
+          p_notes: `Pembayaran Belanja Bon #${transaction.nomor_bon}`,
+          p_transaction_id: transaction.id,
+        });
+      } catch (balErr) {
+        console.error('[POST /transactions] Customer balance deduction failed:', balErr);
+      }
+    }
+
+    // Eksekusi Alokasi Celengan Kembalian (Smart Change: Potong Kasbon / Simpan Celengan)
+    let changeResult = null;
+    if (body.change_allocation && Number(body.change_allocation.amount) > 0 && customer_id) {
+      const allocType = body.change_allocation.type;
+      const allocAmount = Number(body.change_allocation.amount);
+
+      try {
+        if (allocType === 'KASBON') {
+          const { data: kasbonRes, error: kasbonErr } = await supabase.rpc('allocate_change_to_kasbon', {
+            p_customer_id: customer_id,
+            p_amount: allocAmount,
+            p_shop_id: shopId,
+            p_transaction_id: transaction.id,
+            p_notes: `Alokasi kembalian Bon #${transaction.nomor_bon}`,
+          });
+          if (kasbonErr) throw kasbonErr;
+          changeResult = kasbonRes;
+        } else if (allocType === 'DEPOSIT') {
+          const { data: depRes, error: depErr } = await supabase.rpc('mutate_customer_balance', {
+            p_customer_id: customer_id,
+            p_delta: allocAmount,
+            p_mutation_type: 'DEPOSIT',
+            p_shop_id: shopId,
+            p_notes: `Tabungan kembalian Bon #${transaction.nomor_bon}`,
+            p_transaction_id: transaction.id,
+          });
+          if (depErr) throw depErr;
+          changeResult = { success: true, deposited_leftover: allocAmount, current_balance: Number(depRes) };
+        }
+      } catch (allocErr) {
+        console.error('[POST /transactions] Smart change allocation failed:', allocErr);
+      }
+    }
+
     // Fetch full transaction
     const { data: fullTx } = await supabase
       .from('transactions')
@@ -282,7 +332,10 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     await logActivity(supabase, shopId, profile.username || user.email, 'Buat Bon',
       `Bon "${transaction.nomor_bon}" untuk "${customer.nama}" total Rp${Number(amount_owed).toLocaleString('id-ID')}`);
 
-    return successResponse(fullTx, 201);
+    return successResponse({
+      ...fullTx,
+      change_allocation_result: changeResult,
+    }, 201);
   } catch (error) {
     console.error('[POST /transactions]', error);
     if (error.code === '23505') {
