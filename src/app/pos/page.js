@@ -1539,6 +1539,7 @@ export default function PosPage() {
       <AnimatePresence>
       {isReceiptModalOpen && completedTx && (
         <motion.div 
+          key="receipt-modal-backdrop"
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }}
@@ -1706,9 +1707,9 @@ export default function PosPage() {
       )}
       </AnimatePresence>
 
-      <AnimatePresence>
       {/* ── MODAL RADAR JUAL RUGI (NEGATIVE MARGIN OVERRIDE) ── */}
       <NegativeMarginOverrideModal
+        key="negative-margin-modal"
         isOpen={isNegativeMarginModalOpen}
         onClose={() => setIsNegativeMarginModalOpen(false)}
         lossItems={lossItemsForModal}
@@ -1718,6 +1719,7 @@ export default function PosPage() {
 
       {/* ── MODAL BUKA SHIFT KASIR (START SHIFT) ── */}
       <StartShiftModal
+        key="start-shift-modal"
         isOpen={isStartShiftOpen}
         onClose={() => setIsStartShiftOpen(false)}
         cashierName={profile?.username || user?.email?.split('@')[0] || 'Kasir'}
@@ -1729,6 +1731,7 @@ export default function PosPage() {
 
       {/* ── MODAL SERAH TERIMA SHIFT 60 DETIK (BLIND CLOSING) ── */}
       <ShiftHandoverModal
+        key="shift-handover-modal"
         isOpen={isShiftHandoverOpen}
         onClose={() => setIsShiftHandoverOpen(false)}
         activeShift={activeShift}
@@ -1742,6 +1745,7 @@ export default function PosPage() {
 
       {/* ── MODAL MUTASI KAS MASUK / KELUAR LACI ── */}
       <CashDrawerMovementModal
+        key="cash-drawer-modal"
         isOpen={isCashDrawerModalOpen}
         onClose={() => setIsCashDrawerModalOpen(false)}
         activeShift={activeShift}
@@ -1749,7 +1753,6 @@ export default function PosPage() {
           showToast(`Kas ${mov.movement_type === 'CASH_IN' ? 'Masuk' : 'Keluar'} Rp ${mov.amount?.toLocaleString('id-ID')} dicatat.`);
         }}
       />
-      </AnimatePresence>
 
       {/* ── MODAL PAYWALL ── */}
       <PaywallModal 
