@@ -45,6 +45,10 @@ export const TIER_CONFIG = {
       consignment: false,
       customer_deposit: false,
       wa_consignment_recap: false,
+      negative_margin_guard: 'VISUAL_ONLY', // VISUAL_ONLY | CONFIRM_ONLY | HARD_BLOCK
+      shift_handover: false, // false | 'BASIC' | 'ADVANCED'
+      owner_pin_override: false,
+      wa_shift_recap: false,
     },
   },
   SUPERVISOR: {
@@ -77,6 +81,10 @@ export const TIER_CONFIG = {
       consignment: true,
       customer_deposit: true,
       wa_consignment_recap: false,
+      negative_margin_guard: 'CONFIRM_ONLY',
+      shift_handover: 'BASIC',
+      owner_pin_override: false,
+      wa_shift_recap: false,
     },
   },
   MANAJER: {
@@ -109,6 +117,10 @@ export const TIER_CONFIG = {
       consignment: true,
       customer_deposit: true,
       wa_consignment_recap: true,
+      negative_margin_guard: 'HARD_BLOCK',
+      shift_handover: 'ADVANCED',
+      owner_pin_override: true,
+      wa_shift_recap: true,
     },
   },
   EKSEKUTIF: {
@@ -141,6 +153,10 @@ export const TIER_CONFIG = {
       consignment: true,
       customer_deposit: true,
       wa_consignment_recap: true,
+      negative_margin_guard: 'HARD_BLOCK',
+      shift_handover: 'ADVANCED',
+      owner_pin_override: true,
+      wa_shift_recap: true,
     },
   },
 };

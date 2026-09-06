@@ -84,6 +84,10 @@ export const SUBSCRIPTION_PLANS = {
       consignment: TIER_CONFIG.MAGANG.features.consignment,
       customer_deposit: TIER_CONFIG.MAGANG.features.customer_deposit,
       wa_consignment_recap: TIER_CONFIG.MAGANG.features.wa_consignment_recap,
+      negative_margin_guard: TIER_CONFIG.MAGANG.features.negative_margin_guard,
+      shift_handover: TIER_CONFIG.MAGANG.features.shift_handover,
+      owner_pin_override: TIER_CONFIG.MAGANG.features.owner_pin_override,
+      wa_shift_recap: TIER_CONFIG.MAGANG.features.wa_shift_recap,
     },
     feature_list: [
       { text: 'Mesin Kasir POS Dasar', included: true },
@@ -140,6 +144,10 @@ export const SUBSCRIPTION_PLANS = {
       consignment: TIER_CONFIG.SUPERVISOR.features.consignment,
       customer_deposit: TIER_CONFIG.SUPERVISOR.features.customer_deposit,
       wa_consignment_recap: TIER_CONFIG.SUPERVISOR.features.wa_consignment_recap,
+      negative_margin_guard: TIER_CONFIG.SUPERVISOR.features.negative_margin_guard,
+      shift_handover: TIER_CONFIG.SUPERVISOR.features.shift_handover,
+      owner_pin_override: TIER_CONFIG.SUPERVISOR.features.owner_pin_override,
+      wa_shift_recap: TIER_CONFIG.SUPERVISOR.features.wa_shift_recap,
     },
     feature_list: [
       { text: 'Transaksi (Struk) Unlimited', included: true },
@@ -196,6 +204,10 @@ export const SUBSCRIPTION_PLANS = {
       consignment: TIER_CONFIG.MANAJER.features.consignment,
       customer_deposit: TIER_CONFIG.MANAJER.features.customer_deposit,
       wa_consignment_recap: TIER_CONFIG.MANAJER.features.wa_consignment_recap,
+      negative_margin_guard: TIER_CONFIG.MANAJER.features.negative_margin_guard,
+      shift_handover: TIER_CONFIG.MANAJER.features.shift_handover,
+      owner_pin_override: TIER_CONFIG.MANAJER.features.owner_pin_override,
+      wa_shift_recap: TIER_CONFIG.MANAJER.features.wa_shift_recap,
     },
     feature_list: [
       { text: 'Radar Kasir Nakal (Void/Selisih Log)', included: true },
@@ -253,6 +265,10 @@ export const SUBSCRIPTION_PLANS = {
       consignment: TIER_CONFIG.EKSEKUTIF.features.consignment,
       customer_deposit: TIER_CONFIG.EKSEKUTIF.features.customer_deposit,
       wa_consignment_recap: TIER_CONFIG.EKSEKUTIF.features.wa_consignment_recap,
+      negative_margin_guard: TIER_CONFIG.EKSEKUTIF.features.negative_margin_guard,
+      shift_handover: TIER_CONFIG.EKSEKUTIF.features.shift_handover,
+      owner_pin_override: TIER_CONFIG.EKSEKUTIF.features.owner_pin_override,
+      wa_shift_recap: TIER_CONFIG.EKSEKUTIF.features.wa_shift_recap,
     },
     feature_list: [
       { text: 'Auto-Report WhatsApp Pukul 06:00 Pagi', included: true, star: true },
@@ -297,6 +313,16 @@ export function canAccessFeature(userPlan, featureName) {
   if (!config || !config.features) return false;
   return Boolean(config.features[featureName]);
 }
+
+/**
+ * Mengambil nilai spesifik dari konfigurasi fitur (misal: 'VISUAL_ONLY', 'CONFIRM_ONLY', 'HARD_BLOCK', 'BASIC', 'ADVANCED')
+ */
+export function getFeatureValue(userPlan, featureName) {
+  const config = getPlanConfig(userPlan);
+  if (!config || !config.features) return null;
+  return config.features[featureName] ?? null;
+}
+
 
 /**
  * Validation Helper Capacity Limits with Add-Ons Formula:

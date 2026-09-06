@@ -123,6 +123,31 @@ export const POST = withAuthSupabase(async (request, { params }, { user, profile
 
     // 6. Mutasi Pengeluaran Kas Toko & Laci Kasir (CONSIGNMENT_PAYOUT)
     // Mencatat pengeluaran kas agar audit blind closing kasir akurat
+    if (totalPayout > 0 && payment_method !== 'TRANSFER') {
+      try {
+        const { data: activeShift } = await supabase
+          .from('cashier_shifts')
+          .select('id')
+          .eq('shop_id', shopId)
+          .eq('status', 'OPEN')
+          .order('start_time', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        await supabase.from('cash_drawer_movements').insert({
+          shop_id: shopId,
+          shift_id: activeShift?.id || null,
+          movement_type: 'CASH_OUT',
+          category: 'CONSIGNMENT_PAYOUT',
+          amount: totalPayout,
+          notes: `Pelunasan Konsinyasi #${batch.id.slice(0, 8)} (${batch.consignment_vendors?.nama_vendor || 'Vendor'})`,
+          created_by: profile.id,
+        });
+      } catch (drawerErr) {
+        console.warn('Warning recording consignment cash drawer movement:', drawerErr.message);
+      }
+    }
+
     await logActivity(
       supabase,
       shopId,

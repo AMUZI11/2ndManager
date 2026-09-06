@@ -736,6 +736,77 @@ export const api = {
     if (res?.ok) return res.data.data;
     throw new Error(res?.data?.message || res?.data?.error || 'Gagal mengubah saldo celengan');
   },
+
+  // ── FASE 3: PIN OWNER & SHIFT KASIR 60 DETIK ─────────────────────────────
+
+  getShopPinStatus: async () => {
+    const res = await fetchAPI('/shops/pin');
+    return res?.data?.data || { is_pin_configured: false };
+  },
+
+  verifyShopPin: async (pin) => {
+    const res = await fetchAPI('/shops/pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin }),
+    });
+    if (res?.ok) return res.data.data;
+    const err = new Error(res?.data?.message || res?.data?.error || 'PIN salah');
+    err.status = res?.status;
+    err.code = res?.data?.code;
+    err.remainingAttempts = res?.data?.remainingAttempts;
+    err.retryAfterMinutes = res?.data?.retryAfterMinutes;
+    throw err;
+  },
+
+  updateShopPin: async ({ new_pin, current_pin }) => {
+    const res = await fetchAPI('/shops/pin', {
+      method: 'PUT',
+      body: JSON.stringify({ new_pin, current_pin }),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal memperbarui PIN toko');
+  },
+
+  getCurrentShift: async () => {
+    const res = await fetchAPI('/shifts/current');
+    return res?.data?.data?.active_shift || null;
+  },
+
+  startShift: async (shiftData) => {
+    const res = await fetchAPI('/shifts/start', {
+      method: 'POST',
+      body: JSON.stringify(shiftData),
+    });
+    if (res?.ok) return res.data.data;
+    const err = new Error(res?.data?.message || res?.data?.error || 'Gagal membuka shift kasir');
+    err.code = res?.data?.code;
+    err.active_shift = res?.data?.active_shift;
+    throw err;
+  },
+
+  closeShift: async (closeData) => {
+    const res = await fetchAPI('/shifts/close', {
+      method: 'POST',
+      body: JSON.stringify(closeData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal menutup shift kasir');
+  },
+
+  getCashDrawerMovements: async (shiftId = null) => {
+    const query = shiftId ? `?shift_id=${shiftId}` : '';
+    const res = await fetchAPI(`/shifts/movements${query}`);
+    return res?.data?.data || [];
+  },
+
+  addCashDrawerMovement: async (movementData) => {
+    const res = await fetchAPI('/shifts/movements', {
+      method: 'POST',
+      body: JSON.stringify(movementData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal mencatat mutasi laci');
+  },
 };
 
 // Re-export MockDB alias untuk backwards compatibility (migrasi bertahap)

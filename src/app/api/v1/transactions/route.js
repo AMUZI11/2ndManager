@@ -5,6 +5,7 @@ import { calculateCascadingDiscount, calculateTransactionTotals } from '@/lib/ca
 import { getPlanConfig } from '@/lib/subscription';
 import { getTierConfig, getWIBStartOfMonth } from '@/config/tiers';
 import { logActivity } from '@/lib/audit';
+import { verifyPin } from '@/lib/security';
 
 export const GET = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
   try {
@@ -203,6 +204,69 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
 
     const { omzet_total, laba_total, amount_owed, items_with_calcs } =
       calculateTransactionTotals(processedItems, ongkir || 0);
+
+    // ── RADAR JUAL RUGI REAL-TIME (NEGATIVE MARGIN GUARD) ──
+    const lossItems = items_with_calcs.filter(
+      (i) => !i.is_bonus_item && Number(i.discounted_unit_price) < Number(i.harga_modal_snapshot)
+    );
+
+    if (lossItems.length > 0) {
+      const marginGuardMode = tierConfig.features?.negative_margin_guard;
+
+      if (marginGuardMode === 'HARD_BLOCK' && profile.role === 'CASHIER') {
+        const { owner_pin } = body;
+        if (!owner_pin) {
+          return errorResponse(
+            'Transaksi ditolak: Terdapat barang yang dijual rugi di bawah modal. Memerlukan otorisasi PIN Pemilik Toko.',
+            'NEGATIVE_MARGIN_BLOCKED',
+            403,
+            {
+              loss_items: lossItems.map((li) => ({
+                product_id: li.product_id,
+                selling_price: li.discounted_unit_price,
+                cost_price: li.harga_modal_snapshot,
+                loss_per_unit: Number(li.harga_modal_snapshot) - Number(li.discounted_unit_price),
+              })),
+            }
+          );
+        }
+
+        // Ambil shop owner_pin_hash
+        const { data: shopRecord } = await supabase
+          .from('shops')
+          .select('id, owner_pin_hash, is_pin_configured')
+          .eq('id', shopId)
+          .single();
+
+        if (!shopRecord?.is_pin_configured || !shopRecord?.owner_pin_hash) {
+          return errorResponse(
+            'Transaksi jual rugi memerlukan PIN Pemilik, tetapi Pemilik Toko belum mengatur PIN di pengaturan.',
+            'PIN_NOT_CONFIGURED',
+            403
+          );
+        }
+
+        const isPinValid = verifyPin(owner_pin, shopRecord.owner_pin_hash);
+        if (!isPinValid) {
+          return errorResponse(
+            'PIN Pemilik Toko salah. Otorisasi jual rugi ditolak.',
+            'INVALID_OWNER_PIN',
+            403
+          );
+        }
+
+        await logActivity({
+          user_id: user.id,
+          action: 'NEGATIVE_MARGIN_OVERRIDE',
+          entity: 'transactions',
+          metadata: {
+            cashier_id: profile.id,
+            nomor_bon: nomor_bon.trim(),
+            loss_items_count: lossItems.length,
+          },
+        });
+      }
+    }
 
     // Insert transaksi
     const { data: transaction, error: txErr } = await supabase

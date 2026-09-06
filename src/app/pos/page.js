@@ -13,10 +13,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { api, calculateCascadingDiscount } from '@/utils/api';
 import { canAccessFeature } from '@/lib/subscription';
+import { getTierConfig } from '@/config/tiers';
 import PaywallModal from '@/components/ui/PaywallModal';
 import UpgradePromptModal from '@/components/pos/UpgradePromptModal';
 import AssetLoanModal from '@/components/customers/AssetLoanModal';
 import SmartChangeModal from '@/components/pos/SmartChangeModal';
+import NegativeMarginOverrideModal from '@/components/pos/NegativeMarginOverrideModal';
+import StartShiftModal from '@/components/pos/StartShiftModal';
+import ShiftHandoverModal from '@/components/pos/ShiftHandoverModal';
+import CashDrawerMovementModal from '@/components/pos/CashDrawerMovementModal';
 
 // Web Audio API beep sound for barcode scanner feedback
 function playScannerBeep() {
@@ -165,10 +170,17 @@ export default function PosPage() {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [upgradeModalData, setUpgradeModalData] = useState(null);
 
-  // Blind Closing Modal
-  const [isBlindClosingOpen, setIsBlindClosingOpen] = useState(false);
-  const [cashPhysicalInput, setCashPhysicalInput] = useState('');
-  const [blindResult, setBlindResult] = useState(null);
+  // Phase 3: Shift Kasir & Cash Drawer States
+  const [activeShift, setActiveShift] = useState(null);
+  const [isStartShiftOpen, setIsStartShiftOpen] = useState(false);
+  const [isShiftHandoverOpen, setIsShiftHandoverOpen] = useState(false);
+  const [isCashDrawerModalOpen, setIsCashDrawerModalOpen] = useState(false);
+  const [cashiersList, setCashiersList] = useState([]);
+
+  // Phase 3: Radar Jual Rugi & PIN Override States
+  const [isNegativeMarginModalOpen, setIsNegativeMarginModalOpen] = useState(false);
+  const [lossItemsForModal, setLossItemsForModal] = useState([]);
+  const [ownerPinOverride, setOwnerPinOverride] = useState(null);
 
   // Paywall Modal
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
@@ -271,16 +283,20 @@ export default function PosPage() {
 
       setUserPlan(activePlan);
 
-      // Fetch products, customers, categories
+      // Fetch products, customers, categories, active shift, cashiers
       try {
-        const [prodList, custList, catList] = await Promise.all([
+        const [prodList, custList, catList, shiftData, cashiers] = await Promise.all([
           api.getProducts(),
           api.getCustomers(),
           api.getCategories(),
+          api.getCurrentShift().catch(() => null),
+          api.getCashiers().catch(() => []),
         ]);
         setProducts(prodList || []);
         setCustomers(custList || []);
         setCategories(catList || []);
+        setActiveShift(shiftData || null);
+        setCashiersList(cashiers || []);
       } catch (err) {
         console.error('[POS Init Error]', err);
       } finally {
@@ -561,6 +577,7 @@ export default function PosPage() {
       status: paymentStatus,
       use_customer_balance: useCustomerBalance > 0 ? useCustomerBalance : 0,
       change_allocation: options.changeAllocation || null,
+      owner_pin: options.ownerPin || ownerPinOverride || null,
       items: cartItems.map((item) => ({
         product_id: item.product_id,
         unit_id: item.unit_id || null,
@@ -575,6 +592,7 @@ export default function PosPage() {
     setSubmitting(false);
 
     if (res.success) {
+      setOwnerPinOverride(null);
       const activeCust = targetCustId ? (customers.find(c => c.id === targetCustId) || selectedCustomer) : null;
       setCompletedTx({
         ...res.data,
@@ -613,13 +631,17 @@ export default function PosPage() {
           message: res.message,
         });
         setIsUpgradeModalOpen(true);
+      } else if (res.code === 'NEGATIVE_MARGIN_BLOCKED' || (res.status === 403 && res.loss_items)) {
+        const lossList = res.loss_items || cartItems.filter(i => !i.is_bonus_item && Number(i.discounted_unit_price) < Number(i.harga_modal));
+        setLossItemsForModal(lossList);
+        setIsNegativeMarginModalOpen(true);
       } else {
         setErrorMessage(res.message || 'Gagal menyimpan transaksi. Coba lagi.');
       }
     }
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (checkoutOpts = {}) => {
     setErrorMessage('');
     if (cartItems.length === 0) {
       setErrorMessage('Keranjang masih kosong.');
@@ -643,6 +665,26 @@ export default function PosPage() {
       return;
     }
 
+    // ── RADAR JUAL RUGI (NEGATIVE MARGIN GUARD) ──
+    const lossItems = cartItems.filter(
+      (item) => !item.is_bonus_item && Number(item.discounted_unit_price) < Number(item.harga_modal)
+    );
+
+    if (lossItems.length > 0 && !ownerPinOverride && !checkoutOpts.confirmedLoss) {
+      const tierCfg = getTierConfig(userPlan);
+      const marginGuardMode = tierCfg.features?.negative_margin_guard;
+
+      if (marginGuardMode === 'HARD_BLOCK' && profile?.role === 'CASHIER') {
+        setLossItemsForModal(lossItems);
+        setIsNegativeMarginModalOpen(true);
+        return;
+      } else if (marginGuardMode === 'CONFIRM_ONLY') {
+        setLossItemsForModal(lossItems);
+        setIsNegativeMarginModalOpen(true);
+        return;
+      }
+    }
+
     // Jika ada kembalian dan bayar tunai (Lunas), buka Smart Change Modal
     if (paymentStatus === 'Lunas' && cashTendered !== '' && cashNum > netPayable) {
       setIsSmartChangeOpen(true);
@@ -650,7 +692,17 @@ export default function PosPage() {
     }
 
     // Jika uang pas atau tanpa nominal tunai, langsung proses
-    await executeTransaction();
+    await executeTransaction(checkoutOpts);
+  };
+
+  const handleAuthorizeLoss = async ({ pin } = {}) => {
+    setIsNegativeMarginModalOpen(false);
+    if (pin) {
+      setOwnerPinOverride(pin);
+      await executeTransaction({ ownerPin: pin, confirmedLoss: true });
+    } else {
+      await executeTransaction({ confirmedLoss: true });
+    }
   };
 
   const handleSmartChangeAllocation = async (allocation) => {
@@ -700,21 +752,29 @@ export default function PosPage() {
           handleCheckoutRef.current();
         }
       }
-      // Esc: Close receipt/closing modals
+      // Esc: Close receipt / phase 3 modals
       else if (e.key === 'Escape') {
         if (isReceiptModalOpen) {
           setIsReceiptModalOpen(false);
         }
-        if (isBlindClosingOpen) {
-          setIsBlindClosingOpen(false);
-          setBlindResult(null);
+        if (isShiftHandoverOpen) {
+          setIsShiftHandoverOpen(false);
+        }
+        if (isStartShiftOpen) {
+          setIsStartShiftOpen(false);
+        }
+        if (isCashDrawerModalOpen) {
+          setIsCashDrawerModalOpen(false);
+        }
+        if (isNegativeMarginModalOpen) {
+          setIsNegativeMarginModalOpen(false);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [submitting, cartItems.length, isReceiptModalOpen, isBlindClosingOpen]);
+  }, [submitting, cartItems.length, isReceiptModalOpen, isShiftHandoverOpen, isStartShiftOpen, isCashDrawerModalOpen, isNegativeMarginModalOpen]);
 
   // Reset Sesi POS untuk transaksi berikutnya
   const handleResetPos = async () => {
@@ -821,13 +881,38 @@ export default function PosPage() {
             )}
           </div>
 
+          {/* Laci Kas Masuk/Keluar Button */}
           <button
-            onClick={() => setIsBlindClosingOpen(true)}
+            onClick={() => setIsCashDrawerModalOpen(true)}
             className="btn-arcade flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] text-xs font-mono font-bold px-3 py-2 rounded-xl transition-all cursor-pointer"
-            title="Rekonsiliasi Akhir Shift (Blind Closing)"
+            title="Catat Kas Masuk / Keluar Laci"
           >
-            <Lock size={14} /> <span className="hidden xl:inline">Tutup Shift</span>
+            <Coins size={14} /> <span className="hidden xl:inline">Laci Kas</span>
           </button>
+
+          {/* Shift Status & Handover Button */}
+          {activeShift ? (
+            <button
+              onClick={() => setIsShiftHandoverOpen(true)}
+              className="btn-arcade flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border-2 border-emerald-600 shadow-[2px_2px_0px_#059669] text-xs font-mono font-bold px-3 py-2 rounded-xl transition-all cursor-pointer"
+              title="Shift Aktif — Klik untuk Tutup Shift (Blind Closing)"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+              </span>
+              <span>Shift #{activeShift.shift_number}</span>
+              <span className="hidden xl:inline text-emerald-700">| Tutup</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsStartShiftOpen(true)}
+              className="btn-arcade flex items-center gap-1.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] text-xs font-mono font-black px-3 py-2 rounded-xl transition-all cursor-pointer"
+              title="Buka Shift Kasir Baru"
+            >
+              <Lock size={14} /> <span>Buka Shift</span>
+            </button>
+          )}
 
           {profile?.role === 'BOSS' && (
             <button
@@ -1173,27 +1258,52 @@ export default function PosPage() {
               {cartItems.map((item) => {
                 const itemPrice = item.is_bonus_item ? 0 : item.discounted_unit_price;
                 const hasDiscount = item.discounted_unit_price < item.harga_base && !item.is_bonus_item;
+                const isLoss = !item.is_bonus_item && Number(item.discounted_unit_price) < Number(item.harga_modal);
+                const lossPerUnit = isLoss ? Number(item.harga_modal) - Number(item.discounted_unit_price) : 0;
 
                 return (
                   <div
-                    key={item.product_id}
-                    className="bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-3 flex items-center justify-between gap-3 text-sm"
+                    key={item.cartKey || item.product_id}
+                    className={`rounded-xl px-3.5 py-3 flex items-center justify-between gap-3 text-sm transition-all ${
+                      isLoss
+                        ? 'bg-red-50/90 border-2 border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.25)] animate-pulse'
+                        : 'bg-slate-50 border border-slate-300'
+                    }`}
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-bold text-slate-900 truncate font-sans text-sm">{item.nama}</span>
                         <span className="text-[9px] font-mono font-bold uppercase bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded">
                           {item.tipe}
                         </span>
+                        {item.unit_name && item.unit_name !== 'Pcs' && (
+                          <span className="text-[9px] font-mono font-bold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded border border-amber-300">
+                            {item.unit_name}
+                          </span>
+                        )}
+                        {isLoss && (
+                          <span className="text-[9px] font-mono font-black uppercase bg-red-600 text-white px-1.5 py-0.5 rounded shadow-[1px_1px_0px_#991B1B] flex items-center gap-1">
+                            ⚠️ RUGI: -{formatRupiah(lossPerUnit)}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-xs mt-0.5 font-mono">
                         {hasDiscount ? (
                           <>
                             <span className="line-through text-slate-400">{formatRupiah(item.harga_base)}</span>
-                            <span className="font-bold text-emerald-700">{formatRupiah(item.discounted_unit_price)}</span>
+                            <span className={`font-bold ${isLoss ? 'text-red-600' : 'text-emerald-700'}`}>
+                              {formatRupiah(item.discounted_unit_price)}
+                            </span>
                           </>
                         ) : (
-                          <span className="text-slate-700">{formatRupiah(item.harga_base)}</span>
+                          <span className={`font-bold ${isLoss ? 'text-red-600' : 'text-slate-700'}`}>
+                            {formatRupiah(item.harga_base)}
+                          </span>
+                        )}
+                        {isLoss && (
+                          <span className="text-[10px] text-slate-500 font-sans">
+                            (Modal: {formatRupiah(item.harga_modal)})
+                          </span>
                         )}
                       </div>
                     </div>
@@ -1596,108 +1706,49 @@ export default function PosPage() {
       )}
       </AnimatePresence>
 
-      {/* ── MODAL REKONSILIASI BLIND CLOSING (Pop-Art Glass) ── */}
       <AnimatePresence>
-      {isBlindClosingOpen && (
-        <motion.div 
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: 1 }} 
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
-        >
-          <motion.div 
-            initial={{ scale: 0.95, y: 20, opacity: 0 }} 
-            animate={{ scale: 1, y: 0, opacity: 1 }} 
-            exit={{ scale: 0.95, y: 20, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-[8px_8px_0px_#1E293B] space-y-4 border-2 border-slate-800"
-          >
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h3 className="text-lg font-extrabold text-slate-900 font-display flex items-center gap-2">
-                <Lock size={18} className="text-slate-900" /> Rekonsiliasi Akhir Shift
-              </h3>
-              <button
-                onClick={() => {
-                  setIsBlindClosingOpen(false);
-                  setBlindResult(null);
-                }}
-                className="text-slate-600 hover:text-slate-900 font-bold text-lg p-1"
-              >
-                ✕
-              </button>
-            </div>
+      {/* ── MODAL RADAR JUAL RUGI (NEGATIVE MARGIN OVERRIDE) ── */}
+      <NegativeMarginOverrideModal
+        isOpen={isNegativeMarginModalOpen}
+        onClose={() => setIsNegativeMarginModalOpen(false)}
+        lossItems={lossItemsForModal}
+        mode={getTierConfig(userPlan).features?.negative_margin_guard === 'CONFIRM_ONLY' ? 'CONFIRM_ONLY' : 'HARD_BLOCK'}
+        onAuthorize={handleAuthorizeLoss}
+      />
 
-            {!blindResult ? (
-              <div className="space-y-4">
-                <p className="text-xs font-sans text-slate-600 leading-relaxed">
-                  Hitung dan masukkan uang fisik tunai di laci kasir saat ini. Angka sistem sengaja disembunyikan agar audit shift kasir berlangsung objektif.
-                </p>
+      {/* ── MODAL BUKA SHIFT KASIR (START SHIFT) ── */}
+      <StartShiftModal
+        isOpen={isStartShiftOpen}
+        onClose={() => setIsStartShiftOpen(false)}
+        cashierName={profile?.username || user?.email?.split('@')[0] || 'Kasir'}
+        onShiftStarted={(newShift) => {
+          setActiveShift(newShift);
+          showToast(`Shift #${newShift.shift_number} berhasil dibuka!`);
+        }}
+      />
 
-                <div>
-                  <label className="text-xs font-mono font-bold text-slate-800 block mb-1">
-                    Uang Fisik di Laci (Rp):
-                  </label>
-                  <input
-                    type="number"
-                    value={cashPhysicalInput}
-                    onChange={(e) => setCashPhysicalInput(e.target.value)}
-                    placeholder="Contoh: 1500000"
-                    className="w-full bg-slate-50 border-2 border-slate-800 rounded-xl px-4 py-3 text-base font-mono font-bold text-slate-900 focus:ring-2 focus:ring-[#CCFF00] outline-none"
-                  />
-                </div>
+      {/* ── MODAL SERAH TERIMA SHIFT 60 DETIK (BLIND CLOSING) ── */}
+      <ShiftHandoverModal
+        isOpen={isShiftHandoverOpen}
+        onClose={() => setIsShiftHandoverOpen(false)}
+        activeShift={activeShift}
+        cashiers={cashiersList}
+        tierFeatures={getTierConfig(userPlan).features || {}}
+        onShiftClosed={(res) => {
+          setActiveShift(null);
+          showToast('Shift kasir berhasil ditutup dan direkonsiliasi!');
+        }}
+      />
 
-                <button
-                  onClick={() => {
-                    const physical = Number(cashPhysicalInput || 0);
-                    setBlindResult({
-                      physical,
-                      timestamp: new Date().toLocaleString('id-ID'),
-                    });
-                  }}
-                  disabled={!cashPhysicalInput}
-                  className="btn-arcade w-full bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 font-mono font-bold py-3.5 rounded-xl text-xs uppercase transition-all shadow-[3px_3px_0px_#1E293B] cursor-pointer disabled:opacity-50 border-2 border-slate-800"
-                >
-                  Proses Rekonsiliasi Kas
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4 text-center">
-                <div className="w-14 h-14 bg-emerald-100 text-emerald-800 border-2 border-emerald-500 rounded-2xl flex items-center justify-center mx-auto text-xl font-bold">
-                  ✓
-                </div>
-                <h4 className="text-base font-bold text-slate-900 font-display">Rekonsiliasi Kasir Berhasil Dicatat</h4>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-300 text-xs font-mono space-y-2 text-left text-slate-800">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Kasir:</span>
-                    <strong className="text-slate-900">{profile?.username || 'Kasir'}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Waktu Closing:</span>
-                    <strong className="text-slate-900">{blindResult.timestamp}</strong>
-                  </div>
-                  <div className="flex justify-between border-t border-slate-200 pt-2 font-bold">
-                    <span className="text-slate-800">Uang Fisik Laci:</span>
-                    <strong className="text-slate-900 text-sm">
-                      Rp {blindResult.physical.toLocaleString('id-ID')}
-                    </strong>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setIsBlindClosingOpen(false);
-                    setBlindResult(null);
-                    setCashPhysicalInput('');
-                  }}
-                  className="btn-arcade w-full bg-slate-900 text-white font-mono font-bold py-3 rounded-xl text-xs uppercase transition-all cursor-pointer border-2 border-slate-800"
-                >
-                  Tutup Rekonsiliasi
-                </button>
-              </div>
-            )}
-          </motion.div>
-        </motion.div>
-      )}
+      {/* ── MODAL MUTASI KAS MASUK / KELUAR LACI ── */}
+      <CashDrawerMovementModal
+        isOpen={isCashDrawerModalOpen}
+        onClose={() => setIsCashDrawerModalOpen(false)}
+        activeShift={activeShift}
+        onMovementAdded={(mov) => {
+          showToast(`Kas ${mov.movement_type === 'CASH_IN' ? 'Masuk' : 'Keluar'} Rp ${mov.amount?.toLocaleString('id-ID')} dicatat.`);
+        }}
+      />
       </AnimatePresence>
 
       {/* ── MODAL PAYWALL ── */}
