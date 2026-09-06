@@ -490,26 +490,36 @@ export default function PosPage() {
     });
   };
 
-  // Update kuantitas item keranjang
-  const updateCartQty = (cartKey, delta) => {
+  // Update kuantitas item keranjang (Multi-Tier Unit & cartKey aware)
+  const updateCartQty = (key, delta) => {
     if (delta < 0) {
-      const targetItem = cartItems.find((i) => (i.cartKey || i.product_id) === cartKey);
+      const targetItem = cartItems.find(
+        (i) => (i.cartKey || i.product_id) === key || i.product_id === key
+      );
       if (targetItem) {
         queueVoidLog(targetItem.nama, Math.abs(delta));
       }
     }
 
-    setCartItems((prevItems) =>
-      prevItems
-        .map((item) => {
-          if ((item.cartKey || item.product_id) === cartKey) {
-            const newQty = item.quantity + delta;
-            return newQty > 0 ? { ...item, quantity: newQty } : null;
-          }
-          return item;
-        })
-        .filter(Boolean)
-    );
+    setCartItems((prevItems) => {
+      // Prioritize exact match on cartKey, fallback to product_id
+      let targetIdx = prevItems.findIndex((i) => (i.cartKey || i.product_id) === key);
+      if (targetIdx === -1) {
+        targetIdx = prevItems.findIndex((i) => i.product_id === key);
+      }
+      if (targetIdx === -1) return prevItems;
+
+      const item = prevItems[targetIdx];
+      const newQty = item.quantity + delta;
+
+      if (newQty <= 0) {
+        return prevItems.filter((_, idx) => idx !== targetIdx);
+      }
+
+      const updated = [...prevItems];
+      updated[targetIdx] = { ...item, quantity: newQty };
+      return updated;
+    });
   };
 
   // Hapus item dari keranjang
@@ -1311,15 +1321,19 @@ export default function PosPage() {
                     {/* Controls Qty */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
-                        onClick={() => updateCartQty(item.product_id, -1)}
+                        type="button"
+                        onClick={() => updateCartQty(item.cartKey || item.product_id, -1)}
                         className="btn-arcade w-8 h-8 bg-white border border-slate-800 hover:bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-900 shadow-[1px_1px_0px_#1E293B] cursor-pointer"
+                        title="Kurangi Kuantitas"
                       >
                         <Minus size={12} />
                       </button>
                       <span className="w-6 text-center font-mono font-bold text-sm text-slate-900">{item.quantity}</span>
                       <button
-                        onClick={() => updateCartQty(item.product_id, 1)}
+                        type="button"
+                        onClick={() => updateCartQty(item.cartKey || item.product_id, 1)}
                         className="btn-arcade w-8 h-8 bg-white border border-slate-800 hover:bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-900 shadow-[1px_1px_0px_#1E293B] cursor-pointer"
+                        title="Tambah Kuantitas"
                       >
                         <Plus size={12} />
                       </button>
