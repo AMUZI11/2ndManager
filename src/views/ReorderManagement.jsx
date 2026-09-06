@@ -123,7 +123,6 @@ export default function ReorderManagement() {
     loadAllData();
 
     // ─── SUPABASE REALTIME SUBSCRIPTION (Live Sync) ──────────────────────────
-    // Sinkronisasi otomatis saat kasir jualan di POS, kulakan masuk, atau PO diperbarui
     const supabase = createClient();
     const channel = supabase
       .channel('reorder-live-channel')
@@ -167,7 +166,7 @@ export default function ReorderManagement() {
     }));
   };
 
-  const updateItemUnit = (productId, unit, product) => {
+  const updateItemUnit = (productId, unit) => {
     setItemSelections(prev => {
       const current = prev[productId];
       const mult = Number(unit.multiplier_to_base || 1);
@@ -370,7 +369,6 @@ export default function ReorderManagement() {
       setIsSupplierModalOpen(false);
       const updated = await api.getSuppliers();
       setSuppliers(updated || []);
-      // Refresh suggestions agar grouping supplier terupdate
       const sugg = await api.getReorderSuggestions();
       setReorderData(sugg);
     } catch (err) {
@@ -415,12 +413,12 @@ export default function ReorderManagement() {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4 font-sans">
-        <div className="w-10 h-10 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin" />
         <div className="text-center space-y-1">
-          <p className="font-mono text-xs font-semibold text-slate-800 uppercase tracking-wider">
-            Menganalisis Velocity Penjualan 7-Hari &amp; Stok Rak
+          <p className="font-mono text-xs font-black text-slate-900 uppercase tracking-wider">
+            Menganalisis Velocity Penjualan 7-Hari &amp; Stok Rak...
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs font-mono text-slate-500">
             Menghitung kalkulasi presisi belanja pasar subuh...
           </p>
         </div>
@@ -430,31 +428,31 @@ export default function ReorderManagement() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 font-sans pb-36">
-      {/* Toast Notification */}
+      {/* Toast Notification (Brutal Pop-Art Toast) */}
       {toastMsg && (
-        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-800 font-sans text-xs flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
-          <Sparkles size={16} className="text-emerald-400 shrink-0" />
-          <span className="font-medium">{toastMsg}</span>
+        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-[#CCFF00] px-4 py-3 rounded-xl shadow-[4px_4px_0px_#1E293B] border-2 border-slate-800 font-mono text-xs font-bold flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+          <Sparkles size={16} className="text-[#CCFF00] shrink-0" />
+          <span>{toastMsg}</span>
         </div>
       )}
 
-      {/* Header Page */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-xs">
+      {/* Header Page (Neo-Brutalist Arcade Hero Card) */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 sm:p-6 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B]">
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/80 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#CCFF00] text-slate-900 flex items-center justify-center border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] shrink-0">
               <ShoppingBag size={20} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 font-display tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-display uppercase tracking-tight">
                   Radar Belanja Pasar Subuh
                 </h1>
-                <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200/60 uppercase tracking-wider">
+                <span className="text-[10px] font-mono font-bold bg-slate-900 text-[#CCFF00] px-2 py-0.5 rounded border border-slate-800 uppercase tracking-wider">
                   Smart Re-Order
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              <p className="text-xs text-slate-600 mt-0.5 font-sans leading-relaxed">
                 Kalkulator belanja otomatis berbasis kecepatan jual 7-hari, eliminasi sobekan kardus &amp; hitung uang fisik pasar.
               </p>
             </div>
@@ -464,115 +462,115 @@ export default function ReorderManagement() {
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <button
             onClick={handleCopyShoppingList}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-all min-h-[44px] cursor-pointer"
+            className="btn-arcade flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-900 font-mono font-bold text-xs uppercase rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] transition-all min-h-[44px] cursor-pointer"
             title="Salin semua item belanja"
           >
-            <Copy size={15} className="text-slate-500" />
+            <Copy size={15} />
             <span>Salin Checklist</span>
           </button>
           <button
             onClick={loadAllData}
-            className="inline-flex items-center justify-center p-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-all min-h-[44px] min-w-[44px] cursor-pointer"
+            className="btn-arcade inline-flex items-center justify-center p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] transition-all min-h-[44px] min-w-[44px] cursor-pointer"
             title="Refresh Kalkulasi"
           >
-            <RefreshCw size={16} className="text-slate-500" />
+            <RefreshCw size={16} />
           </button>
         </div>
       </div>
 
-      {/* Metrics Bento Grid */}
+      {/* Metrics Bento Grid (Arcade Brutalist Style) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: SKU Perlu Kulakan */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
+        <div className="bg-white p-5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <span className="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-wider">
               SKU Perlu Kulakan
             </span>
-            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
-              <ShoppingBag size={16} />
+            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-800 border border-slate-800 flex items-center justify-center">
+              <ShoppingBag size={15} />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-mono font-bold text-slate-900 tabular-nums">
+            <span className="text-3xl font-mono font-black text-slate-900 tabular-nums">
               {reorderData?.summary?.total_skus_needed || 0}
             </span>
-            <span className="text-xs text-slate-500 font-medium">Barang siap dibeli</span>
+            <span className="text-xs font-mono text-slate-600 font-bold">Barang</span>
           </div>
         </div>
 
         {/* Card 2: Stok Kosong Total */}
-        <div className="bg-white p-5 rounded-2xl border border-rose-200/80 shadow-xs bg-rose-50/20 flex flex-col justify-between">
+        <div className="bg-rose-50/50 p-5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
-              <AlertTriangle size={14} className="text-rose-600" /> Stok Habis Total (0)
+            <span className="text-[11px] font-mono font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
+              <AlertTriangle size={13} className="text-rose-600" /> Stok Habis (0)
             </span>
-            <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
-              <AlertCircle size={16} />
-            </div>
+            <span className="text-[10px] font-mono font-bold bg-rose-500 text-white px-1.5 py-0.5 rounded border border-slate-800">
+              KRITIS
+            </span>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-mono font-bold text-rose-600 tabular-nums">
+            <span className="text-3xl font-mono font-black text-rose-600 tabular-nums">
               {reorderData?.summary?.out_of_stock_count || 0}
             </span>
-            <span className="text-xs text-rose-700 font-medium">SKU Kritis</span>
+            <span className="text-xs font-mono text-rose-800 font-bold">SKU Kosong</span>
           </div>
         </div>
 
         {/* Card 3: Stok Menipis */}
-        <div className="bg-white p-5 rounded-2xl border border-amber-200/80 shadow-xs bg-amber-50/20 flex flex-col justify-between">
+        <div className="bg-amber-50/50 p-5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
-              <Clock size={14} className="text-amber-600" /> Stok Menipis (Di Bawah ROP)
+            <span className="text-[11px] font-mono font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+              <Clock size={13} className="text-amber-700" /> Stok Menipis
             </span>
-            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
-              <AlertTriangle size={16} />
-            </div>
+            <span className="text-[10px] font-mono font-bold bg-amber-400 text-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+              ROP
+            </span>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-mono font-bold text-amber-600 tabular-nums">
+            <span className="text-3xl font-mono font-black text-amber-700 tabular-nums">
               {reorderData?.summary?.low_stock_count || 0}
             </span>
-            <span className="text-xs text-amber-700 font-medium">SKU Menipis</span>
+            <span className="text-xs font-mono text-amber-800 font-bold">SKU Menipis</span>
           </div>
         </div>
 
-        {/* Card 4: Modal Tunai Dibawa */}
-        <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white p-5 rounded-2xl shadow-xs border border-emerald-500/40 flex flex-col justify-between">
+        {/* Card 4: Modal Tunai Dibawa (Signature Volt Pop Card) */}
+        <div className="bg-[#CCFF00] p-5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] flex flex-col justify-between text-slate-900">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-100 uppercase tracking-wider">
+            <span className="text-[11px] font-mono font-black text-slate-900 uppercase tracking-wider">
               Estimasi Modal Tunai Pasar
             </span>
-            <div className="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center backdrop-blur-xs">
+            <div className="w-8 h-8 rounded-lg bg-slate-900 text-[#CCFF00] border border-slate-800 flex items-center justify-center">
               <CheckCircle2 size={16} />
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-xl sm:text-2xl font-mono font-black tabular-nums tracking-tight text-white block">
+            <span className="text-xl sm:text-2xl font-mono font-black tabular-nums tracking-tight text-slate-900 block">
               {formatRupiah(calculateGrandTotal())}
             </span>
-            <span className="text-[11px] text-emerald-100/90 font-medium mt-0.5 block">
-              Alokasi uang fisik belanja subuh
+            <span className="text-[10px] font-mono font-bold text-slate-700 uppercase mt-0.5 block">
+              Alokasi Uang Fisik Kasir
             </span>
           </div>
         </div>
       </div>
 
-      {/* Tabs Navigation (Modern Segmented Bar) */}
-      <div className="bg-slate-200/60 p-1.5 rounded-2xl flex flex-wrap items-center gap-1.5 border border-slate-200/70">
+      {/* Tabs Navigation (Tactile Arcade Buttons) */}
+      <div className="flex flex-wrap gap-2.5 border-b-2 border-slate-800 pb-3">
         <button
           onClick={() => setActiveTab('REORDER')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 min-h-[44px] cursor-pointer ${
+          className={`btn-arcade px-4 py-2.5 text-xs font-mono font-black uppercase rounded-xl transition-all border-2 border-slate-800 flex items-center gap-2 min-h-[44px] cursor-pointer ${
             activeTab === 'REORDER'
-              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60 font-bold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium'
+              ? 'bg-slate-900 text-[#CCFF00] shadow-[3px_3px_0px_#1E293B]'
+              : 'bg-white text-slate-700 hover:bg-slate-100 shadow-[2px_2px_0px_#1E293B]'
           }`}
         >
-          <ShoppingBag size={16} className={activeTab === 'REORDER' ? 'text-emerald-600' : 'text-slate-400'} />
+          <ShoppingBag size={15} />
           <span>Daftar Belanja Pasar</span>
-          <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] ${
+          <span className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
             activeTab === 'REORDER' 
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold' 
-              : 'bg-slate-200 text-slate-600'
+              ? 'bg-[#CCFF00] text-slate-900' 
+              : 'bg-slate-200 text-slate-700'
           }`}>
             {reorderData?.summary?.total_skus_needed || 0}
           </span>
@@ -580,18 +578,18 @@ export default function ReorderManagement() {
 
         <button
           onClick={() => setActiveTab('HISTORY')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 min-h-[44px] cursor-pointer ${
+          className={`btn-arcade px-4 py-2.5 text-xs font-mono font-black uppercase rounded-xl transition-all border-2 border-slate-800 flex items-center gap-2 min-h-[44px] cursor-pointer ${
             activeTab === 'HISTORY'
-              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60 font-bold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium'
+              ? 'bg-slate-900 text-[#CCFF00] shadow-[3px_3px_0px_#1E293B]'
+              : 'bg-white text-slate-700 hover:bg-slate-100 shadow-[2px_2px_0px_#1E293B]'
           }`}
         >
-          <History size={16} className={activeTab === 'HISTORY' ? 'text-emerald-600' : 'text-slate-400'} />
+          <History size={15} />
           <span>Riwayat PO Kulakan</span>
-          <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] ${
+          <span className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
             activeTab === 'HISTORY' 
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold' 
-              : 'bg-slate-200 text-slate-600'
+              ? 'bg-[#CCFF00] text-slate-900' 
+              : 'bg-slate-200 text-slate-700'
           }`}>
             {purchaseOrders.length}
           </span>
@@ -599,18 +597,18 @@ export default function ReorderManagement() {
 
         <button
           onClick={() => setActiveTab('SUPPLIERS')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 min-h-[44px] cursor-pointer ${
+          className={`btn-arcade px-4 py-2.5 text-xs font-mono font-black uppercase rounded-xl transition-all border-2 border-slate-800 flex items-center gap-2 min-h-[44px] cursor-pointer ${
             activeTab === 'SUPPLIERS'
-              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60 font-bold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium'
+              ? 'bg-slate-900 text-[#CCFF00] shadow-[3px_3px_0px_#1E293B]'
+              : 'bg-white text-slate-700 hover:bg-slate-100 shadow-[2px_2px_0px_#1E293B]'
           }`}
         >
-          <Building2 size={16} className={activeTab === 'SUPPLIERS' ? 'text-emerald-600' : 'text-slate-400'} />
+          <Building2 size={15} />
           <span>Agen Kulakan / Supplier</span>
-          <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] ${
+          <span className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
             activeTab === 'SUPPLIERS' 
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold' 
-              : 'bg-slate-200 text-slate-600'
+              ? 'bg-[#CCFF00] text-slate-900' 
+              : 'bg-slate-200 text-slate-700'
           }`}>
             {suppliers.length}
           </span>
@@ -618,16 +616,16 @@ export default function ReorderManagement() {
 
         <button
           onClick={() => setActiveTab('BRIEFING')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 min-h-[44px] cursor-pointer ${
+          className={`btn-arcade px-4 py-2.5 text-xs font-mono font-black uppercase rounded-xl transition-all border-2 border-slate-800 flex items-center gap-2 min-h-[44px] cursor-pointer ${
             activeTab === 'BRIEFING'
-              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60 font-bold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium'
+              ? 'bg-slate-900 text-[#CCFF00] shadow-[3px_3px_0px_#1E293B]'
+              : 'bg-white text-slate-700 hover:bg-slate-100 shadow-[2px_2px_0px_#1E293B]'
           }`}
         >
-          <Sunrise size={16} className={activeTab === 'BRIEFING' ? 'text-amber-500' : 'text-slate-400'} />
+          <Sunrise size={15} />
           <span>Asisten WA 06:00</span>
-          <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/60 px-2 py-0.5 rounded-full">
-            Eksekutif
+          <span className="text-[10px] font-mono font-black bg-amber-400 text-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+            EKSEKUTIF
           </span>
         </button>
       </div>
@@ -636,15 +634,15 @@ export default function ReorderManagement() {
       {activeTab === 'REORDER' && (
         <div className="space-y-6">
           {isTierLocked ? (
-            <div className="bg-gradient-to-br from-amber-50/70 to-orange-50/70 p-10 text-center rounded-2xl border border-amber-200/80 shadow-xs space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-amber-100 border border-amber-200 text-amber-700 flex items-center justify-center mx-auto">
-                <Sparkles size={28} />
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-10 text-center rounded-2xl border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B] space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-300 border-2 border-slate-800 flex items-center justify-center mx-auto shadow-[2px_2px_0px_#1E293B]">
+                <Sparkles size={28} className="text-slate-900" />
               </div>
               <div className="space-y-1.5 max-w-lg mx-auto">
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider bg-amber-200/80 text-amber-900 px-3 py-1 rounded-full border border-amber-300">
+                <span className="text-[11px] font-mono font-black uppercase tracking-wider bg-amber-200 text-slate-900 px-3 py-1 rounded-full border border-slate-800">
                   Fitur Paket Manajer &amp; Eksekutif
                 </span>
-                <h3 className="text-xl font-bold text-slate-900 font-display pt-2">
+                <h3 className="text-xl font-black text-slate-900 uppercase font-display pt-2">
                   Radar Belanja Pasar Subuh (Smart Re-Order)
                 </h3>
                 <p className="text-xs text-slate-600 leading-relaxed font-sans">
@@ -654,22 +652,22 @@ export default function ReorderManagement() {
               <div className="pt-2">
                 <a
                   href="/billing"
-                  className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs uppercase px-6 py-3 rounded-xl shadow-xs transition-all cursor-pointer"
+                  className="btn-arcade inline-flex items-center gap-2 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 font-mono font-black text-xs uppercase px-6 py-3 rounded-xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] transition-all cursor-pointer"
                 >
                   <ShieldCheck size={16} /> Upgrade Paket Sekarang
                 </a>
               </div>
             </div>
           ) : (!reorderData?.supplier_groups || reorderData.supplier_groups.length === 0) ? (
-            <div className="bg-white p-12 text-center rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+            <div className="bg-white p-12 text-center rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-[#CCFF00] border-2 border-slate-800 text-slate-900 flex items-center justify-center mx-auto shadow-[2px_2px_0px_#1E293B]">
                 <CheckCircle2 size={32} />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 font-display">
+              <h3 className="text-lg font-black text-slate-900 uppercase font-display">
                 Semua Rak Barang Terisi Aman!
               </h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                Tidak ada SKU produk yang stoknya berada di bawah ambang batas kritis penjualan 7-hari. Anda bisa beristirahat tenang malam ini.
+              <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+                Tidak ada SKU produk yang stoknya berada di bawah ambang batas kritis penjualan 7-hari. Anda bisa bersantai malam ini!
               </p>
             </div>
           ) : (
@@ -682,57 +680,57 @@ export default function ReorderManagement() {
               return (
                 <div 
                   key={sKey}
-                  className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden"
+                  className="bg-white rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] overflow-hidden"
                 >
                   {/* Supplier Card Header */}
-                  <div className="p-4 sm:p-5 bg-slate-50/70 border-b border-slate-200/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="p-4 sm:p-5 bg-slate-50 border-b-2 border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setCollapsedSuppliers(prev => ({ ...prev, [sKey]: !prev[sKey] }))}
-                        className="p-2 hover:bg-slate-200/60 rounded-xl border border-slate-200 text-slate-600 cursor-pointer transition-colors"
+                        className="p-2 bg-white hover:bg-slate-200 rounded-xl border-2 border-slate-800 shadow-[1px_1px_0px_#1E293B] text-slate-900 cursor-pointer transition-colors"
                         title={isCollapsed ? "Buka rincian" : "Tutup rincian"}
                       >
                         {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
                       </button>
-                      <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
+                      <div className="w-10 h-10 rounded-xl bg-white border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] text-slate-900 flex items-center justify-center shrink-0">
                         <Store size={18} />
                       </div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-base font-bold text-slate-900 font-display tracking-tight">
+                          <h3 className="text-base font-black text-slate-900 font-display uppercase tracking-tight">
                             {group.supplier_name}
                           </h3>
                           {group.urgent_items_count > 0 && (
-                            <span className="text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="text-[10px] font-mono font-bold bg-rose-500 text-white px-2 py-0.5 rounded border border-slate-800 flex items-center gap-1">
                               <AlertTriangle size={11} /> {group.urgent_items_count} SKU Kritis
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-2 font-sans">
+                        <p className="text-xs text-slate-600 mt-0.5 flex flex-wrap items-center gap-2 font-sans">
                           {group.supplier_phone && (
-                            <span className="font-mono font-semibold text-slate-700">
+                            <span className="font-mono font-bold text-slate-800">
                               WA: {group.supplier_phone}
                             </span>
                           )}
                           <span className="text-slate-400">•</span>
-                          <span>{selectedCount} dari {group.items.length} barang dipilih</span>
+                          <span className="font-mono font-medium">{selectedCount} dari {group.items.length} barang dipilih</span>
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3.5 w-full md:w-auto justify-between md:justify-end">
                       <div className="text-right">
-                        <span className="text-[10px] font-mono font-semibold text-slate-400 block uppercase tracking-wider">
+                        <span className="text-[10px] font-mono font-bold text-slate-500 block uppercase tracking-wider">
                           Subtotal Supplier
                         </span>
-                        <span className="text-base sm:text-lg font-mono font-bold text-slate-900 tabular-nums">
+                        <span className="text-base sm:text-lg font-mono font-black text-slate-900 tabular-nums">
                           {formatRupiah(groupTotal)}
                         </span>
                       </div>
 
                       <button
                         onClick={() => handleSendPOWhatsApp(group)}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-xs uppercase rounded-xl shadow-xs hover:shadow transition-all min-h-[44px] cursor-pointer shrink-0"
+                        className="btn-arcade px-4 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-mono font-black text-xs uppercase rounded-xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] flex items-center gap-2 cursor-pointer shrink-0 min-h-[44px]"
                       >
                         <MessageCircle size={16} /> Pesan via WhatsApp
                       </button>
@@ -743,7 +741,7 @@ export default function ReorderManagement() {
                   {!isCollapsed && (
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs font-sans">
-                        <thead className="bg-slate-50/90 border-b border-slate-200/80 font-mono text-[11px] uppercase tracking-wider text-slate-500">
+                        <thead className="bg-slate-100 border-b-2 border-slate-800 font-mono text-[11px] uppercase tracking-wider text-slate-700 font-bold">
                           <tr>
                             <th className="p-3.5 w-12 text-center">Pilih</th>
                             <th className="p-3.5">Nama Produk &amp; Status</th>
@@ -755,7 +753,7 @@ export default function ReorderManagement() {
                             <th className="p-3.5 text-right">Subtotal Modal</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 font-medium">
+                        <tbody className="divide-y border-slate-200 font-medium">
                           {group.items.map(item => {
                             const sel = itemSelections[item.id] || {};
                             const isSelected = sel.selected;
@@ -768,16 +766,16 @@ export default function ReorderManagement() {
                             return (
                               <tr 
                                 key={item.id}
-                                className={`hover:bg-slate-50/70 transition-colors ${
+                                className={`hover:bg-slate-50 transition-colors ${
                                   !isSelected ? 'opacity-40 bg-slate-50/40' : ''
-                                } ${item.is_urgent ? 'bg-rose-50/30' : ''}`}
+                                } ${item.is_urgent ? 'bg-rose-50/40' : ''}`}
                               >
                                 <td className="p-3.5 text-center">
                                   <input
                                     type="checkbox"
                                     checked={Boolean(isSelected)}
                                     onChange={() => toggleItemSelection(item.id)}
-                                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                    className="w-4 h-4 rounded border-2 border-slate-800 text-slate-900 focus:ring-0 cursor-pointer"
                                   />
                                 </td>
 
@@ -787,11 +785,11 @@ export default function ReorderManagement() {
                                   </div>
                                   <div className="flex flex-wrap items-center gap-1.5 mt-1">
                                     {item.is_urgent ? (
-                                      <span className="text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                      <span className="text-[10px] font-mono font-bold bg-rose-500 text-white px-2 py-0.5 rounded border border-slate-800 flex items-center gap-1">
                                         <AlertTriangle size={10} /> Stok Kosong (0)
                                       </span>
                                     ) : (
-                                      <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                      <span className="text-[10px] font-mono font-bold bg-amber-400 text-slate-900 px-2 py-0.5 rounded border border-slate-800 flex items-center gap-1">
                                         <AlertCircle size={10} /> Menipis (ROP: {item.reorder_point})
                                       </span>
                                     )}
@@ -803,22 +801,22 @@ export default function ReorderManagement() {
 
                                 <td className="p-3.5 font-mono">
                                   <div className="font-bold text-slate-900 tabular-nums">
-                                    {item.daily_velocity} <span className="text-[10px] font-normal text-slate-500">pcs/hari</span>
+                                    {item.daily_velocity} <span className="text-[10px] font-normal text-slate-600">pcs/hari</span>
                                   </div>
-                                  <span className="text-[10px] text-slate-400">
+                                  <span className="text-[10px] text-slate-500 font-mono">
                                     Aktif {item.days_in_stock} hari
                                   </span>
                                 </td>
 
-                                <td className="p-3.5 font-mono font-bold text-sm tabular-nums">
-                                  <span className={item.is_urgent ? 'text-rose-600' : 'text-slate-800'}>
+                                <td className="p-3.5 font-mono font-black text-sm tabular-nums">
+                                  <span className={item.is_urgent ? 'text-rose-600' : 'text-slate-900'}>
                                     {item.current_stock}
                                   </span>
-                                  <span className="text-[10px] text-slate-400 font-normal ml-1">Pcs</span>
+                                  <span className="text-[10px] text-slate-500 font-normal ml-1">Pcs</span>
                                 </td>
 
-                                <td className="p-3.5">
-                                  <span className="font-mono font-semibold text-xs text-emerald-800 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg inline-block">
+                                <td className="p-3.5 font-mono font-bold text-emerald-800 bg-emerald-50/60">
+                                  <span className="px-2 py-1 rounded bg-emerald-100 border border-emerald-400 inline-block text-xs">
                                     {item.packaging_display}
                                   </span>
                                 </td>
@@ -830,7 +828,7 @@ export default function ReorderManagement() {
                                     value={packs}
                                     onChange={(e) => updateItemPacks(item.id, e.target.value)}
                                     disabled={!isSelected}
-                                    className="w-20 h-10 bg-white border border-slate-200 rounded-xl text-center font-mono font-bold text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                                    className="w-20 h-10 bg-white border-2 border-slate-800 rounded-xl text-center font-mono font-bold text-slate-900 focus:ring-2 focus:ring-[#CCFF00] shadow-[1px_1px_0px_#1E293B] outline-none transition-all"
                                   />
                                 </td>
 
@@ -840,10 +838,10 @@ export default function ReorderManagement() {
                                       value={sel.unitId || item.available_units[0]?.id}
                                       onChange={(e) => {
                                         const u = item.available_units.find(unit => unit.id === e.target.value);
-                                        if (u) updateItemUnit(item.id, u, item);
+                                        if (u) updateItemUnit(item.id, u);
                                       }}
                                       disabled={!isSelected}
-                                      className="h-10 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all cursor-pointer"
+                                      className="h-10 px-2.5 bg-white border-2 border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-900 shadow-[1px_1px_0px_#1E293B] outline-none focus:ring-2 focus:ring-[#CCFF00] transition-all cursor-pointer"
                                     >
                                       {item.available_units.map(u => (
                                         <option key={u.id} value={u.id}>
@@ -852,13 +850,13 @@ export default function ReorderManagement() {
                                       ))}
                                     </select>
                                   ) : (
-                                    <span className="font-mono font-semibold text-xs text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-lg inline-block">
+                                    <span className="font-mono font-bold text-xs text-slate-800 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-300 inline-block">
                                       {unitName}
                                     </span>
                                   )}
                                 </td>
 
-                                <td className="p-3.5 text-right font-mono font-bold text-slate-900 text-sm tabular-nums">
+                                <td className="p-3.5 text-right font-mono font-black text-slate-900 text-sm tabular-nums">
                                   {formatRupiah(subtotal)}
                                 </td>
                               </tr>
@@ -878,32 +876,32 @@ export default function ReorderManagement() {
       {/* TAB 2: RIWAYAT PO KULAKAN */}
       {activeTab === 'HISTORY' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs">
+          <div className="flex justify-between items-center bg-white p-5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B]">
             <div>
-              <h3 className="font-bold text-slate-900 text-sm font-display">
+              <h3 className="font-black text-slate-900 text-sm font-display uppercase tracking-tight">
                 Riwayat Purchase Order (PO) Kulakan
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5">
                 Lacak barang yang sudah dipesan ke agen dan catat langsung ke stok saat barang tiba di toko.
               </p>
             </div>
             <button
               onClick={() => setActiveTab('REORDER')}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer min-h-[40px]"
+              className="btn-arcade inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 font-mono font-black text-xs uppercase rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] cursor-pointer min-h-[40px]"
             >
               <Plus size={15} /> Buat PO Baru
             </button>
           </div>
 
           {purchaseOrders.length === 0 ? (
-            <div className="bg-white p-12 text-center rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+            <div className="bg-white p-12 text-center rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-2">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-800 text-slate-400 flex items-center justify-center mx-auto">
                 <Clock size={24} />
               </div>
-              <p className="text-xs font-semibold text-slate-700">
+              <p className="text-xs font-bold text-slate-700 font-mono">
                 Belum ada Purchase Order (PO) yang dibuat.
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Pilih barang di tab &quot;Daftar Belanja Pasar&quot; lalu klik tombol &quot;Pesan via WhatsApp&quot;.
               </p>
             </div>
@@ -917,38 +915,38 @@ export default function ReorderManagement() {
                 return (
                   <div
                     key={po.id}
-                    className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-slate-300 transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+                    className="bg-white p-5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-slate-900 text-sm">
+                        <span className="font-mono font-black text-slate-900 text-sm">
                           PO #{po.po_number}
                         </span>
-                        <span className={`text-[10px] font-mono font-semibold px-2.5 py-0.5 rounded-full uppercase ${
+                        <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded uppercase border border-slate-800 ${
                           isReceived 
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
+                            ? 'bg-emerald-100 text-emerald-900' 
                             : isSent 
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                            ? 'bg-amber-200 text-slate-900'
+                            : 'bg-slate-100 text-slate-800'
                         }`}>
                           {isReceived ? 'Diterima' : isSent ? 'Terkirim (Menunggu Barang)' : po.status}
                         </span>
                       </div>
 
                       <p className="text-xs text-slate-600 mt-1">
-                        Supplier: <strong className="text-slate-800">{po.suppliers?.name || 'Pasar Umum'}</strong> • {itemsCount} SKU Barang
+                        Supplier: <strong className="text-slate-900 font-bold">{po.suppliers?.name || 'Pasar Umum'}</strong> • {itemsCount} SKU Barang
                       </p>
-                      <span className="text-[11px] font-mono text-slate-400">
+                      <span className="text-[11px] font-mono text-slate-500">
                         Dibuat: {new Date(po.created_at).toLocaleString('id-ID')}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
                       <div className="text-right">
-                        <span className="text-[10px] font-mono font-semibold text-slate-400 block uppercase tracking-wider">
+                        <span className="text-[10px] font-mono font-bold text-slate-500 block uppercase tracking-wider">
                           Estimasi Tagihan
                         </span>
-                        <span className="text-base font-mono font-bold text-slate-900 tabular-nums">
+                        <span className="text-base font-mono font-black text-slate-900 tabular-nums">
                           {formatRupiah(po.total_estimated_cost)}
                         </span>
                       </div>
@@ -957,7 +955,7 @@ export default function ReorderManagement() {
                       {isSent && (
                         <button
                           onClick={() => handleOpenStockInFromPO(po)}
-                          className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer shrink-0 min-h-[44px]"
+                          className="btn-arcade inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 font-mono font-black text-xs uppercase rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] cursor-pointer shrink-0 min-h-[44px]"
                           title="Terima barang dan masukkan ke stok tanpa mengetik ulang"
                         >
                           <PackagePlus size={16} /> Terima &amp; Catat Kulakan
@@ -965,7 +963,7 @@ export default function ReorderManagement() {
                       )}
 
                       {isReceived && (
-                        <span className="text-xs font-mono font-semibold text-emerald-700 flex items-center gap-1.5 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200/60">
+                        <span className="text-xs font-mono font-bold text-emerald-800 flex items-center gap-1.5 bg-emerald-100 px-3 py-2 rounded-xl border border-emerald-400">
                           <Check size={15} /> Selesai Masuk Stok
                         </span>
                       )}
@@ -981,32 +979,32 @@ export default function ReorderManagement() {
       {/* TAB 3: MASTER AGEN / SUPPLIER */}
       {activeTab === 'SUPPLIERS' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs">
+          <div className="flex justify-between items-center bg-white p-5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B]">
             <div>
-              <h3 className="font-bold text-slate-900 text-sm font-display">
+              <h3 className="font-black text-slate-900 text-sm font-display uppercase tracking-tight">
                 Master Agen Kulakan &amp; Distributor
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5">
                 Kelola kontak nomor WhatsApp agen untuk kemudahan 1-klik kirim pesanan kulakan.
               </p>
             </div>
             <button
               onClick={handleOpenAddSupplier}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer min-h-[40px]"
+              className="btn-arcade inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 font-mono font-black text-xs uppercase rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] cursor-pointer min-h-[40px]"
             >
               <Plus size={15} /> Tambah Supplier
             </button>
           </div>
 
           {suppliers.length === 0 ? (
-            <div className="bg-white p-12 text-center rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+            <div className="bg-white p-12 text-center rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-2">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-800 text-slate-400 flex items-center justify-center mx-auto">
                 <Store size={24} />
               </div>
-              <p className="text-xs font-semibold text-slate-700">
+              <p className="text-xs font-bold text-slate-700 font-mono">
                 Belum ada supplier yang terdaftar.
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Tambahkan supplier langganan untuk mengaktifkan pemesanan WhatsApp otomatis.
               </p>
             </div>
@@ -1015,19 +1013,19 @@ export default function ReorderManagement() {
               {suppliers.map(sup => (
                 <div
                   key={sup.id}
-                  className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between space-y-4"
+                  className="bg-white p-5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] flex flex-col justify-between space-y-4"
                 >
                   <div>
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                        <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-800 text-slate-900 flex items-center justify-center shrink-0">
                           <Store size={16} />
                         </div>
-                        <h4 className="font-bold text-slate-900 font-display text-base">
+                        <h4 className="font-black text-slate-900 font-display text-base uppercase">
                           {sup.name}
                         </h4>
                       </div>
-                      <span className="text-[10px] font-mono font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-200">
+                      <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-800">
                         Lead: {sup.lead_time_days || 1} Hari
                       </span>
                     </div>
@@ -1035,39 +1033,39 @@ export default function ReorderManagement() {
                     <div className="mt-3 space-y-1.5 text-xs text-slate-600 font-sans">
                       {sup.phone && (
                         <div className="flex items-center gap-2 font-mono">
-                          <Phone size={13} className="text-emerald-600 shrink-0" />
-                          <span className="text-slate-800 font-medium">{sup.phone}</span>
+                          <Phone size={13} className="text-emerald-700 shrink-0" />
+                          <span className="text-slate-900 font-bold">{sup.phone}</span>
                         </div>
                       )}
                       {sup.contact_person && (
                         <div className="flex items-center gap-2">
-                          <User size={13} className="text-slate-400 shrink-0" />
+                          <User size={13} className="text-slate-500 shrink-0" />
                           <span>Sales: {sup.contact_person}</span>
                         </div>
                       )}
                       {sup.address && (
-                        <p className="text-[11px] text-slate-400 line-clamp-2 pt-0.5">
+                        <p className="text-[11px] text-slate-500 line-clamp-2 pt-0.5">
                           {sup.address}
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
-                    <span className="text-[11px] font-mono text-slate-400">
+                  <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <span className="text-[11px] font-mono text-slate-500">
                       {sup.product_count || 0} Produk Terhubung
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => handleOpenEditSupplier(sup)}
-                        className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 border border-slate-200 transition-colors cursor-pointer"
+                        className="p-2 hover:bg-slate-100 rounded-lg text-slate-700 border border-slate-300 transition-colors cursor-pointer"
                         title="Edit Supplier"
                       >
                         <Edit2 size={13} />
                       </button>
                       <button
                         onClick={() => handleDeleteSupplier(sup.id)}
-                        className="p-2 hover:bg-rose-50 rounded-lg text-rose-600 border border-rose-200 transition-colors cursor-pointer"
+                        className="p-2 hover:bg-rose-100 rounded-lg text-rose-600 border border-rose-300 transition-colors cursor-pointer"
                         title="Hapus Supplier"
                       >
                         <Trash2 size={13} />
@@ -1084,15 +1082,15 @@ export default function ReorderManagement() {
       {/* TAB 4: ASISTEN BRIEFING PAGI 06:00 (TIER 3 EKSEKUTIF AUTOPILOT) */}
       {activeTab === 'BRIEFING' && (
         <div className="space-y-6">
-          {/* Executive Header Banner */}
-          <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-sm space-y-3">
+          {/* Executive Header Banner (Neo-Brutalist Dark Pitch) */}
+          <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-2xl border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B] space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono font-bold bg-amber-400/15 text-amber-300 border border-amber-400/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                Tier 3: Eksekutif Autopilot
+              <span className="text-[10px] font-mono font-black bg-[#CCFF00] text-slate-900 px-2.5 py-0.5 rounded uppercase tracking-wider">
+                [ TIER 3: EKSEKUTIF AUTOPILOT ]
               </span>
-              <span className="text-xs font-mono text-slate-400">06:00 WIB Assistant</span>
+              <span className="text-xs font-mono text-slate-400">06:00 WIB ASSISTANT</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold font-display text-white flex items-center gap-2.5">
+            <h2 className="text-xl sm:text-2xl font-black font-display text-[#CCFF00] uppercase flex items-center gap-2.5">
               <Sunrise size={24} className="text-amber-400" />
               Asisten Briefing Pagi WhatsApp Jam 06:00
             </h2>
@@ -1102,16 +1100,16 @@ export default function ReorderManagement() {
           </div>
 
           {/* Test & Trigger Panel */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs space-y-5">
+          <div className="bg-white p-6 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-5">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+              <div className="w-8 h-8 rounded-lg bg-amber-400 border border-slate-800 text-slate-900 flex items-center justify-center">
                 <Sparkles size={16} />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-sm font-display">
+                <h3 className="font-black text-slate-900 text-sm font-display uppercase tracking-tight">
                   Uji Coba Kirim Laporan Briefing Pagi
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-600">
                   Kirim simulasi pesan ringkasan subuh langsung ke nomor WhatsApp Anda sekarang.
                 </p>
               </div>
@@ -1119,7 +1117,7 @@ export default function ReorderManagement() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
               <div className="sm:col-span-2 space-y-1.5">
-                <label className="text-xs font-mono font-semibold text-slate-700 uppercase tracking-wider">
+                <label className="text-xs font-mono font-bold text-slate-700 uppercase tracking-wider">
                   Nomor WhatsApp Pemilik:
                 </label>
                 <input
@@ -1127,14 +1125,14 @@ export default function ReorderManagement() {
                   placeholder="Contoh: 08123456789 atau 628123456789"
                   value={briefingPhone}
                   onChange={(e) => setBriefingPhone(e.target.value)}
-                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-xs font-mono font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                  className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#CCFF00] outline-none transition-all shadow-[1px_1px_0px_#1E293B]"
                 />
               </div>
 
               <button
                 onClick={handleTestBriefing}
                 disabled={briefingLoading}
-                className="h-11 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs uppercase rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 min-h-[44px]"
+                className="btn-arcade h-11 px-5 bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-mono font-black text-xs uppercase rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 min-h-[44px]"
               >
                 {briefingLoading ? (
                   <RefreshCw size={16} className="animate-spin" />
@@ -1146,14 +1144,14 @@ export default function ReorderManagement() {
             </div>
 
             {briefingSuccess && (
-              <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-mono font-medium flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+              <div className="p-3.5 bg-emerald-100 border-2 border-slate-800 text-emerald-950 rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-[2px_2px_0px_#1E293B]">
+                <CheckCircle2 size={16} className="text-emerald-700 shrink-0" />
                 <span>{briefingSuccess}</span>
               </div>
             )}
 
             {briefingError && (
-              <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl text-xs font-mono font-medium flex items-center gap-2">
+              <div className="p-3.5 bg-rose-100 border-2 border-slate-800 text-rose-950 rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-[2px_2px_0px_#1E293B]">
                 <AlertTriangle size={16} className="text-rose-600 shrink-0" />
                 <span>{briefingError}</span>
               </div>
@@ -1161,10 +1159,10 @@ export default function ReorderManagement() {
 
             {briefingPreview && (
               <div className="space-y-2 mt-4">
-                <span className="text-xs font-mono font-semibold text-slate-500 uppercase tracking-wider block">
+                <span className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wider block">
                   Pratinjau Format Pesan WhatsApp:
                 </span>
-                <pre className="p-4 bg-slate-950 text-emerald-400 rounded-xl border border-slate-800 font-mono text-xs whitespace-pre-wrap overflow-x-auto shadow-inner">
+                <pre className="p-4 bg-slate-900 text-[#CCFF00] rounded-xl border-2 border-slate-800 font-mono text-xs whitespace-pre-wrap overflow-x-auto shadow-[3px_3px_0px_#1E293B]">
                   {briefingPreview}
                 </pre>
               </div>
@@ -1175,25 +1173,25 @@ export default function ReorderManagement() {
 
       {/* STICKY BOTTOM TACTILE CASH BAR (BAR KAS TUNAI PASAR SUBUH) */}
       {activeTab === 'REORDER' && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] p-3.5 md:p-4 font-sans">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t-2 border-slate-800 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] p-3.5 md:p-4 font-sans">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
             <div className="flex items-center gap-5 w-full sm:w-auto justify-between sm:justify-start">
               <div>
-                <span className="text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-wider block">
+                <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider block">
                   Barang Dipilih
                 </span>
-                <span className="text-sm font-mono font-bold text-slate-900">
+                <span className="text-sm font-mono font-black text-slate-900">
                   {getSelectedItemsCount()} SKU
                 </span>
               </div>
 
-              <div className="h-8 w-px bg-slate-200" />
+              <div className="h-8 w-0.5 bg-slate-300" />
 
               <div>
-                <span className="text-[10px] font-mono font-semibold text-emerald-700 uppercase tracking-wider block">
+                <span className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-wider block">
                   Estimasi Uang Tunai Pasar Subuh
                 </span>
-                <span className="text-lg md:text-xl font-mono font-black text-emerald-600 tabular-nums">
+                <span className="text-lg md:text-xl font-mono font-black text-slate-900 tabular-nums">
                   {formatRupiah(calculateGrandTotal())}
                 </span>
               </div>
@@ -1202,7 +1200,7 @@ export default function ReorderManagement() {
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
               <button
                 onClick={handleCopyShoppingList}
-                className="flex-1 sm:flex-initial px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2 min-h-[44px]"
+                className="btn-arcade flex-1 sm:flex-initial px-5 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 font-mono font-black text-xs uppercase rounded-xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] transition-all cursor-pointer flex items-center justify-center gap-2 min-h-[44px]"
               >
                 <Copy size={15} /> Salin Checklist
               </button>
@@ -1213,18 +1211,18 @@ export default function ReorderManagement() {
 
       {/* MODAL SUPPLIER (TAMBAH / EDIT) */}
       {isSupplierModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white border border-slate-200 shadow-xl w-full max-w-md rounded-2xl overflow-hidden animate-in fade-in">
-            <div className="p-4 sm:p-5 bg-slate-900 text-white flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white border-2 border-slate-900 shadow-[8px_8px_0px_#1E293B] w-full max-w-md rounded-2xl overflow-hidden animate-in fade-in">
+            <div className="p-4 sm:p-5 bg-slate-900 text-[#CCFF00] border-b-2 border-slate-900 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Store size={18} className="text-emerald-400" />
-                <h3 className="font-bold text-sm font-display">
+                <Store size={18} className="text-[#CCFF00]" />
+                <h3 className="font-black text-sm font-display uppercase tracking-tight">
                   {editingSupplier ? 'Edit Agen / Supplier' : 'Tambah Agen Baru'}
                 </h3>
               </div>
               <button 
                 onClick={() => setIsSupplierModalOpen(false)}
-                className="text-slate-400 hover:text-white cursor-pointer transition-colors"
+                className="text-white hover:text-[#CCFF00] cursor-pointer transition-colors"
               >
                 <X size={18} />
               </button>
@@ -1232,7 +1230,7 @@ export default function ReorderManagement() {
 
             <form onSubmit={handleSaveSupplier} className="p-5 space-y-4 font-sans text-xs">
               <div className="space-y-1.5">
-                <label className="font-mono font-semibold text-slate-700 uppercase tracking-wider">
+                <label className="font-mono font-bold text-slate-700 uppercase tracking-wider">
                   Nama Agen / Toko Grosir: *
                 </label>
                 <input
@@ -1241,12 +1239,12 @@ export default function ReorderManagement() {
                   placeholder="Contoh: Agen Beras Subur"
                   value={supplierFormData.name}
                   onChange={(e) => setSupplierFormData({ ...supplierFormData, name: e.target.value })}
-                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-3.5 font-medium text-slate-900 outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
+                  className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl px-3.5 font-medium text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#CCFF00] transition-all shadow-[1px_1px_0px_#1E293B]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-mono font-semibold text-slate-700 uppercase tracking-wider">
+                <label className="font-mono font-bold text-slate-700 uppercase tracking-wider">
                   Nomor WhatsApp Agen:
                 </label>
                 <input
@@ -1254,13 +1252,13 @@ export default function ReorderManagement() {
                   placeholder="Contoh: 08123456789"
                   value={supplierFormData.phone}
                   onChange={(e) => setSupplierFormData({ ...supplierFormData, phone: e.target.value })}
-                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-3.5 font-mono font-semibold text-slate-900 outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
+                  className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl px-3.5 font-mono font-bold text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#CCFF00] transition-all shadow-[1px_1px_0px_#1E293B]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="font-mono font-semibold text-slate-700 uppercase tracking-wider">
+                  <label className="font-mono font-bold text-slate-700 uppercase tracking-wider">
                     Nama Sales / Kontak:
                   </label>
                   <input
@@ -1268,12 +1266,12 @@ export default function ReorderManagement() {
                     placeholder="Pak Budi"
                     value={supplierFormData.contact_person}
                     onChange={(e) => setSupplierFormData({ ...supplierFormData, contact_person: e.target.value })}
-                    className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-3.5 font-medium text-slate-900 outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
+                    className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl px-3.5 font-medium text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#CCFF00] transition-all shadow-[1px_1px_0px_#1E293B]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-mono font-semibold text-slate-700 uppercase tracking-wider">
+                  <label className="font-mono font-bold text-slate-700 uppercase tracking-wider">
                     Lead Time (Hari):
                   </label>
                   <input
@@ -1281,13 +1279,13 @@ export default function ReorderManagement() {
                     min="1"
                     value={supplierFormData.lead_time_days}
                     onChange={(e) => setSupplierFormData({ ...supplierFormData, lead_time_days: e.target.value })}
-                    className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-3.5 font-mono font-semibold text-slate-900 outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
+                    className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl px-3.5 font-mono font-bold text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#CCFF00] transition-all shadow-[1px_1px_0px_#1E293B]"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-mono font-semibold text-slate-700 uppercase tracking-wider">
+                <label className="font-mono font-bold text-slate-700 uppercase tracking-wider">
                   Alamat / Keterangan Toko:
                 </label>
                 <textarea
@@ -1295,7 +1293,7 @@ export default function ReorderManagement() {
                   placeholder="Pasar Induk Blok C No. 12"
                   value={supplierFormData.address}
                   onChange={(e) => setSupplierFormData({ ...supplierFormData, address: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-medium text-slate-900 outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
+                  className="w-full bg-slate-50 border-2 border-slate-800 rounded-xl p-3 font-medium text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#CCFF00] transition-all shadow-[1px_1px_0px_#1E293B]"
                 />
               </div>
 
@@ -1303,13 +1301,13 @@ export default function ReorderManagement() {
                 <button
                   type="button"
                   onClick={() => setIsSupplierModalOpen(false)}
-                  className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 cursor-pointer transition-colors min-h-[44px]"
+                  className="btn-arcade px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-mono font-bold text-xs uppercase rounded-xl border-2 border-slate-800 cursor-pointer transition-colors min-h-[44px]"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs cursor-pointer transition-all min-h-[44px]"
+                  className="btn-arcade px-5 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 font-mono font-black text-xs uppercase rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] cursor-pointer transition-all min-h-[44px]"
                 >
                   Simpan Supplier
                 </button>
