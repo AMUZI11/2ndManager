@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/utils/api';
 import { normalizeIndonesianPhone } from '@/lib/phone';
+import { createClient } from '@/lib/supabase/client';
 import StockInModal from '@/components/products/StockInModal';
 
 export default function ReorderManagement() {
@@ -20,6 +21,7 @@ export default function ReorderManagement() {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [currentShop, setCurrentShop] = useState(null);
   const [userPlan, setUserPlan] = useState('MANAJER');
+  const [isTierLocked, setIsTierLocked] = useState(false);
 
   // Selected Items & Quantities in Reorder Tab
   // Format: { [productId]: { selected: boolean, packs: number, unitId: string, unitName: string, multiplier: number, pricePerUnit: number } }
@@ -54,10 +56,6 @@ export default function ReorderManagement() {
   // General Notification Toast
   const [toastMsg, setToastMsg] = useState('');
 
-  useEffect(() => {
-    loadAllData();
-  }, []);
-
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3500);
@@ -70,6 +68,7 @@ export default function ReorderManagement() {
       try {
         const sugg = await api.getReorderSuggestions();
         setReorderData(sugg);
+        setIsTierLocked(false);
         
         // Inisialisasi itemSelections dengan saran default sistem
         const initialMap = {};
@@ -87,21 +86,27 @@ export default function ReorderManagement() {
         }
         setItemSelections(initialMap);
       } catch (suggErr) {
-        console.warn('Gagal memuat reorder suggestions:', suggErr);
+        if (suggErr?.status === 403 || suggErr?.code === 'TIER_LOCKED') {
+          setIsTierLocked(true);
+        } else {
+          console.warn('Gagal memuat reorder suggestions:', suggErr);
+        }
       }
 
-      // 2. Fetch Suppliers & POs
-      const [supList, poList] = await Promise.all([
+      // 2. Fetch Suppliers & POs & Shop Profile
+      const [supList, poList, shopProfile] = await Promise.all([
         api.getSuppliers().catch(() => []),
         api.getPurchaseOrders().catch(() => []),
+        api.getShopProfile().catch(() => null),
       ]);
       setSuppliers(supList || []);
       setPurchaseOrders(poList || []);
 
       // 3. User Shop & Tier
-      const activeBranch = localStorage.getItem('hl_active_branch');
-      if (activeBranch) {
-        // Ambil plan dari local state/event
+      if (shopProfile?.subscription_tier) {
+        setUserPlan(shopProfile.subscription_tier);
+        setCurrentShop(shopProfile);
+      } else {
         const savedPlan = sessionStorage.getItem('hl_current_plan') || 'MANAJER';
         setUserPlan(savedPlan);
       }
@@ -111,6 +116,31 @@ export default function ReorderManagement() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadAllData();
+
+    // ─── SUPABASE REALTIME SUBSCRIPTION (Live Sync) ──────────────────────────
+    // Sinkronisasi otomatis saat kasir jualan di POS, kulakan masuk, atau PO diperbarui
+    const supabase = createClient();
+    const channel = supabase
+      .channel('reorder-live-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        loadAllData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_orders' }, () => {
+        loadAllData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'suppliers' }, () => {
+        loadAllData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const formatRupiah = (val) => `Rp ${Number(val || 0).toLocaleString('id-ID')}`;
 
@@ -538,7 +568,32 @@ export default function ReorderManagement() {
       {/* TAB 1: DAFTAR BELANJA PASAR (GROUPED BY SUPPLIER) */}
       {activeTab === 'REORDER' && (
         <div className="space-y-6">
-          {(!reorderData?.supplier_groups || reorderData.supplier_groups.length === 0) ? (
+          {isTierLocked ? (
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-10 text-center rounded-2xl border-2 border-slate-800 shadow-[6px_6px_0_#1E293B] space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-400 border-2 border-slate-800 flex items-center justify-center mx-auto shadow-[2px_2px_0_#1E293B]">
+                <Sparkles size={28} className="text-slate-900" />
+              </div>
+              <div className="space-y-1">
+                <span className="text-[11px] font-mono font-black uppercase tracking-wider bg-amber-200 text-slate-900 px-3 py-1 rounded-full border border-slate-800">
+                  Fitur Paket Manajer &amp; Eksekutif
+                </span>
+                <h3 className="text-xl font-black text-slate-900 uppercase font-display mt-2">
+                  Radar Belanja Pasar Subuh (Smart Re-Order)
+                </h3>
+                <p className="text-xs text-slate-600 max-w-lg mx-auto font-sans leading-relaxed">
+                  Hitung pesanan otomatis berbasis kecepatan jual (velocity) 7-hari, eliminasi sobekan kardus, konversi kemasan grosir (Dus/Bal), serta siapkan uang kas fisik belanja secara presisi.
+                </p>
+              </div>
+              <div className="pt-2">
+                <a
+                  href="/billing"
+                  className="btn-arcade inline-flex items-center gap-2 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 font-mono font-bold text-xs uppercase px-6 py-3 rounded-xl border-2 border-slate-800 shadow-[3px_3px_0_#1E293B] transition-all cursor-pointer"
+                >
+                  🚀 Upgrade Paket Sekarang
+                </a>
+              </div>
+            </div>
+          ) : (!reorderData?.supplier_groups || reorderData.supplier_groups.length === 0) ? (
             <div className="bg-white p-12 text-center rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0_#1E293B] space-y-3">
               <CheckCircle2 size={48} className="mx-auto text-emerald-500" />
               <h3 className="text-lg font-black text-slate-900 uppercase">

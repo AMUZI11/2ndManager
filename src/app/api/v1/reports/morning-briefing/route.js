@@ -10,6 +10,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { normalizeIndonesianPhone } from '@/lib/phone';
 import { canAccessFeature } from '@/lib/subscription';
+import { checkSubscriptionActive } from '@/lib/auth-helpers';
 import { logActivity } from '@/lib/audit';
 
 function formatRupiah(val) {
@@ -89,13 +90,7 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Toko tidak ditemukan.' }, { status: 404 });
     }
 
-    const { data: sub } = await supabase
-      .from('subscriptions')
-      .select('tier, status')
-      .eq('shop_id', shopId)
-      .maybeSingle();
-
-    const currentTier = sub?.tier || 'MAGANG';
+    const { plan: currentTier } = await checkSubscriptionActive(supabase, shopId);
 
     // ─── TIER 3 GATE: EKSKLUSIF EKSEKUTIF ────────────────────────────────────
     if (!canAccessFeature(currentTier, 'auto_wa_report')) {

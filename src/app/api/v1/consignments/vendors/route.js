@@ -1,6 +1,6 @@
 // GET  /api/v1/consignments/vendors  — Daftar vendor konsinyasi
 // POST /api/v1/consignments/vendors  — Tambah vendor konsinyasi (dengan tier gate)
-import { withAuthSupabase, errorResponse, successResponse } from '@/lib/auth-helpers';
+import { withAuthSupabase, errorResponse, successResponse, checkSubscriptionActive } from '@/lib/auth-helpers';
 import { getTierConfig } from '@/config/tiers';
 import { logActivity } from '@/lib/audit';
 
@@ -63,13 +63,7 @@ export const POST = withAuthSupabase(async (request, { params }, { user, profile
     }
 
     // ─── TIER QUOTA CHECK (Koreksi Kritis: SUPERVISOR max 3 vendors) ───────────
-    const { data: sub } = await supabase
-      .from('subscriptions')
-      .select('tier, status')
-      .eq('shop_id', shopId)
-      .maybeSingle();
-
-    const currentTier = sub?.tier || 'MAGANG';
+    const { plan: currentTier } = await checkSubscriptionActive(supabase, shopId);
     const tierConfig = getTierConfig(currentTier);
     const maxVendors = tierConfig.maxConsignmentVendors !== undefined 
       ? tierConfig.maxConsignmentVendors 

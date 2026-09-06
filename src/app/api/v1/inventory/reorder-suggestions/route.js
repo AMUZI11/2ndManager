@@ -3,7 +3,7 @@
 // 1. Stockout-aware sales velocity 7 hari (pembagian hari stok aktif > 0)
 // 2. Pembulatan kemasan grosir terbesar (Dus/Bal/Slop/Karton) dari product_units Fase 1
 // 3. Pengelompokan supplier / pasar umum & kalkulasi estimasi uang kas fisik
-import { withAuthSupabase, errorResponse, successResponse } from '@/lib/auth-helpers';
+import { withAuthSupabase, errorResponse, successResponse, checkSubscriptionActive } from '@/lib/auth-helpers';
 import { canAccessFeature } from '@/lib/subscription';
 
 export const GET = withAuthSupabase(async (request, { params }, { user, profile, supabase }) => {
@@ -18,13 +18,7 @@ export const GET = withAuthSupabase(async (request, { params }, { user, profile,
     if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NO_SHOP', 400);
 
     // ─── TIER CHECK (Tier 2 Manajer & Tier 3 Eksekutif) ──────────────────────
-    const { data: sub } = await supabase
-      .from('subscriptions')
-      .select('tier, status')
-      .eq('shop_id', shopId)
-      .maybeSingle();
-
-    const currentTier = sub?.tier || 'MAGANG';
+    const { plan: currentTier } = await checkSubscriptionActive(supabase, shopId);
     if (!canAccessFeature(currentTier, 'smart_reorder')) {
       return errorResponse(
         'Fitur Radar Belanja Pasar Subuh Otomatis (Smart Re-Order) hanya aktif di Paket Manajer & Eksekutif.',
