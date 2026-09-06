@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Search, Package, Tags, ChevronRight, Barcode, AlertTriangle, ArrowUpRight, PackagePlus, Layers } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Edit2, Trash2, X, Search, Package, Tags, ChevronRight, Barcode, AlertTriangle, ArrowUpRight, PackagePlus, Layers, ShoppingBag } from 'lucide-react';
 import { api } from '../utils/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { useTutorial, ContextualTooltip } from '../components/TutorialEngine';
@@ -53,6 +54,8 @@ export default function ProductManagement() {
   const [stock, setStock] = useState("0");
   const [barcode, setBarcode] = useState("");
   const [reorderThreshold, setReorderThreshold] = useState("5");
+  const [suppliers, setSuppliers] = useState([]);
+  const [supplierId, setSupplierId] = useState("");
   
   // Quick Add Stock Modal State
   const [quickStockProduct, setQuickStockProduct] = useState(null);
@@ -74,7 +77,17 @@ export default function ProductManagement() {
   useEffect(() => {
     loadProducts();
     loadCategories();
+    loadSuppliers();
   }, []);
+
+  async function loadSuppliers() {
+    try {
+      const sups = await api.getSuppliers();
+      setSuppliers(Array.isArray(sups) ? sups : []);
+    } catch (err) {
+      console.warn('Gagal memuat supplier:', err);
+    }
+  }
 
   async function loadCategories() {
     try {
@@ -107,6 +120,7 @@ export default function ProductManagement() {
     setStock("0");
     setBarcode("");
     setReorderThreshold("5");
+    setSupplierId("");
     setErrorMsg("");
     setIsModalOpen(true);
     registerTrigger("prod-add-btn", "click");
@@ -121,6 +135,7 @@ export default function ProductManagement() {
     setStock((p.stock ?? 0).toString());
     setBarcode(p.barcode || "");
     setReorderThreshold((p.reorder_threshold ?? 5).toString());
+    setSupplierId(p.supplier_id || "");
     setErrorMsg("");
     setIsModalOpen(true);
   };
@@ -149,7 +164,8 @@ export default function ProductManagement() {
       tipe: tipe.trim(),
       stock: stockQty,
       barcode: barcode.trim() || null,
-      reorder_threshold: thresholdQty
+      reorder_threshold: thresholdQty,
+      supplier_id: supplierId || null,
     };
 
     if (modalPrice > basePrice && !bypassWarning) {
@@ -225,6 +241,12 @@ export default function ProductManagement() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Link
+            href="/reorder"
+            className="btn-arcade bg-amber-400 hover:bg-amber-300 text-slate-900 font-mono font-bold text-xs uppercase h-11 px-4 rounded-xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <ShoppingBag size={16} /> 🛒 BELANJA PASAR
+          </Link>
           <button 
             onClick={() => setIsStockInModalOpen(true)}
             className="btn-arcade bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-mono font-bold text-xs uppercase h-11 px-4 rounded-xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] transition-all flex items-center gap-2 cursor-pointer"
@@ -698,6 +720,25 @@ export default function ProductManagement() {
                   placeholder="Scan barcode (Contoh: 8992388100404)"
                   className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl px-3 text-xs font-mono text-slate-900 focus:ring-2 focus:ring-[#CCFF00] outline-none transition-all"
                 />
+              </div>
+
+              {/* Input: Supplier / Agen Kulakan */}
+              <div className="space-y-1">
+                <label className="block text-xs font-mono font-bold text-slate-700 uppercase flex items-center gap-1">
+                  <ShoppingBag size={13} /> Agen / Supplier Kulakan (Opsional)
+                </label>
+                <select
+                  value={supplierId}
+                  onChange={(e) => setSupplierId(e.target.value)}
+                  className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl px-3 text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-[#CCFF00] outline-none transition-all"
+                >
+                  <option value="">-- Belanja Umum / Pasar Induk --</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} {s.phone ? `(${s.phone})` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-2 pt-2">

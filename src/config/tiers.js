@@ -49,6 +49,7 @@ export const TIER_CONFIG = {
       shift_handover: false, // false | 'BASIC' | 'ADVANCED'
       owner_pin_override: false,
       wa_shift_recap: false,
+      smart_reorder: false,
     },
   },
   SUPERVISOR: {
@@ -85,6 +86,7 @@ export const TIER_CONFIG = {
       shift_handover: 'BASIC',
       owner_pin_override: false,
       wa_shift_recap: false,
+      smart_reorder: false,
     },
   },
   MANAJER: {
@@ -121,6 +123,7 @@ export const TIER_CONFIG = {
       shift_handover: 'ADVANCED',
       owner_pin_override: true,
       wa_shift_recap: true,
+      smart_reorder: true,
     },
   },
   EKSEKUTIF: {
@@ -157,6 +160,7 @@ export const TIER_CONFIG = {
       shift_handover: 'ADVANCED',
       owner_pin_override: true,
       wa_shift_recap: true,
+      smart_reorder: true,
     },
   },
 };

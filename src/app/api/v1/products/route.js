@@ -34,7 +34,7 @@ export const GET = withAuthSupabase(async (request, context, { profile, supabase
 export const POST = withBossOnly(async (request, context, { user, profile, supabase }) => {
   try {
     const body = await request.json();
-    const { nama, barcode, harga_modal, harga_base, tipe, stock, reorder_threshold } = body;
+    const { nama, barcode, harga_modal, harga_base, tipe, stock, reorder_threshold, supplier_id } = body;
 
     if (!nama?.trim() || !tipe?.trim() || harga_base == null || harga_modal == null) {
       return errorResponse('Nama, tipe, harga modal, dan harga base wajib diisi.', 'VALIDATION_ERROR', 422);
@@ -79,6 +79,7 @@ export const POST = withBossOnly(async (request, context, { user, profile, supab
         tipe: tipe.trim().toUpperCase(),
         stock: parseInt(stock || 0, 10),
         reorder_threshold: parseInt(reorder_threshold || 5, 10),
+        supplier_id: supplier_id || null,
       })
       .select()
       .single();

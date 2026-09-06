@@ -88,6 +88,7 @@ export const SUBSCRIPTION_PLANS = {
       shift_handover: TIER_CONFIG.MAGANG.features.shift_handover,
       owner_pin_override: TIER_CONFIG.MAGANG.features.owner_pin_override,
       wa_shift_recap: TIER_CONFIG.MAGANG.features.wa_shift_recap,
+      smart_reorder: TIER_CONFIG.MAGANG.features.smart_reorder,
     },
     feature_list: [
       { text: 'Mesin Kasir POS Dasar', included: true },
@@ -148,6 +149,7 @@ export const SUBSCRIPTION_PLANS = {
       shift_handover: TIER_CONFIG.SUPERVISOR.features.shift_handover,
       owner_pin_override: TIER_CONFIG.SUPERVISOR.features.owner_pin_override,
       wa_shift_recap: TIER_CONFIG.SUPERVISOR.features.wa_shift_recap,
+      smart_reorder: TIER_CONFIG.SUPERVISOR.features.smart_reorder,
     },
     feature_list: [
       { text: 'Transaksi (Struk) Unlimited', included: true },
@@ -208,13 +210,14 @@ export const SUBSCRIPTION_PLANS = {
       shift_handover: TIER_CONFIG.MANAJER.features.shift_handover,
       owner_pin_override: TIER_CONFIG.MANAJER.features.owner_pin_override,
       wa_shift_recap: TIER_CONFIG.MANAJER.features.wa_shift_recap,
+      smart_reorder: TIER_CONFIG.MANAJER.features.smart_reorder,
     },
     feature_list: [
       { text: 'Radar Kasir Nakal (Void/Selisih Log)', included: true },
       { text: 'Audit Stok Real-Time & HPP Modal', included: true },
+      { text: 'Daftar Belanja Pasar Subuh Otomatis', included: true },
       { text: '1 Cabang & Maksimal 5 Kasir', included: true },
       { text: 'Semua Fitur Paket Supervisor', included: true },
-      { text: 'Multi-Cabang Terhubung', included: false },
       { text: 'Auto-Report WA Tiap 06:00 Pagi', included: false },
     ],
     cta_text: 'AKTIFKAN MANAJER',
@@ -269,6 +272,7 @@ export const SUBSCRIPTION_PLANS = {
       shift_handover: TIER_CONFIG.EKSEKUTIF.features.shift_handover,
       owner_pin_override: TIER_CONFIG.EKSEKUTIF.features.owner_pin_override,
       wa_shift_recap: TIER_CONFIG.EKSEKUTIF.features.wa_shift_recap,
+      smart_reorder: TIER_CONFIG.EKSEKUTIF.features.smart_reorder,
     },
     feature_list: [
       { text: 'Auto-Report WhatsApp Pukul 06:00 Pagi', included: true, star: true },

@@ -807,6 +807,83 @@ export const api = {
     if (res?.ok) return res.data.data;
     throw new Error(res?.data?.message || res?.data?.error || 'Gagal mencatat mutasi laci');
   },
+
+  // ─── FASE 4: SMART RE-ORDER & SUPPLIERS ────────────────────────────────────
+  getSuppliers: async () => {
+    const res = await fetchAPI('/suppliers');
+    return res?.data?.data || [];
+  },
+
+  addSupplier: async (supplierData) => {
+    const res = await fetchAPI('/suppliers', {
+      method: 'POST',
+      body: JSON.stringify(supplierData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal menambahkan supplier');
+  },
+
+  updateSupplier: async (id, supplierData) => {
+    const res = await fetchAPI(`/suppliers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(supplierData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal memperbarui supplier');
+  },
+
+  deleteSupplier: async (id) => {
+    const res = await fetchAPI(`/suppliers/${id}`, {
+      method: 'DELETE',
+    });
+    if (res?.ok) return res.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal menghapus supplier');
+  },
+
+  getReorderSuggestions: async () => {
+    const res = await fetchAPI('/inventory/reorder-suggestions');
+    if (res?.ok) return res.data.data;
+    const err = new Error(res?.data?.message || res?.data?.error || 'Gagal memuat rekomendasi belanja');
+    err.status = res?.status;
+    err.code = res?.data?.code;
+    throw err;
+  },
+
+  getPurchaseOrders: async (params = {}) => {
+    const query = params.status ? `?status=${params.status}` : '';
+    const res = await fetchAPI(`/purchase-orders${query}`);
+    return res?.data?.data || [];
+  },
+
+  createPurchaseOrder: async (poData) => {
+    const res = await fetchAPI('/purchase-orders', {
+      method: 'POST',
+      body: JSON.stringify(poData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal membuat Purchase Order');
+  },
+
+  updatePurchaseOrder: async (id, updateData) => {
+    const res = await fetchAPI(`/purchase-orders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal memperbarui Purchase Order');
+  },
+
+  triggerMorningBriefing: async (data = {}) => {
+    const res = await fetchAPI('/reports/morning-briefing', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (res?.ok) return res.data;
+    const err = new Error(res?.data?.error || res?.data?.message || 'Gagal menyusun briefing pagi');
+    err.status = res?.status;
+    err.code = res?.data?.code;
+    throw err;
+  },
 };
 
 // Re-export MockDB alias untuk backwards compatibility (migrasi bertahap)

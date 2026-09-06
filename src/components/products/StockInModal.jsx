@@ -4,7 +4,7 @@ import { X, PackagePlus, AlertTriangle, ArrowUpRight, TrendingDown, Check, Spark
 import { api } from '@/utils/api';
 import UpgradePromptModal from '@/components/pos/UpgradePromptModal';
 
-export default function StockInModal({ isOpen, onClose, onStockAdded, initialProduct = null }) {
+export default function StockInModal({ isOpen, onClose, onStockAdded, initialProduct = null, initialPo = null }) {
   const [products, setProducts] = useState([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -21,6 +21,9 @@ export default function StockInModal({ isOpen, onClose, onStockAdded, initialPro
   const [successMsg, setSuccessMsg] = useState("");
   const [historyList, setHistoryList] = useState([]);
 
+  // Jembatan Zero-Retyping: PO ke Stock-In (Fase 4 Patch 3)
+  const [poItemIndex, setPoItemIndex] = useState(0);
+
   // Paywall modal
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [upgradeModalData, setUpgradeModalData] = useState(null);
@@ -30,24 +33,51 @@ export default function StockInModal({ isOpen, onClose, onStockAdded, initialPro
       loadProducts();
       setErrorMsg("");
       setSuccessMsg("");
+      setPoItemIndex(0);
       if (initialProduct) {
         setSelectedProductId(initialProduct.id);
       }
     }
-  }, [isOpen, initialProduct]);
+  }, [isOpen, initialProduct, initialPo]);
+
+  // Pre-fill dari initialPo jika aktif
+  useEffect(() => {
+    if (isOpen && initialPo && initialPo.items && initialPo.items.length > 0 && products.length > 0) {
+      const currentPoItem = initialPo.items[poItemIndex];
+      if (currentPoItem) {
+        const pId = currentPoItem.product_id || currentPoItem.id;
+        setSelectedProductId(pId);
+        const qtyPacks = currentPoItem.quantity_packs || currentPoItem.suggested_packs || currentPoItem.quantity_base || 1;
+        setQuantity(String(qtyPacks));
+        const estSpend = currentPoItem.subtotal || currentPoItem.estimated_cost || '';
+        setTotalSpend(String(estSpend));
+        setNotes(`Penerimaan PO #${initialPo.po_number || ''}`);
+
+        const prod = products.find(p => p.id === pId);
+        if (prod && prod.product_units && prod.product_units.length > 0) {
+          const match = prod.product_units.find(
+            u => u.unit_name === currentPoItem.pack_unit_name || u.multiplier_to_base === currentPoItem.pack_multiplier
+          );
+          if (match) {
+            setSelectedUnitId(match.id);
+          }
+        }
+      }
+    }
+  }, [isOpen, initialPo, poItemIndex, products]);
 
   useEffect(() => {
     if (selectedProductId && products.length > 0) {
       const prod = products.find(p => p.id === selectedProductId);
       setSelectedProduct(prod || null);
-      if (prod && prod.product_units && prod.product_units.length > 0) {
+      if (!initialPo && prod && prod.product_units && prod.product_units.length > 0) {
         // Default to largest unit if available, or base unit
         const sorted = [...prod.product_units].sort((a, b) => b.multiplier_to_base - a.multiplier_to_base);
         setSelectedUnitId(sorted[0].id);
       }
       loadHistory(selectedProductId);
     }
-  }, [selectedProductId, products]);
+  }, [selectedProductId, products, initialPo]);
 
   async function loadProducts() {
     try {
@@ -121,6 +151,31 @@ export default function StockInModal({ isOpen, onClose, onStockAdded, initialPro
         notes: notes.trim() || undefined,
       });
 
+      if (initialPo && initialPo.items && initialPo.items.length > 0) {
+        if (poItemIndex < initialPo.items.length - 1) {
+          setSuccessMsg(`Barang ${selectedProduct?.nama || 'ke-' + (poItemIndex + 1)} berhasil dicatat! Memuat barang ${poItemIndex + 2} dari ${initialPo.items.length}...`);
+          setPoItemIndex(idx => idx + 1);
+          if (onStockAdded) onStockAdded();
+          await loadProducts();
+          return;
+        } else {
+          // Semua barang dalam PO selesai dicatat
+          try {
+            await api.updatePurchaseOrder(initialPo.id, { status: 'RECEIVED' });
+          } catch (poErr) {
+            console.warn('Gagal update status PO:', poErr);
+          }
+          setSuccessMsg(`Semua barang PO ${initialPo.po_number} selesai dicatat & status diubah menjadi RECEIVED!`);
+          if (onStockAdded) onStockAdded();
+          await loadProducts();
+          setTimeout(() => {
+            setSuccessMsg("");
+            onClose();
+          }, 1500);
+          return;
+        }
+      }
+
       setSuccessMsg(`Kulakan berhasil dicatat! Stok atomik bertambah +${baseQtyTotal} Pcs.`);
       setQuantity("1");
       setTotalSpend("");
@@ -178,6 +233,22 @@ export default function StockInModal({ isOpen, onClose, onStockAdded, initialPro
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-5 flex-1">
+          {initialPo && (
+            <div className="p-3 bg-amber-100 border-2 border-slate-900 text-slate-900 text-xs font-bold flex items-center justify-between shadow-[3px_3px_0_#1E293B]">
+              <div className="flex items-center gap-2">
+                <span className="bg-slate-900 text-[#CCFF00] px-2 py-0.5 rounded text-[10px] font-mono">
+                  ZERO-RETYPING PO
+                </span>
+                <span>
+                  Menerima: <strong>{initialPo.po_number}</strong> (Item {poItemIndex + 1} dari {initialPo.items?.length || 1})
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-slate-600">
+                {Math.round(((poItemIndex) / (initialPo.items?.length || 1)) * 100)}% Selesai
+              </span>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="p-3 bg-red-100 border-2 border-red-900 text-red-900 text-xs font-bold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
