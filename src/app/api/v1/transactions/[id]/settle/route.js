@@ -1,10 +1,8 @@
 // POST /api/v1/transactions/[id]/settle — Lunaskan 1 bon
-import { prisma } from '@/lib/prisma';
-import { withAuth, errorResponse, successResponse } from '@/lib/auth';
-import { formatTransaction, checkAndGrantBonuses } from '@/lib/calculations';
+import { withAuthSupabase, errorResponse, successResponse } from '@/lib/auth-helpers';
 import { logActivity } from '@/lib/audit';
 
-export const POST = withAuth(async (request, { params }, user) => {
+export const POST = withAuthSupabase(async (request, { params }, { user, profile, shopId, supabase }) => {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -14,25 +12,41 @@ export const POST = withAuth(async (request, { params }, user) => {
       return errorResponse('Tanggal pelunasan wajib diisi.', 'VALIDATION_ERROR', 422);
     }
 
-    const existing = await prisma.transaction.findUnique({ where: { id } });
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
+
+    const { data: existing } = await supabase
+      .from('transactions')
+      .select('id, nomor_bon, status, amount_owed, customer_id, shop_id')
+      .eq('id', id)
+      .eq('shop_id', shopId)
+      .single();
+
     if (!existing) return errorResponse('Transaksi tidak ditemukan.', 'NOT_FOUND', 404);
     if (existing.status === 'Lunas') {
       return errorResponse('Transaksi sudah berstatus Lunas.', 'CONFLICT', 409);
     }
 
-    const updated = await prisma.transaction.update({
-      where: { id },
-      data: { status: 'Lunas', tanggal_lunas: new Date(tanggal_lunas) },
-      include: { items: { include: { product: true } }, customer: true },
-    });
+    const { error } = await supabase
+      .from('transactions')
+      .update({
+        status: 'Lunas',
+        tanggal_lunas: new Date(tanggal_lunas).toISOString().split('T')[0],
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
 
-    if (updated.customer_id) {
-      await checkAndGrantBonuses(updated.customer_id, updated.id, prisma);
-    }
+    if (error) throw error;
 
-    await logActivity(user.username, 'Pelunasan Bon', `Melunasi bon "${updated.nomor_bon}" (Total: Rp${Number(updated.amount_owed).toLocaleString('id-ID')})`);
+    await logActivity(supabase, existing.shop_id, profile.username || user.email, 'Pelunasan Bon',
+      `Melunasi bon "${existing.nomor_bon}" total Rp${Number(existing.amount_owed).toLocaleString('id-ID')}`);
 
-    return successResponse(formatTransaction(updated));
+    const { data: updated } = await supabase
+      .from('transactions')
+      .select('*, transaction_items(*, products(*)), customers(*)')
+      .eq('id', id)
+      .single();
+
+    return successResponse(updated);
   } catch (error) {
     console.error('[POST /transactions/:id/settle]', error);
     return errorResponse('Gagal melunaskan transaksi.', 'SERVER_ERROR', 500);

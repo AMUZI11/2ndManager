@@ -1,51 +1,63 @@
-// GET  /api/v1/categories   — daftar semua kategori produk
-// POST /api/v1/categories   — tambah kategori produk baru
-import { prisma } from '@/lib/prisma';
-import { withAuth, errorResponse, successResponse } from '@/lib/auth';
-import { z } from 'zod';
+// GET  /api/v1/categories   — daftar semua kategori produk toko ini
+// POST /api/v1/categories   — tambah kategori produk baru (BOSS only)
+import { withAuthSupabase, withBossOnly, errorResponse, successResponse, resolveShopId } from '@/lib/auth-helpers';
 
-const categorySchema = z.object({
-  code: z.string().min(1, 'Kode kategori wajib diisi.').max(50, 'Kode kategori maksimal 50 karakter.').transform(v => v.toUpperCase().trim()),
-  name: z.string().min(1, 'Nama kategori wajib diisi.').max(100, 'Nama kategori maksimal 100 karakter.').transform(v => v.trim()),
-});
+async function getShopId(user, profile, supabase) {
+  return profile.shop_id || (await resolveShopId(supabase, user, profile));
+}
 
-export const GET = withAuth(async () => {
+export const GET = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
   try {
-    const categories = await prisma.productCategory.findMany({
-      orderBy: { code: 'asc' },
-    });
-    return successResponse(categories.map(c => ({
-      code: c.code,
-      name: c.name,
-      created_at: c.created_at,
-      updated_at: c.updated_at,
-    })));
+    const shopId = await getShopId(user, profile, supabase);
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
+
+    const { data: categories, error } = await supabase
+      .from('product_categories')
+      .select('id, code, name, created_at, updated_at')
+      .eq('shop_id', shopId)
+      .order('code', { ascending: true });
+
+    if (error) throw error;
+    return successResponse(categories);
   } catch (error) {
     console.error('[GET /categories]', error);
     return errorResponse('Gagal memuat daftar kategori.', 'SERVER_ERROR', 500);
   }
 });
 
-export const POST = withAuth(async (request) => {
+export const POST = withBossOnly(async (request, context, { user, profile, supabase }) => {
   try {
     const body = await request.json();
-    const parsed = categorySchema.safeParse(body);
-    if (!parsed.success) {
-      return errorResponse(parsed.error.errors[0].message, 'VALIDATION_ERROR', 422);
-    }
-    const { code, name } = parsed.data;
+    const code = body.code?.toUpperCase().trim();
+    const name = body.name?.trim();
 
-    // Cek duplikat kode
-    const existing = await prisma.productCategory.findUnique({ where: { code } });
+    if (!code || !name) {
+      return errorResponse('Kode dan nama kategori wajib diisi.', 'VALIDATION_ERROR', 422);
+    }
+
+    const shopId = await getShopId(user, profile, supabase);
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
+
+    // Cek duplikat kode dalam toko ini
+    const { data: existing } = await supabase
+      .from('product_categories')
+      .select('id')
+      .eq('shop_id', shopId)
+      .eq('code', code)
+      .single();
+
     if (existing) {
       return errorResponse(`Kode kategori "${code}" sudah ada.`, 'CONFLICT', 409);
     }
 
-    const category = await prisma.productCategory.create({
-      data: { code, name },
-    });
+    const { data: category, error } = await supabase
+      .from('product_categories')
+      .insert({ shop_id: shopId, code, name })
+      .select()
+      .single();
 
-    return successResponse({ code: category.code, name: category.name, created_at: category.created_at }, 201);
+    if (error) throw error;
+    return successResponse(category, 201);
   } catch (error) {
     console.error('[POST /categories]', error);
     return errorResponse('Gagal menambahkan kategori.', 'SERVER_ERROR', 500);

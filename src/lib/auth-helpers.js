@@ -18,11 +18,43 @@ export function successResponse(data, status = 200) {
 }
 
 /**
+ * Resolusi shop_id aktif untuk user/profile yang tahan multi-cabang
+ * Prioritas:
+ * 1. profile.shop_id (toko aktif di sesi)
+ * 2. Toko utama yang dimiliki boss (parent_shop_id IS NULL)
+ * 3. Fallback ke baris pertama user_shops dengan limit(1) (bukan .single())
+ */
+export async function resolveShopId(supabase, user, profile) {
+  if (profile?.shop_id) return profile.shop_id;
+
+  if (profile?.role === 'BOSS' || !profile?.role) {
+    const { data: ownedShop } = await supabase
+      .from('shops')
+      .select('id')
+      .eq('owner_id', user.id)
+      .is('parent_shop_id', null)
+      .limit(1)
+      .maybeSingle();
+
+    if (ownedShop?.id) return ownedShop.id;
+  }
+
+  const { data: userShops } = await supabase
+    .from('user_shops')
+    .select('shop_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .maybeSingle();
+
+  return userShops?.shop_id || null;
+}
+
+/**
  * Higher-order function untuk proteksi API route dengan Supabase Auth session
  * Mengekstrak user dan profile (termasuk shop_id & role) dari session
  *
  * Usage:
- *   export const GET = withAuthSupabase(async (request, context, { user, profile }) => { ... });
+ *   export const GET = withAuthSupabase(async (request, context, { user, profile, shopId }) => { ... });
  */
 export function withAuthSupabase(handler) {
   return async function (request, context) {
@@ -45,7 +77,13 @@ export function withAuthSupabase(handler) {
       return errorResponse('Profil pengguna tidak ditemukan.', 'PROFILE_NOT_FOUND', 403);
     }
 
-    return handler(request, context, { user, profile, supabase });
+    // Selesaikan shop_id aktif (tahan multi-cabang tanpa risiko PGRST116)
+    let shopId = profile.shop_id;
+    if (!shopId) {
+      shopId = await resolveShopId(supabase, user, profile);
+    }
+
+    return handler(request, context, { user, profile, shopId, supabase });
   };
 }
 

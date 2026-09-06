@@ -3,15 +3,10 @@
 import { withAuthSupabase, errorResponse, successResponse } from '@/lib/auth-helpers';
 import { logActivity } from '@/lib/audit';
 
-export const GET = withAuthSupabase(async (request, { params }, { user, profile, supabase }) => {
+export const GET = withAuthSupabase(async (request, { params }, { user, profile, shopId, supabase }) => {
   try {
     const { id } = await params;
-    let shopId = profile.shop_id;
-    if (profile.role === 'BOSS') {
-      const { data: userShop } = await supabase
-        .from('user_shops').select('shop_id').eq('user_id', user.id).single();
-      shopId = userShop?.shop_id || shopId;
-    }
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
     const { data: customer, error: custErr } = await supabase
       .from('customers')
@@ -59,15 +54,10 @@ export const GET = withAuthSupabase(async (request, { params }, { user, profile,
   }
 });
 
-export const POST = withAuthSupabase(async (request, { params }, { user, profile, supabase }) => {
+export const POST = withAuthSupabase(async (request, { params }, { user, profile, shopId, supabase }) => {
   try {
     const { id } = await params;
-    let shopId = profile.shop_id;
-    if (profile.role === 'BOSS') {
-      const { data: userShop } = await supabase
-        .from('user_shops').select('shop_id').eq('user_id', user.id).single();
-      shopId = userShop?.shop_id || shopId;
-    }
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
     const body = await request.json();
     const { delta, mutation_type = 'ADJUSTMENT', notes = '' } = body;

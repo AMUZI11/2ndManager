@@ -7,7 +7,7 @@ import { getTierConfig, getWIBStartOfMonth } from '@/config/tiers';
 import { logActivity } from '@/lib/audit';
 import { verifyPin } from '@/lib/security';
 
-export const GET = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
+export const GET = withAuthSupabase(async (request, context, { user, profile, shopId, supabase }) => {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -16,13 +16,6 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
     const year = searchParams.get('year');
     const is_bonus = searchParams.get('is_bonus');
 
-    // Tentukan shop_id
-    let shopId = profile.shop_id;
-    if (profile.role === 'BOSS') {
-      const { data: userShop } = await supabase
-        .from('user_shops').select('shop_id').eq('user_id', user.id).single();
-      shopId = userShop?.shop_id;
-    }
     if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
     let query = supabase
@@ -60,7 +53,7 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
   }
 });
 
-export const POST = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
+export const POST = withAuthSupabase(async (request, context, { user, profile, shopId, supabase }) => {
   try {
     const body = await request.json();
     const { nomor_bon, tanggal, customer_id, ongkir, deskripsi, is_bonus, items, idempotency_key, status } = body;
@@ -70,27 +63,28 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     if (idempotency_key) {
       const { data: existing } = await supabase
         .from('transactions')
-        .select('id, nomor_bon')
+        .select(`
+          *,
+          transaction_items (*, products (id, nama, tipe, barcode)),
+          customers (id, nama, phone)
+        `)
         .eq('idempotency_key', idempotency_key)
-        .single();
+        .maybeSingle();
+
       if (existing) {
-        // Kembalikan transaksi yang sudah ada — bukan error, bukan duplikat
         const { data: fullTx } = await supabase
           .from('transactions')
-          .select('*, transaction_items(*, products(*)), customers(*)')
+          .select(`
+            *,
+            transaction_items (*, products (id, nama, tipe, barcode)),
+            customers (id, nama, phone)
+          `)
           .eq('id', existing.id)
           .single();
         return successResponse(fullTx);
       }
     }
 
-    // Tentukan shop_id
-    let shopId = profile.shop_id;
-    if (profile.role === 'BOSS') {
-      const { data: userShop } = await supabase
-        .from('user_shops').select('shop_id').eq('user_id', user.id).single();
-      shopId = userShop?.shop_id;
-    }
     if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
     // Validasi dasar

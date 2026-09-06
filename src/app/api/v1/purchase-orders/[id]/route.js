@@ -2,16 +2,9 @@
 import { withAuthSupabase, errorResponse, successResponse } from '@/lib/auth-helpers';
 import { logActivity } from '@/lib/audit';
 
-export const PUT = withAuthSupabase(async (request, { params }, { user, profile, supabase }) => {
+export const PUT = withAuthSupabase(async (request, { params }, { user, profile, shopId, supabase }) => {
   try {
     const { id } = await params;
-    let shopId = profile.shop_id;
-    if (profile.role === 'BOSS') {
-      const { data: userShop } = await supabase
-        .from('user_shops').select('shop_id').eq('user_id', user.id).single();
-      shopId = userShop?.shop_id || shopId;
-    }
-
     if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NO_SHOP', 400);
 
     const body = await request.json();

@@ -1,9 +1,8 @@
 // POST /api/v1/customers/[id]/settle-month — Lunaskan semua bon piutang bulan tertentu
-import { prisma } from '@/lib/prisma';
-import { withAuth, errorResponse, successResponse } from '@/lib/auth';
-import { formatTransaction, checkAndGrantBonuses } from '@/lib/calculations';
+import { withAuthSupabase, errorResponse, successResponse } from '@/lib/auth-helpers';
+import { logActivity } from '@/lib/audit';
 
-export const POST = withAuth(async (request, { params }) => {
+export const POST = withAuthSupabase(async (request, { params }, { user, profile, shopId, supabase }) => {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -13,41 +12,46 @@ export const POST = withAuth(async (request, { params }) => {
       return errorResponse('Bulan, tahun, dan tanggal pelunasan wajib diisi.', 'VALIDATION_ERROR', 422);
     }
 
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
-    // Cari semua transaksi Piutang di bulan ini
-    const toSettle = await prisma.transaction.findMany({
-      where: {
-        customer_id: id,
-        status: 'Piutang',
-        tanggal: { gte: startDate, lte: endDate },
-      },
-    });
+    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString().split('T')[0];
+    const endDate   = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
 
-    if (toSettle.length === 0) {
+    // Cari semua bon Piutang di bulan ini
+    const { data: toSettle } = await supabase
+      .from('transactions')
+      .select('id, nomor_bon, amount_owed')
+      .eq('customer_id', id)
+      .eq('shop_id', shopId)
+      .eq('status', 'Piutang')
+      .gte('tanggal', startDate)
+      .lte('tanggal', endDate);
+
+    if (!toSettle || toSettle.length === 0) {
       return successResponse({ settled_count: 0, transactions: [] });
     }
 
-    // Update semua menjadi Lunas
-    const tanggalLunasDate = new Date(tanggal_lunas);
-    await prisma.transaction.updateMany({
-      where: { id: { in: toSettle.map(t => t.id) } },
-      data: { status: 'Lunas', tanggal_lunas: tanggalLunasDate },
-    });
+    const ids = toSettle.map(t => t.id);
+    const tanggalLunasStr = new Date(tanggal_lunas).toISOString().split('T')[0];
 
-    const lastSettleId = toSettle[toSettle.length - 1].id;
-    await checkAndGrantBonuses(id, lastSettleId, prisma);
+    const { error } = await supabase
+      .from('transactions')
+      .update({ status: 'Lunas', tanggal_lunas: tanggalLunasStr, updated_at: new Date().toISOString() })
+      .in('id', ids);
 
-    const updated = await prisma.transaction.findMany({
-      where: { id: { in: toSettle.map(t => t.id) } },
-      include: { items: true },
-    });
+    if (error) throw error;
 
-    return successResponse({
-      settled_count: updated.length,
-      transactions: updated.map(formatTransaction),
-    });
+    const totalSettled = toSettle.reduce((s, t) => s + Number(t.amount_owed), 0);
+
+    await logActivity(supabase, shopId, profile.username || user.email, 'Pelunasan Bulan',
+      `Melunasi ${toSettle.length} bon bulan ${month}/${year}, total Rp${totalSettled.toLocaleString('id-ID')}`);
+
+    const { data: updated } = await supabase
+      .from('transactions')
+      .select('*')
+      .in('id', ids);
+
+    return successResponse({ settled_count: updated.length, transactions: updated });
   } catch (error) {
     console.error('[POST /customers/:id/settle-month]', error);
     return errorResponse('Gagal melunaskan bon bulan ini.', 'SERVER_ERROR', 500);

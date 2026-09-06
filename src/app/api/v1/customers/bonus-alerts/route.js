@@ -1,63 +1,59 @@
-import { prisma } from '@/lib/prisma';
-import { withAuth, errorResponse, successResponse } from '@/lib/auth';
-import { getFiveYearsAgoDate } from '@/lib/calculations';
+// GET /api/v1/customers/bonus-alerts — pelanggan yang perlu diberikan bonus
+import { withAuthSupabase, errorResponse, successResponse } from '@/lib/auth-helpers';
 
-export const GET = withAuth(async (request) => {
+export const GET = withAuthSupabase(async (request, context, { user, profile, shopId, supabase }) => {
   try {
-    const customers = await prisma.customer.findMany({
-      where: { is_deleted: false },
-      select: { id: true, nama: true, bonus_threshold: true }
-    });
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
-    const fiveYearsAgo = getFiveYearsAgoDate();
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+    const since = fiveYearsAgo.toISOString().split('T')[0];
 
-    const txSums = await prisma.transaction.groupBy({
-      by: ['customer_id'],
-      where: {
-        status: 'Lunas',
-        is_bonus: false,
-        tanggal: { gte: fiveYearsAgo },
-      },
-      _sum: {
-        omzet_total: true
-      }
-    });
+    // Ambil semua pelanggan aktif
+    const { data: customers } = await supabase
+      .from('customers')
+      .select('id, nama, bonus_threshold')
+      .eq('shop_id', shopId)
+      .eq('is_deleted', false);
 
-    const grantSums = await prisma.bonusGrant.groupBy({
-      by: ['customer_id'],
-      where: {
-        granted_at: { gte: fiveYearsAgo },
-      },
-      _sum: {
-        bonuses_granted: true
-      }
-    });
+    // Ambil total omzet lunas per pelanggan
+    const { data: txData } = await supabase
+      .from('transactions')
+      .select('customer_id, omzet_total')
+      .eq('shop_id', shopId)
+      .eq('status', 'Lunas')
+      .eq('is_bonus', false)
+      .gte('tanggal', since);
 
-    const txMap = {};
-    for (const item of txSums) {
-      txMap[item.customer_id] = Number(item._sum.omzet_total || 0n);
+    // Ambil total bonus granted per pelanggan
+    const { data: grantData } = await supabase
+      .from('bonus_grants')
+      .select('customer_id, bonuses_granted')
+      .eq('shop_id', shopId)
+      .gte('granted_at', since);
+
+    // Aggregate omzet per customer
+    const omzetMap = {};
+    for (const tx of txData || []) {
+      omzetMap[tx.customer_id] = (omzetMap[tx.customer_id] || 0) + Number(tx.omzet_total);
     }
 
+    // Aggregate grants per customer
     const grantMap = {};
-    for (const item of grantSums) {
-      grantMap[item.customer_id] = Number(item._sum.bonuses_granted || 0);
+    for (const g of grantData || []) {
+      grantMap[g.customer_id] = (grantMap[g.customer_id] || 0) + Number(g.bonuses_granted);
     }
 
     const alerts = [];
-    for (const c of customers) {
-      const accumulator = txMap[c.id] || 0;
-      const threshold = Number(c.bonus_threshold || 0n);
-      const bonuses_granted = grantMap[c.id] || 0;
-
-      const bonuses_available = threshold > 0
-        ? Math.max(0, Math.floor(accumulator / threshold) - bonuses_granted)
-        : 0;
-
-      if (bonuses_available > 0) {
-        alerts.push({
-          customer: { id: c.id, nama: c.nama },
-          available: bonuses_available
-        });
+    for (const c of customers || []) {
+      const threshold = Number(c.bonus_threshold || 0);
+      if (threshold <= 0) continue;
+      const totalOmzet = omzetMap[c.id] || 0;
+      const granted = grantMap[c.id] || 0;
+      const earned = Math.floor(totalOmzet / threshold);
+      const available = Math.max(0, earned - granted);
+      if (available > 0) {
+        alerts.push({ customer: { id: c.id, nama: c.nama }, available });
       }
     }
 

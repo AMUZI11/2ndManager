@@ -1,15 +1,12 @@
 import { withBossOnly, errorResponse, successResponse, checkSubscriptionActive } from '@/lib/auth-helpers';
 import { canAccessFeature, checkQuotaLimit } from '@/lib/subscription';
 
-export const GET = withBossOnly(async (request, context, { user, profile, supabase }) => {
+export const GET = withBossOnly(async (request, context, { user, profile, shopId, supabase }) => {
   try {
     const { searchParams } = new URL(request.url);
     const month = searchParams.get('month');
     const year = searchParams.get('year');
 
-    const { data: userShop } = await supabase
-      .from('user_shops').select('shop_id').eq('user_id', user.id).single();
-    const shopId = userShop?.shop_id;
     if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
     // Date range filter

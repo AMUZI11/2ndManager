@@ -1,18 +1,16 @@
-import { withBossOnly, errorResponse, successResponse } from '@/lib/auth-helpers';
+import { withBossOnly, errorResponse, successResponse, resolveShopId } from '@/lib/auth-helpers';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
-export const GET = withBossOnly(async (request, context, { user, profile, supabase }) => {
+export const GET = withBossOnly(async (request, context, { user, profile, shopId: contextShopId, supabase }) => {
   try {
-    const { data: userShop } = await supabase
-      .from('user_shops')
-      .select('shop_id, shops(id, name, subscription_tier, operational_status, cashier_limit)')
-      .eq('user_id', user.id)
-      .single();
-
-    const shopId = userShop?.shop_id;
+    const shopId = contextShopId || profile.shop_id || (await resolveShopId(supabase, user, profile));
     if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
-    const shop = userShop?.shops;
+    const { data: shop } = await supabase
+      .from('shops')
+      .select('id, name, subscription_tier, operational_status, cashier_limit')
+      .eq('id', shopId)
+      .maybeSingle();
     const activeTier = shop?.subscription_tier && shop.subscription_tier !== 'TRIAL' ? shop.subscription_tier : 'MAGANG';
 
     // Ambil info subscription
@@ -69,13 +67,7 @@ export const POST = withBossOnly(async (request, context, { user, profile, supab
       return errorResponse('Pilihan paket dan file bukti pembayaran wajib diisi.', 'VALIDATION_ERROR', 422);
     }
 
-    const { data: userShop } = await supabase
-      .from('user_shops')
-      .select('shop_id')
-      .eq('user_id', user.id)
-      .single();
-
-    const shopId = userShop?.shop_id;
+    const shopId = profile.shop_id || (await resolveShopId(supabase, user, profile));
     if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
     // 1. Upload file ke Supabase Storage (bucket: payment-proofs) via supabaseAdmin

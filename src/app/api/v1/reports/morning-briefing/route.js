@@ -10,7 +10,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { normalizeIndonesianPhone } from '@/lib/phone';
 import { canAccessFeature } from '@/lib/subscription';
-import { checkSubscriptionActive } from '@/lib/auth-helpers';
+import { checkSubscriptionActive, resolveShopId } from '@/lib/auth-helpers';
 import { logActivity } from '@/lib/audit';
 
 function formatRupiah(val) {
@@ -67,9 +67,7 @@ export async function POST(request) {
       profile = userProfile;
 
       if (profile?.role === 'BOSS') {
-        const { data: userShop } = await supabase
-          .from('user_shops').select('shop_id').eq('user_id', user.id).single();
-        shopId = userShop?.shop_id || profile?.shop_id;
+        shopId = profile?.shop_id || (await resolveShopId(supabase, user, profile));
       } else {
         shopId = profile?.shop_id;
       }

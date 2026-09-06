@@ -1,32 +1,41 @@
-// DELETE /api/v1/categories/[code] — hapus kategori produk
+// DELETE /api/v1/categories/[code] — hapus kategori
 // Hanya bisa dihapus jika tidak ada produk aktif yang menggunakan kategori ini
-import { prisma } from '@/lib/prisma';
-import { withAuth, errorResponse, successResponse } from '@/lib/auth';
+import { withBossOnly, errorResponse, successResponse } from '@/lib/auth-helpers';
 
-export const DELETE = withAuth(async (request, { params }) => {
+export const DELETE = withBossOnly(async (request, { params }, { user, profile, shopId, supabase }) => {
   try {
     const { code } = await params;
+    const upperCode = code.toUpperCase();
 
-    // Cek keberadaan kategori
-    const category = await prisma.productCategory.findUnique({ where: { code } });
-    if (!category) {
-      return errorResponse(`Kategori "${code}" tidak ditemukan.`, 'NOT_FOUND', 404);
-    }
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
-    // Cek apakah ada produk aktif yang menggunakan kategori ini
-    const activeProductCount = await prisma.product.count({
-      where: { tipe: code, is_deleted: false },
-    });
-    if (activeProductCount > 0) {
+    // Cek kategori ada di toko ini
+    const { data: category } = await supabase
+      .from('product_categories')
+      .select('id, code, name')
+      .eq('shop_id', shopId)
+      .eq('code', upperCode)
+      .single();
+
+    if (!category) return errorResponse(`Kategori "${upperCode}" tidak ditemukan.`, 'NOT_FOUND', 404);
+
+    // Cek produk aktif yang masih pakai kategori ini
+    const { count } = await supabase
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('shop_id', shopId)
+      .eq('tipe', upperCode)
+      .eq('is_deleted', false);
+
+    if (count > 0) {
       return errorResponse(
-        `Kategori "${code}" masih digunakan oleh ${activeProductCount} produk aktif. Hapus atau ubah tipe produk tersebut terlebih dahulu.`,
-        'CONFLICT',
-        422
+        `Kategori "${upperCode}" masih digunakan oleh ${count} produk aktif. Hapus atau ubah tipe produk terlebih dahulu.`,
+        'CONFLICT', 422
       );
     }
 
-    await prisma.productCategory.delete({ where: { code } });
-    return successResponse({ message: `Kategori "${code}" berhasil dihapus.` });
+    await supabase.from('product_categories').delete().eq('id', category.id);
+    return successResponse({ message: `Kategori "${upperCode}" berhasil dihapus.` });
   } catch (error) {
     console.error('[DELETE /categories/:code]', error);
     return errorResponse('Gagal menghapus kategori.', 'SERVER_ERROR', 500);

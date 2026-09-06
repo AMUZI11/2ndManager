@@ -31,32 +31,25 @@ export const GET = withAuthSupabase(async (request, context, { profile, supabase
   }
 });
 
-export const POST = withBossOnly(async (request, context, { user, profile, supabase }) => {
+export const POST = withBossOnly(async (request, context, { user, profile, shopId, supabase }) => {
   try {
     const body = await request.json();
-    const { nama, barcode, harga_modal, harga_base, tipe, stock, reorder_threshold, supplier_id } = body;
+    const { nama, tipe, harga_modal, harga_base, barcode, track_stock, stok_saat_ini, min_stock, satuan, deskripsi, units } = body;
 
-    if (!nama?.trim() || !tipe?.trim() || harga_base == null || harga_modal == null) {
+    if (!nama?.trim() || !tipe || harga_modal === undefined || harga_base === undefined) {
       return errorResponse('Nama, tipe, harga modal, dan harga base wajib diisi.', 'VALIDATION_ERROR', 422);
     }
 
-    // Ambil shop_id aktif untuk BOSS (dari user_shops, pilih yang pertama atau yang sedang aktif)
-    const { data: userShop } = await supabase
-      .from('user_shops')
-      .select('shop_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!userShop) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
+    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
     // Cek plan toko dan enforce produk SKU max
-    const { plan } = await checkSubscriptionActive(supabase, userShop.shop_id);
+    const { plan } = await checkSubscriptionActive(supabase, shopId);
     
     // Hitung SKU saat ini
     const { count, error: countError } = await supabase
       .from('products')
       .select('*', { count: 'exact', head: true })
-      .eq('shop_id', userShop.shop_id)
+      .eq('shop_id', shopId)
       .eq('is_deleted', false);
 
     if (countError) throw countError;
