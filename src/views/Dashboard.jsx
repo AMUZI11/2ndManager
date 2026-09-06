@@ -16,6 +16,7 @@ import { BentoSkeleton, TableSkeleton } from '../components/SkeletonLoader';
 import EmptyState from '../components/EmptyState';
 import ParanoiaMarketingAlert from '../components/ParanoiaMarketingAlert';
 import FomoPaywallCard from '../components/FomoPaywallCard';
+import { normalizeTier } from '../config/tiers';
 import { supabase } from '../lib/supabase/client';
 
 if (typeof window !== 'undefined') {
@@ -99,11 +100,12 @@ export default function Dashboard({ setView, setSelectedCustomerId }) {
     
     async function loadData(isBackground = false) {
       try {
-        const [transactions, customersData, alerts, billingData] = await Promise.all([
+        const [transactions, customersData, alerts, billingData, shopProfile] = await Promise.all([
           api.getTransactions(),
           api.getCustomers(),
           api.getBonusAlerts(),
-          api.getBilling().catch(() => null)
+          api.getBilling().catch(() => null),
+          api.getShopProfile().catch(() => null)
         ]);
         
         if (!isMounted) return;
@@ -118,15 +120,9 @@ export default function Dashboard({ setView, setSelectedCustomerId }) {
           }).toUpperCase();
           setCurrentDate(date);
           
-          try {
-            const shopProfile = await api.getShopProfile();
-            if (shopProfile?.name) {
-              setShopName(shopProfile.name);
-            } else {
-              const savedName = typeof window !== 'undefined' ? localStorage.getItem('hl_current_shop_name') : null;
-              setShopName(savedName || 'Toko Utama');
-            }
-          } catch (e) {
+          if (shopProfile?.name) {
+            setShopName(shopProfile.name);
+          } else {
             const savedName = typeof window !== 'undefined' ? localStorage.getItem('hl_current_shop_name') : null;
             setShopName(savedName || 'Toko Utama');
           }
@@ -136,7 +132,8 @@ export default function Dashboard({ setView, setSelectedCustomerId }) {
         const sessionUser = api.getCurrentSession();
         const planFromBilling = billingData?.plan || billingData?.subscription?.plan || billingData?.tier;
         const planFromSession = sessionUser?.plan || sessionUser?.subscription_plan;
-        const activePlan = (planFromBilling || planFromSession || shopProfile?.subscription_tier || 'MAGANG').toUpperCase();
+        const rawPlan = planFromBilling || planFromSession || shopProfile?.subscription_tier || 'MAGANG';
+        const activePlan = normalizeTier(rawPlan);
         setUserPlan(activePlan);
 
         // Check shift closing discrepancy from localStorage
