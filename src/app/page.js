@@ -5,19 +5,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import LandingNavbar from "@/components/landing/LandingNavbar";
 
+const revealVariant = {
+  hidden: { opacity: 0, y: 40 },
+  visible: (custom = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.8,
+      ease: [0.16, 1, 0.3, 1],
+      delay: custom * 0.1,
+    },
+  }),
+};
+
 export default function LandingPage() {
-  const revealVariant = {
-    hidden: { opacity: 0, y: 40 },
-    visible: (custom = 0) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.8,
-        ease: [0.16, 1, 0.3, 1],
-        delay: custom * 0.1,
-      },
-    }),
-  };
 
   return (
     <div className="w-full max-w-full overflow-x-hidden bg-[#fdfaf6] relative">
@@ -504,7 +505,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <p className="text-sm text-gray-500">Setiap selisih terekam. Setiap "ngeles" langsung ketahuan.</p>
+              <p className="text-sm text-gray-500">Setiap selisih terekam. Setiap &quot;ngeles&quot; langsung ketahuan.</p>
             </motion.div>
 
             {/* Card 5: Nota Digital */}
@@ -790,10 +791,6 @@ export default function LandingPage() {
                     <span>❌</span>
                     <span>Multi-Cabang Terhubung</span>
                   </div>
-                  <div className="flex items-start gap-2.5 text-zinc-400 line-through">
-                    <span>❌</span>
-                    <span>Auto-Report WA 06:00 Pagi</span>
-                  </div>
                 </div>
               </div>
 
@@ -832,7 +829,7 @@ export default function LandingPage() {
                   Kontrak Eksekutif
                 </h3>
                 <p className="text-xs font-mono-custom text-zinc-600 mb-6">
-                  Sistem komando multi-cabang + asisten WhatsApp 24/7.
+                  Sistem komando multi-cabang + audit anti-fraud real-time.
                 </p>
 
                 <div className="flex items-baseline gap-1 mb-6 border-b-2 border-black pb-4">
@@ -845,7 +842,7 @@ export default function LandingPage() {
                 <div className="space-y-3 mb-8 text-xs font-mono-custom">
                   <div className="flex items-start gap-2.5 bg-[#CCFF00]/20 p-1.5 border border-black">
                     <span className="font-bold text-black">⭐</span>
-                    <span className="font-bold text-black">Auto-Report WA Pukul 06:00 Pagi</span>
+                    <span className="font-bold text-black">Laporan Analitik Multi-Cabang Real-Time</span>
                   </div>
                   <div className="flex items-start gap-2.5 bg-[#CCFF00]/20 p-1.5 border border-black">
                     <span className="font-bold text-black">⭐</span>
@@ -963,7 +960,8 @@ export default function LandingPage() {
             <a href="#cara-kerja" className="hover:text-neon transition-colors">Cara Kerja</a>
             <a href="#kalkulator-rugi" className="hover:text-neon transition-colors">Kalkulator Rugi</a>
             <a href="#gaji-manajer" className="hover:text-neon transition-colors">Gaji Manajer</a>
-            <Link href="/login" className="hover:text-neon transition-colors">Masuk Kasir</Link>
+            <Link href="/pos" className="hover:text-neon transition-colors">Meja Kasir POS</Link>
+            <Link href="/login" className="hover:text-neon transition-colors">Masuk Pemilik (Owner)</Link>
           </div>
 
           <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3.5 py-2 rounded-xl text-[11px] font-mono-custom text-zinc-300">

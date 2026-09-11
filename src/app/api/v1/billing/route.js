@@ -3,29 +3,54 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export const GET = withBossOnly(async (request, context, { user, profile, shopId: contextShopId, supabase }) => {
   try {
-    const shopId = contextShopId || profile.shop_id || (await resolveShopId(supabase, user, profile));
-    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
+    let targetShopId = contextShopId || profile.shop_id || (await resolveShopId(supabase, user, profile));
+    if (targetShopId === 'ALL') {
+      const { data: mainShop } = await supabase
+        .from('shops')
+        .select('id')
+        .eq('owner_id', user.id)
+        .is('parent_shop_id', null)
+        .maybeSingle();
+      targetShopId = mainShop?.id || profile.shop_id;
+    }
+    if (!targetShopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
     const { data: shop } = await supabase
       .from('shops')
-      .select('id, name, subscription_tier, operational_status, cashier_limit')
-      .eq('id', shopId)
+      .select('id, name, subscription_tier, operational_status, cashier_limit, parent_shop_id')
+      .eq('id', targetShopId)
       .maybeSingle();
-    const activeTier = shop?.subscription_tier && shop.subscription_tier !== 'TRIAL' ? shop.subscription_tier : 'MAGANG';
 
-    // Ambil info subscription
+    // Dalam arsitektur multi-cabang B2B, lisensi/subscription terikat pada Toko Utama (Enterprise)
+    const billingShopId = shop?.parent_shop_id || targetShopId;
+
+    let effectiveShop = shop;
+    if (shop?.parent_shop_id) {
+      const { data: mainShop } = await supabase
+        .from('shops')
+        .select('id, name, subscription_tier, operational_status, cashier_limit')
+        .eq('id', shop.parent_shop_id)
+        .maybeSingle();
+      if (mainShop) effectiveShop = mainShop;
+    }
+
+    const activeTier = effectiveShop?.subscription_tier && effectiveShop.subscription_tier !== 'TRIAL' 
+      ? effectiveShop.subscription_tier 
+      : (profile?.subscription_plan || 'MAGANG');
+
+    // Ambil info subscription dari Toko Utama (Enterprise)
     let { data: subscription } = await supabase
       .from('subscriptions')
       .select('*')
-      .eq('shop_id', shopId)
+      .eq('shop_id', billingShopId)
       .maybeSingle();
 
     if (!subscription) {
       subscription = {
-        shop_id: shopId,
+        shop_id: billingShopId,
         plan: activeTier,
-        max_cashiers: shop?.cashier_limit || 1,
-        max_branches: 1,
+        max_cashiers: effectiveShop?.cashier_limit || 2,
+        max_branches: 2,
         valid_until: null,
       };
     } else if (activeTier !== 'MAGANG' && (!subscription.plan || subscription.plan === 'FREE')) {
@@ -36,18 +61,19 @@ export const GET = withBossOnly(async (request, context, { user, profile, shopId
     const { data: paymentProofs } = await supabase
       .from('payment_proofs')
       .select('*')
-      .eq('shop_id', shopId)
+      .eq('shop_id', billingShopId)
       .order('created_at', { ascending: false });
 
     const activePlan = subscription?.plan || activeTier || 'MAGANG';
 
     return successResponse({
-      shop_id: shopId,
-      shop_name: shop?.name || 'Toko Saya',
+      shop_id: targetShopId,
+      shop_name: shop?.name || effectiveShop?.name || 'Toko Saya',
+      main_shop_id: billingShopId,
       plan: activePlan,
       tier: activeTier,
-      operational_status: shop?.operational_status || 'ACTIVE',
-      cashier_limit: shop?.cashier_limit || 1,
+      operational_status: effectiveShop?.operational_status || 'ACTIVE',
+      cashier_limit: subscription?.max_cashiers || effectiveShop?.cashier_limit || 2,
       subscription,
       payment_proofs: paymentProofs || [],
     });

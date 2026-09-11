@@ -49,14 +49,11 @@ export async function comparePassword(plainPassword, hash) {
  */
 export function getAuthUser(request) {
   const authHeader = request.headers.get('Authorization');
-  console.log('[getAuthUser] authHeader:', authHeader);
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log('[getAuthUser] Missing or invalid Bearer format');
     return null;
   }
   const token = authHeader.substring(7);
   const user = verifyToken(token);
-  console.log('[getAuthUser] verified user:', user);
   return user;
 }
 

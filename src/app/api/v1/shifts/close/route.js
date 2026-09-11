@@ -84,8 +84,9 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     const body = await request.json();
     const {
       shift_id,
-      denominations = {},
       actual_cash,
+      cash_drop_amount = 0,
+      denominations = {},
       handover_to = null,
       notes = '',
     } = body;
@@ -126,14 +127,18 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     const tierConfig = getTierConfig(shop?.subscription_tier || 'MAGANG');
 
     // 2. Validasi & Hitung Total Uang Fisik dari Pecahan Lembaran & Koin
-    const calculatedFromDenominations = calculateDenominationsTotal(denominations);
-    const countedActualCash =
-      actual_cash !== undefined && actual_cash !== null && !isNaN(Number(actual_cash))
-        ? Number(actual_cash)
-        : calculatedFromDenominations;
+    const countedActualCash = parseInt(actual_cash, 10);
+    if (isNaN(countedActualCash) || countedActualCash < 0) {
+      return errorResponse('Total kas fisik (actual_cash) wajib diisi dan harus >= 0.', 'INVALID_INPUT', 400);
+    }
 
-    if (countedActualCash < 0) {
-      return errorResponse('Jumlah uang fisik kas laci tidak boleh negatif.', 'INVALID_ACTUAL_CASH', 400);
+    const cashDropAmountVal = parseInt(cash_drop_amount || 0, 10);
+    if (isNaN(cashDropAmountVal) || cashDropAmountVal < 0) {
+      return errorResponse('Nominal setoran ke bos (cash_drop_amount) tidak valid.', 'INVALID_INPUT', 400);
+    }
+
+    if (cashDropAmountVal > countedActualCash) {
+      return errorResponse('Nominal setoran ke brankas tidak boleh melebihi total uang fisik di laci.', 'INVALID_INPUT', 400);
     }
 
     const endTime = new Date().toISOString();
@@ -243,11 +248,10 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
       handoverToName = nextCashier?.username || null;
     }
 
-    // 6. Update Shift menjadi CLOSED dengan hasil audit rekonsiliasi
-    const { data: closedShift, error: closeErr } = await supabase
+    // 6. Update breakdown kalkulasi di cashier_shifts terlebih dahulu
+    await supabase
       .from('cashier_shifts')
       .update({
-        end_time: endTime,
         cash_sales_total: cashSalesTotal,
         cash_debt_payments_total: cashDebtPaymentsTotal,
         cash_savings_deposits_total: cashSavingsDepositsTotal,
@@ -255,19 +259,45 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
         cash_drawer_in_total: cashDrawerInTotal,
         cash_drawer_out_total: cashDrawerOutTotal,
         expected_cash: expectedCash,
-        actual_cash: countedActualCash,
-        difference: difference,
-        denominations: denominations,
         handover_to: handover_to,
-        notes: notes?.trim() || shift.notes,
-        status: 'CLOSED',
-        updated_at: endTime,
       })
-      .eq('id', shift.id)
+      .eq('id', shift.id);
+
+    // 7. Eksekusi RPC close_cashier_shift_with_skim untuk rekonsiliasi kas skim & deteksi anomali
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('close_cashier_shift_with_skim', {
+      p_shift_id: shift.id,
+      p_shop_id: shopId,
+      p_actual_cash: countedActualCash,
+      p_cash_drop_amount: cashDropAmountVal,
+      p_denominations: denominations || {},
+      p_notes: notes?.trim() || null,
+    });
+
+    if (rpcErr) throw rpcErr;
+
+    // 8. Jika ada uang disetor ke Bos / Brankas (Cash Drop), catat mutasi keluar laci
+    if (cashDropAmountVal > 0) {
+      await supabase
+        .from('cash_drawer_movements')
+        .insert({
+          shop_id: shopId,
+          shift_id: shift.id,
+          movement_type: 'CASH_OUT',
+          category: 'OWNER_DRAW',
+          amount: cashDropAmountVal,
+          notes: 'Setoran Kasir ke Bos / Brankas saat Tutup Shift',
+          created_by: profile.id,
+        });
+    }
+
+    // Ambil data shift yang telah ditutup
+    const { data: closedShift, error: fetchClosedErr } = await supabase
+      .from('cashier_shifts')
       .select('*, cashier:profiles!cashier_id(id, username, role)')
+      .eq('id', shift.id)
       .single();
 
-    if (closeErr) throw closeErr;
+    if (fetchClosedErr) throw fetchClosedErr;
 
     // 7. Generate Rekap WhatsApp jika tier mengizinkan
     let waRecapText = null;
@@ -280,11 +310,11 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
         endTime,
         startingCash,
         cashSalesTotal,
-        debtPaymentsTotal,
-        savingsDepositsTotal,
-        consignmentPayoutsTotal,
-        drawerInTotal,
-        drawerOutTotal,
+        debtPaymentsTotal: cashDebtPaymentsTotal,
+        savingsDepositsTotal: cashSavingsDepositsTotal,
+        consignmentPayoutsTotal: cashConsignmentPayoutsTotal,
+        drawerInTotal: cashDrawerInTotal,
+        drawerOutTotal: cashDrawerOutTotal,
         expectedCash,
         actualCash: countedActualCash,
         difference,
@@ -293,22 +323,24 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
       });
     }
 
-    await logActivity({
-      user_id: user.id,
-      action: 'CLOSE_CASHIER_SHIFT',
-      entity: 'cashier_shifts',
-      entity_id: shift.id,
-      metadata: {
+    await logActivity(
+      supabase,
+      shopId,
+      shift.cashier?.username || profile.username || user.email,
+      'Tutup Shift Kasir',
+      {
         shift_number: shift.shift_number,
         expected_cash: expectedCash,
         actual_cash: countedActualCash,
         difference: difference,
         status_selisih: difference === 0 ? 'PAS' : difference > 0 ? 'SURPLUS' : 'DEFISIT',
-      },
-    });
+      }
+    );
 
     return successResponse({
       shift: closedShift,
+      leftover_cash: rpcRes?.leftover_cash ?? (countedActualCash - cashDropAmountVal),
+      cash_drop_amount: cashDropAmountVal,
       reconciliation: {
         starting_cash: startingCash,
         cash_sales_total: cashSalesTotal,
@@ -319,10 +351,20 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
         cash_consignment_payouts_total: cashConsignmentPayoutsTotal,
         expected_cash: expectedCash,
         actual_cash: countedActualCash,
-        difference: difference,
-        reconciliation_status: difference === 0 ? 'PAS' : difference > 0 ? 'SURPLUS' : 'DEFISIT',
+        difference: rpcRes?.difference ?? difference,
+        reconciliation_status: rpcRes?.status || (difference === 0 ? 'PAS' : difference > 0 ? 'SURPLUS' : 'DEFISIT'),
       },
       wa_recap_text: waRecapText,
+      print_slip: {
+        shop_name: shop?.name || 'KlolaWarung',
+        shift_number: shift.shift_number,
+        cashier_name: shift.cashier?.username || profile.username || 'Kasir',
+        start_time: startTime,
+        end_time: endTime,
+        actual_cash: countedActualCash,
+        cash_drop_amount: cashDropAmountVal,
+        leftover_cash: rpcRes?.leftover_cash ?? (countedActualCash - cashDropAmountVal),
+      },
     });
   } catch (err) {
     console.error('Error POST /api/v1/shifts/close:', err);

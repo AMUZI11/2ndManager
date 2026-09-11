@@ -1,115 +1,119 @@
 // GET    /api/v1/customers/[id]   — detail pelanggan
-// PUT    /api/v1/customers/[id]   — update pelanggan
-// DELETE /api/v1/customers/[id]   — soft-delete pelanggan
-import { prisma } from '@/lib/prisma';
-import { withAuth, errorResponse, successResponse } from '@/lib/auth';
-import { formatCustomer } from '@/lib/calculations';
-import { customerSchema } from '@/lib/validation';
+// PUT    /api/v1/customers/[id]   — update pelanggan (BOSS only)
+// DELETE /api/v1/customers/[id]   — soft-delete pelanggan (BOSS only)
+import { withAuthSupabase, withBossOnly, errorResponse, successResponse } from '@/lib/auth-helpers';
 import { logActivity } from '@/lib/audit';
 
-export const GET = withAuth(async (request, { params }) => {
+export const GET = withAuthSupabase(async (request, { params }, { supabase }) => {
   try {
     const { id } = await params;
-    const customer = await prisma.customer.findUnique({
-      where: { id, is_deleted: false },
-      include: { discounts: true },
-    });
-    if (!customer) return errorResponse('Pelanggan tidak ditemukan.', 'NOT_FOUND', 404);
-    return successResponse(formatCustomer(customer));
+    const { data: customer, error } = await supabase
+      .from('customers')
+      .select('*, customer_discounts(*)')
+      .eq('id', id)
+      .eq('is_deleted', false)
+      .single();
+
+    if (error || !customer) return errorResponse('Pelanggan tidak ditemukan.', 'NOT_FOUND', 404);
+    return successResponse(customer);
   } catch (error) {
     console.error('[GET /customers/:id]', error);
     return errorResponse('Gagal memuat data pelanggan.', 'SERVER_ERROR', 500);
   }
 });
 
-export const PUT = withAuth(async (request, { params }, user) => {
+export const PUT = withBossOnly(async (request, { params }, { user, profile, supabase }) => {
   try {
     const { id } = await params;
     const body = await request.json();
-    const parsed = customerSchema.partial().safeParse(body);
-    if (!parsed.success) {
-      return errorResponse(parsed.error.errors[0].message, 'VALIDATION_ERROR', 422, parsed.error.format());
-    }
-    const { nama, bonus_threshold, discounts_lm, discounts_br, discounts } = parsed.data;
+    const { nama, phone, bonus_threshold, discounts_lm, discounts_br, discounts } = body;
 
-    const existing = await prisma.customer.findUnique({ where: { id } });
-    if (!existing || existing.is_deleted) {
-      return errorResponse('Pelanggan tidak ditemukan.', 'NOT_FOUND', 404);
-    }
+    const { data: existing } = await supabase
+      .from('customers')
+      .select('id, nama, bonus_threshold, shop_id')
+      .eq('id', id)
+      .eq('is_deleted', false)
+      .single();
 
-    const updateData = {};
+    if (!existing) return errorResponse('Pelanggan tidak ditemukan.', 'NOT_FOUND', 404);
+
+    const updateData = { updated_at: new Date().toISOString() };
     if (nama !== undefined) updateData.nama = nama.trim();
-    if (bonus_threshold !== undefined) updateData.bonus_threshold = bonus_threshold;
+    if (phone !== undefined) updateData.phone = phone?.trim() || null;
+    if (bonus_threshold !== undefined) updateData.bonus_threshold = parseInt(bonus_threshold, 10);
 
-    // Determine which category types are being updated
+    // Update discounts
     const hasDiscountUpdate = discounts_lm !== undefined || discounts_br !== undefined || discounts !== undefined;
-
-    const updated = await prisma.$transaction(async (tx) => {
-      if (hasDiscountUpdate) {
-        // Build a unified map of category -> steps from all provided inputs
-        const incomingMap = {};
-
-        if (discounts_lm !== undefined) {
-          incomingMap['LM'] = discounts_lm.filter(v => v >= 0 && v <= 100);
+    if (hasDiscountUpdate) {
+      const incomingMap = {};
+      if (discounts && typeof discounts === 'object') {
+        for (const [catCode, steps] of Object.entries(discounts)) {
+          incomingMap[catCode.toUpperCase()] = (steps || []).filter(v => v >= 0 && v <= 100);
         }
-        if (discounts_br !== undefined) {
-          incomingMap['BR'] = discounts_br.filter(v => v >= 0 && v <= 100);
-        }
-        if (discounts) {
-          for (const [catCode, steps] of Object.entries(discounts)) {
-            incomingMap[catCode.toUpperCase()] = steps.filter(v => v >= 0 && v <= 100);
-          }
-        }
-
-        const typesToDelete = Object.keys(incomingMap);
-
-        // Delete old discounts only for categories being updated
-        await tx.customerDiscount.deleteMany({
-          where: { customer_id: id, product_type: { in: typesToDelete } },
-        });
-
-        // Create new discount rows
-        const newDiscounts = [];
-        for (const [code, steps] of Object.entries(incomingMap)) {
-          steps.forEach((pct, i) => {
-            newDiscounts.push({ customer_id: id, product_type: code, step_order: i + 1, percentage: pct });
-          });
-        }
-
-        if (newDiscounts.length > 0) {
-          await tx.customerDiscount.createMany({ data: newDiscounts });
-        }
+      } else {
+        if (discounts_lm !== undefined) incomingMap['LM'] = discounts_lm.filter(v => v >= 0 && v <= 100);
+        if (discounts_br !== undefined) incomingMap['BR'] = discounts_br.filter(v => v >= 0 && v <= 100);
       }
 
-      return tx.customer.update({
-        where: { id },
-        data: updateData,
-        include: { discounts: true },
-      });
-    });
+      // Delete all existing discounts for this customer to ensure clean state
+      await supabase.from('customer_discounts')
+        .delete()
+        .eq('customer_id', id);
 
-    await logActivity(user.username, 'Ubah Pelanggan', `Mengubah data pelanggan "${existing.nama}" (Batas Bonus: Rp${Number(existing.bonus_threshold).toLocaleString('id-ID')} -> Rp${Number(updated.bonus_threshold).toLocaleString('id-ID')})`);
+      // Insert new discount rows
+      const newDiscounts = [];
+      for (const [code, steps] of Object.entries(incomingMap)) {
+        steps.forEach((pct, i) => {
+          newDiscounts.push({
+            shop_id: existing.shop_id,
+            customer_id: id,
+            product_type: code,
+            step_order: i + 1,
+            percentage: pct,
+          });
+        });
+      }
+      if (newDiscounts.length > 0) {
+        await supabase.from('customer_discounts').insert(newDiscounts);
+      }
+    }
 
-    return successResponse(formatCustomer(updated));
+    await supabase.from('customers').update(updateData).eq('id', id);
+
+    const { data: updated } = await supabase
+      .from('customers')
+      .select('*, customer_discounts(*)')
+      .eq('id', id)
+      .single();
+
+    await logActivity(supabase, existing.shop_id, profile.username || user.email, 'Ubah Pelanggan',
+      `Mengubah pelanggan "${existing.nama}" batas bonus Rp${Number(existing.bonus_threshold).toLocaleString('id-ID')} → Rp${Number(bonus_threshold || existing.bonus_threshold).toLocaleString('id-ID')}`);
+
+    return successResponse(updated);
   } catch (error) {
     console.error('[PUT /customers/:id]', error);
     return errorResponse('Gagal mengubah data pelanggan.', 'SERVER_ERROR', 500);
   }
 });
 
-export const DELETE = withAuth(async (request, { params }, user) => {
+export const DELETE = withBossOnly(async (request, { params }, { user, profile, supabase }) => {
   try {
     const { id } = await params;
-    const existing = await prisma.customer.findUnique({ where: { id } });
-    if (!existing || existing.is_deleted) {
-      return errorResponse('Pelanggan tidak ditemukan.', 'NOT_FOUND', 404);
-    }
-    // Soft-delete — data historis tetap ada (AC-2.3)
-    await prisma.customer.update({ where: { id }, data: { is_deleted: true } });
+    const { data: existing } = await supabase
+      .from('customers')
+      .select('id, nama, shop_id')
+      .eq('id', id)
+      .eq('is_deleted', false)
+      .single();
 
-    await logActivity(user.username, 'Hapus Pelanggan', `Menghapus pelanggan "${existing.nama}"`);
+    if (!existing) return errorResponse('Pelanggan tidak ditemukan.', 'NOT_FOUND', 404);
 
-    return Response.json({ success: true });
+    await supabase.from('customers').update({ is_deleted: true, updated_at: new Date().toISOString() }).eq('id', id);
+
+    await logActivity(supabase, existing.shop_id, profile.username || user.email, 'Hapus Pelanggan',
+      `Menghapus pelanggan "${existing.nama}"`);
+
+    return successResponse({ success: true });
   } catch (error) {
     console.error('[DELETE /customers/:id]', error);
     return errorResponse('Gagal menghapus pelanggan.', 'SERVER_ERROR', 500);

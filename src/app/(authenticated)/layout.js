@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Users, Package, FileText, HelpCircle, LogOut, Settings, CreditCard, ShieldCheck, ShoppingCart, Menu, X, User, Receipt, ShieldAlert, HandCoins, ShoppingBag } from 'lucide-react';
+import { Home, Users, Package, FileText, HelpCircle, LogOut, Settings, CreditCard, ShieldCheck, ShoppingCart, Menu, X, User, Receipt, ShieldAlert, HandCoins, ShoppingBag, Scale, TrendingUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { api } from '@/utils/api';
 import { useTutorial, TutorialProvider } from '@/components/TutorialEngine';
@@ -10,6 +10,8 @@ import ConfirmModal from '@/components/ConfirmModal';
 import SetupWizard from '@/components/SetupWizard';
 import BranchSwitcher from '@/components/BranchSwitcher';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import SecurityRadarAlert from '@/components/owner/SecurityRadarAlert';
+import SecurityForensicDrawer from '@/components/owner/SecurityForensicDrawer';
 
 function AuthenticatedLayoutInner({ children }) {
   const router = useRouter();
@@ -23,9 +25,16 @@ function AuthenticatedLayoutInner({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isForensicDrawerOpen, setIsForensicDrawerOpen] = useState(false);
+  const [unreadAnomaliesCount, setUnreadAnomaliesCount] = useState(0);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [shops, setShops] = useState([]);
-  const [currentShopId, setCurrentShopId] = useState('ALL');
+  const [currentShopId, setCurrentShopId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('hl_active_branch') || 'ALL';
+    }
+    return 'ALL';
+  });
 
   const [userPlan, setUserPlan] = useState('FREE');
   const [chokeholdLock, setChokeholdLock] = useState(null);
@@ -133,18 +142,24 @@ function AuthenticatedLayoutInner({ children }) {
     };
   }, [currentShopId, supabase]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedBranch = localStorage.getItem('hl_active_branch');
-      if (savedBranch) setCurrentShopId(savedBranch);
-    }
-  }, []);
+
 
   const handleSelectShop = (shopId) => {
     setCurrentShopId(shopId);
     if (typeof window !== 'undefined') {
       localStorage.setItem('hl_active_branch', shopId);
-      window.dispatchEvent(new CustomEvent('hl_branch_changed', { detail: { shopId } }));
+      document.cookie = `hl_active_branch=${shopId}; path=/; max-age=31536000; SameSite=Lax`;
+      const selected = shops.find(s => s.id === shopId);
+      const name = selected?.name || (shopId === 'ALL' ? 'Semua Cabang' : '');
+      if (name) {
+        localStorage.setItem('hl_current_shop_name', name);
+      }
+      window.dispatchEvent(new CustomEvent('hl_branch_changed', { 
+        detail: { 
+          shopId, 
+          shopName: name
+        } 
+      }));
     }
   };
 
@@ -198,16 +213,43 @@ function AuthenticatedLayoutInner({ children }) {
             const shopList = ownedShops || [];
             setShops(shopList);
 
-
             if (shopList.length > 0 && typeof window !== 'undefined') {
               const savedBranch = localStorage.getItem('hl_active_branch');
-              if (!savedBranch || !shopList.some(s => s.id === savedBranch)) {
-                setCurrentShopId(shopList[0].id);
-                localStorage.setItem('hl_active_branch', shopList[0].id);
+              const isValidBranch = savedBranch === 'ALL' || shopList.some(s => s.id === savedBranch);
+              if (!savedBranch || !isValidBranch) {
+                const defaultShopId = shopList[0].id;
+                setCurrentShopId(defaultShopId);
+                localStorage.setItem('hl_active_branch', defaultShopId);
+                document.cookie = `hl_active_branch=${defaultShopId}; path=/; max-age=31536000; SameSite=Lax`;
+              } else {
+                setCurrentShopId(savedBranch);
+                document.cookie = `hl_active_branch=${savedBranch}; path=/; max-age=31536000; SameSite=Lax`;
               }
             }
           } catch (err) {
             console.error('[Layout Branch Fetch Error]', err);
+          }
+        } else if (profile?.shop_id) {
+          // For Cashier, lock active branch to assigned shop
+          setCurrentShopId(profile.shop_id);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('hl_active_branch', profile.shop_id);
+            document.cookie = `hl_active_branch=${profile.shop_id}; path=/; max-age=31536000; SameSite=Lax`;
+          }
+          try {
+            const { data: cashierShop } = await supabase
+              .from('shops')
+              .select('id, name')
+              .eq('id', profile.shop_id)
+              .single();
+            if (cashierShop) {
+              setShops([cashierShop]);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('hl_current_shop_name', cashierShop.name);
+              }
+            }
+          } catch (e) {
+            console.error('[Layout Cashier Shop Error]', e);
           }
         }
       } catch (err) {
@@ -220,6 +262,22 @@ function AuthenticatedLayoutInner({ children }) {
 
     checkSession();
   }, [router, supabase]);
+
+  // Load unread security anomalies count for Owner / Admin
+  useEffect(() => {
+    if (!session?.profile || (session.profile.role !== 'BOSS' && session.profile.role !== 'ADMIN' && !session.isSuperadmin)) {
+      return;
+    }
+    async function loadUnreadAnomalies() {
+      try {
+        const list = await api.getSecurityAnomalies({ unreadOnly: true, limit: 100 });
+        setUnreadAnomaliesCount(list?.length || 0);
+      } catch {
+        // silent
+      }
+    }
+    loadUnreadAnomalies();
+  }, [session, isForensicDrawerOpen]);
 
   // Realtime plan synchronization from Admin Command Deck
   useEffect(() => {
@@ -375,7 +433,7 @@ function AuthenticatedLayoutInner({ children }) {
         </div>
         <div className="relative z-10 flex flex-col items-center space-y-3">
           <div className="w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full animate-spin" />
-          <span className="font-mono text-xs font-bold text-slate-700 uppercase tracking-wider">Memvalidasi Sesi Masuk Supabase...</span>
+          <span className="font-mono text-xs font-bold text-slate-700 uppercase tracking-wider">Memvalidasi Sesi Masuk...</span>
         </div>
       </div>
     );
@@ -406,6 +464,9 @@ function AuthenticatedLayoutInner({ children }) {
     { href: '/reorder', label: 'Belanja Pasar', icon: ShoppingBag, id: 'tour-nav-reorder' },
     { href: '/consignments', label: 'Buku Titip Jual', icon: HandCoins, id: 'tour-nav-consignments' },
     { href: '/reporting', label: 'Laporan', icon: FileText, id: 'tour-nav-laporan' },
+    { href: '/reports/tax', label: 'Pajak PP 55', icon: Scale, id: 'nav-tax-report' },
+    { href: '/reports/financials', label: 'Keuangan EMKM', icon: TrendingUp, id: 'nav-financials' },
+    { href: '/reports/kur-dossier', label: 'Berkas KUR Bank', icon: FileText, id: 'nav-kur' },
     { href: '/billing', label: 'Langganan', icon: CreditCard, id: 'tour-nav-billing' },
     { href: '/help', label: 'Bantuan', icon: HelpCircle, id: 'tour-nav-help' },
     { href: '/settings', label: 'Pengaturan', icon: Settings, id: 'tour-nav-settings' },
@@ -493,7 +554,24 @@ function AuthenticatedLayoutInner({ children }) {
               <div className="w-2 h-2 rounded-full bg-[#CCFF00] border border-slate-800 animate-pulse" />
               <span>OP: <strong className="text-slate-900 uppercase">{session.username}</strong></span>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-1.5">
+              {(session.profile?.role === 'BOSS' || session.profile?.role === 'ADMIN' || session.isSuperadmin) && (
+                <button
+                  type="button"
+                  onClick={() => setIsForensicDrawerOpen(true)}
+                  className="relative p-2 rounded-xl border border-slate-800 bg-white hover:bg-slate-100 text-slate-900 cursor-pointer shadow-[2px_2px_0px_#1E293B] transition-all"
+                  title="Radar Forensik Keamanan"
+                >
+                  <ShieldAlert size={16} />
+                  {unreadAnomaliesCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-mono font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-white animate-pulse">
+                      {unreadAnomaliesCount > 9 ? '9+' : unreadAnomaliesCount}
+                    </span>
+                  )}
+                </button>
+              )}
+              <ThemeToggle />
+            </div>
           </div>
           <button 
             onClick={handleLogout}
@@ -515,8 +593,23 @@ function AuthenticatedLayoutInner({ children }) {
           />
         </div>
 
-        {/* Mobile Actions: Theme Toggle + Menu */}
+        {/* Mobile Actions: Radar + Theme Toggle + Menu */}
         <div className="flex items-center gap-2">
+          {(session?.profile?.role === 'BOSS' || session?.profile?.role === 'ADMIN' || session?.isSuperadmin) && (
+            <button
+              type="button"
+              onClick={() => setIsForensicDrawerOpen(true)}
+              className="relative p-2 rounded-xl border border-slate-800 bg-white text-slate-900 cursor-pointer shadow-[1px_1px_0px_#1E293B]"
+              title="Radar Forensik Keamanan"
+            >
+              <ShieldAlert size={16} />
+              {unreadAnomaliesCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-mono font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-white animate-pulse">
+                  {unreadAnomaliesCount > 9 ? '9+' : unreadAnomaliesCount}
+                </span>
+              )}
+            </button>
+          )}
           <ThemeToggle />
           <button
             type="button"
@@ -894,6 +987,21 @@ function AuthenticatedLayoutInner({ children }) {
         }}
         onFinish={handleFinishWizard}
       />
+
+      {/* OWNER COMMAND CONSOLE: SECURITY RADAR & FORENSIC DRAWER */}
+      {session && (session.profile?.role === 'BOSS' || session.profile?.role === 'ADMIN' || session.isSuperadmin) && (
+        <>
+          <SecurityRadarAlert
+            shopId={currentShopId !== 'ALL' ? currentShopId : (session.profile?.shop_id || shops[0]?.id)}
+            onOpenDrawer={() => setIsForensicDrawerOpen(true)}
+          />
+          <SecurityForensicDrawer
+            isOpen={isForensicDrawerOpen}
+            onClose={() => setIsForensicDrawerOpen(false)}
+            shopId={currentShopId !== 'ALL' ? currentShopId : (session.profile?.shop_id || shops[0]?.id)}
+          />
+        </>
+      )}
     </div>
   );
 }

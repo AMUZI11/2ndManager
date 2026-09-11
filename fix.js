@@ -1,0 +1,1 @@
+const fs = require('fs'); let content = fs.readFileSync('src/views/CustomerDetail.jsx', 'utf8'); content = content.replace(/\\\/g, '\').replace(/\\\$/g, '$'); fs.writeFileSync('src/views/CustomerDetail.jsx', content);

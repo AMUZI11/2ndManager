@@ -482,18 +482,29 @@ export const TutorialProvider = ({ children }) => {
     if (pathname === '/login' || !api.getCurrentSession()) {
       return;
     }
+    // If user has already dismissed or completed onboarding, never trigger it again
+    if (typeof window !== 'undefined' && localStorage.getItem('hl_onboarding_completed') === 'true') {
+      return;
+    }
+
     let active = true;
     const loadProgress = async () => {
       try {
         const progress = await api.getTutorialProgress();
         if (!active) return;
         if (progress && !progress.onboarding_completed) {
-          // Delay onboarding modal slightly for better UX
+          if (typeof window !== 'undefined' && localStorage.getItem('hl_onboarding_completed') === 'true') {
+            return;
+          }
           const timer = setTimeout(() => {
             setOnboardingActive(true);
             setOnboardingStep(progress.onboarding_last_step || 0);
           }, 1000);
           return () => clearTimeout(timer);
+        } else {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('hl_onboarding_completed', 'true');
+          }
         }
       } catch (err) {
         console.error("Failed to fetch onboarding progress:", err);
@@ -503,7 +514,7 @@ export const TutorialProvider = ({ children }) => {
     return () => {
       active = false;
     };
-  }, [pathname]);
+  }, []);
 
   // Onboarding controls
   const nextOnboarding = () => {
@@ -516,6 +527,9 @@ export const TutorialProvider = ({ children }) => {
       }
     } else {
       setOnboardingActive(false);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('hl_onboarding_completed', 'true');
+      }
       api.updateTutorialProgress({ onboarding_completed: true });
     }
   };
@@ -530,10 +544,16 @@ export const TutorialProvider = ({ children }) => {
 
   const skipOnboarding = () => {
     setOnboardingActive(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hl_onboarding_completed', 'true');
+    }
     api.updateTutorialProgress({ onboarding_completed: true });
   };
 
   const restartOnboarding = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('hl_onboarding_completed');
+    }
     api.resetOnboarding();
     setOnboardingStep(0);
     setOnboardingActive(true);
@@ -1072,7 +1092,7 @@ const OverlayLayer = () => {
 
       {/* Tooltip Card Bubble */}
       <div 
-        className={`fixed pointer-events-auto bg-white rounded-2xl shadow-2xl p-5 border border-amber-soft select-text ${isMobile ? 'w-auto' : 'w-[320px]'}`}
+        className={`fixed pointer-events-auto bg-kw-card rounded-2xl shadow-2xl p-5 border border-amber-soft select-text ${isMobile ? 'w-auto' : 'w-[320px]'}`}
         style={tooltipStyle}
       >
         <div className="flex justify-between items-center mb-3">
@@ -1102,16 +1122,16 @@ const OverlayLayer = () => {
           />
         </div>
 
-        <h3 className="text-body-lg font-bold text-charcoal-black mb-2 flex items-center gap-2">
+        <h3 className="text-body-lg font-bold text-charcoal-black mb-2 flex items-center gap-8">
           {currentStepData.title}
         </h3>
-        <p className="text-small text-charcoal-medium leading-relaxed mb-4">
+        <p className="text-lgall text-charcoal-medium leading-relaxed mb-4">
           {currentStepData.content}
         </p>
 
         {/* Action button instructions in Tutorial Mode */}
         {!isOboardingStep && currentStepData.trigger && currentStepData.trigger !== "next" && (
-          <div className="mb-4 p-2 bg-amber-cream border border-amber-soft rounded-lg text-xs font-semibold text-amber-deep flex items-center gap-1.5">
+          <div className="mb-4 p-2 bg-amber-cream border border-amber-soft rounded-lg text-xl font-semibold text-amber-deep flex items-center gap-1.5">
             <span className="inline-block w-2 h-2 rounded-full bg-amber-gold animate-ping" />
             Lakukan aksi: Klik/Ketik pada area spotlight
           </div>
@@ -1122,7 +1142,7 @@ const OverlayLayer = () => {
           {isOboardingStep && onboardingStep > 0 ? (
             <button 
               onClick={prevOnboarding}
-              className="flex items-center text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors py-2 px-3 cursor-pointer"
+              className="flex items-center text-xl font-semibold text-gray-500 hover:text-gray-700 transition-colors py-2 px-3 cursor-pointer"
             >
               <ChevronLeft size={16} className="mr-1" /> Kembali
             </button>
@@ -1134,7 +1154,7 @@ const OverlayLayer = () => {
           {isOboardingStep ? (
             <button 
               onClick={nextOnboarding}
-              className="bg-cta hover:bg-cta/90 text-primary text-xs font-bold px-4 py-2 rounded-xl shadow-md transition-all flex items-center cursor-pointer font-mono"
+              className="bg-[#8C2818] hover:bg-[#8C2818]/90 text-primary text-xl font-bold px-4 py-2 rounded-xl shadow-md transition-all flex items-center cursor-pointer font-mono"
             >
               {currentStepData.actionLabel || "Lanjut"} <ChevronRight size={16} className="ml-1" />
             </button>
@@ -1143,7 +1163,7 @@ const OverlayLayer = () => {
             (currentStepData.trigger === "next" || !currentStepData.trigger) ? (
               <button 
                 onClick={nextTutorialStep}
-                className="bg-cta hover:bg-cta/90 text-primary text-xs font-bold px-4 py-2 rounded-xl shadow-md transition-all flex items-center ml-auto cursor-pointer font-mono"
+                className="bg-[#8C2818] hover:bg-[#8C2818]/90 text-primary text-xl font-bold px-4 py-2 rounded-xl shadow-md transition-all flex items-center ml-auto cursor-pointer font-mono"
               >
                 Lanjut <ChevronRight size={16} className="ml-1" />
               </button>
@@ -1177,14 +1197,14 @@ export const ContextualTooltip = ({ id, content, className = "" }) => {
         type="button"
         id={id}
         onClick={toggleOpen}
-        className="w-5 h-5 rounded-full bg-gray-200 hover:bg-navy-ice text-gray-500 hover:text-navy-deep text-xs font-bold inline-flex items-center justify-center transition-colors cursor-pointer"
+        className="w-5 h-5 rounded-full bg-gray-200 hover:bg-navy-ice text-gray-500 hover:text-navy-deep text-xl font-bold inline-flex items-center justify-center transition-colors cursor-pointer"
         title="Tanya Panduan"
       >
         <HelpCircle size={14} />
       </button>
 
       {open && (
-        <div className="absolute z-[8000] bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-charcoal-dark text-white text-xs rounded-xl p-3 shadow-xl pointer-events-auto leading-relaxed border border-charcoal-medium">
+        <div className="absolute z-[8000] bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-charcoal-dark text-kw-text text-xl rounded-xl p-6 shadow-xl pointer-events-auto leading-relaxed border border-charcoal-medium">
           {content}
           <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-t-[6px] border-t-charcoal-dark border-x-[6px] border-x-transparent" />
         </div>

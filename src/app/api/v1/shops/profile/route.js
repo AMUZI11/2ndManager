@@ -1,44 +1,65 @@
 import { withAuthSupabase, errorResponse, successResponse } from '@/lib/auth-helpers';
 import { logActivity } from '@/lib/audit';
 
-export const GET = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
+export const GET = withAuthSupabase(async (request, context, { user, profile, shopId, isAllShops, supabase }) => {
   try {
-    let shopId = profile.shop_id;
-    if (!shopId) {
-      const { data: userShop } = await supabase
-        .from('user_shops')
-        .select('shop_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle();
-      shopId = userShop?.shop_id;
-    }
-    if (!shopId) {
-      const { data: ownedShop } = await supabase
+    if (isAllShops) {
+      const metadata = user.user_metadata || {};
+      const { data: mainShop } = await supabase
         .from('shops')
-        .select('id')
+        .select('subscription_tier, operational_status')
         .eq('owner_id', user.id)
-        .limit(1)
+        .is('parent_shop_id', null)
         .maybeSingle();
-      shopId = ownedShop?.id;
+
+      const tier = mainShop?.subscription_tier || profile?.subscription_plan || 'MAGANG';
+
+      return successResponse({
+        id: 'ALL',
+        name: 'Semua Cabang',
+        parent_shop_id: 'ALL',
+        address: metadata.shop_address || '',
+        phone: metadata.shop_phone || '',
+        subscription_tier: tier,
+        plan: tier,
+        operational_status: mainShop?.operational_status || 'ACTIVE',
+        cashier_limit: 99,
+      });
     }
 
     let shop = null;
     if (shopId) {
       const { data } = await supabase
         .from('shops')
-        .select('id, name, subscription_tier, operational_status, cashier_limit')
+        .select('id, name, subscription_tier, operational_status, cashier_limit, parent_shop_id')
         .eq('id', shopId)
         .maybeSingle();
       shop = data;
     }
 
     const metadata = user.user_metadata || {};
-    const tier = shop?.subscription_tier && shop.subscription_tier !== 'TRIAL' ? shop.subscription_tier : 'MAGANG';
+    let tier = shop?.subscription_tier && shop.subscription_tier !== 'TRIAL' ? shop.subscription_tier : null;
+
+    // Jika cabang, wariskan subscription_tier dari Toko Utama
+    if (!tier && shop?.parent_shop_id) {
+      const { data: parentShop } = await supabase
+        .from('shops')
+        .select('subscription_tier')
+        .eq('id', shop.parent_shop_id)
+        .maybeSingle();
+      if (parentShop?.subscription_tier && parentShop.subscription_tier !== 'TRIAL') {
+        tier = parentShop.subscription_tier;
+      }
+    }
+
+    if (!tier) {
+      tier = profile?.subscription_plan && profile.subscription_plan !== 'TRIAL' ? profile.subscription_plan : 'MAGANG';
+    }
 
     return successResponse({
       id: shopId || user.id,
       name: shop?.name || metadata.shop_name || 'Toko Utama',
+      parent_shop_id: shop?.parent_shop_id || null,
       address: metadata.shop_address || '',
       phone: metadata.shop_phone || '',
       subscription_tier: tier,
@@ -52,7 +73,7 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
   }
 });
 
-export const PUT = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
+export const PUT = withAuthSupabase(async (request, context, { user, profile, shopId, supabase }) => {
   try {
     const body = await request.json();
     const { name, address, phone } = body;
@@ -64,26 +85,6 @@ export const PUT = withAuthSupabase(async (request, context, { user, profile, su
     const cleanName = name.trim();
     const cleanAddress = address ? address.trim() : '';
     const cleanPhone = phone ? phone.trim() : '';
-
-    let shopId = profile.shop_id;
-    if (!shopId) {
-      const { data: userShop } = await supabase
-        .from('user_shops')
-        .select('shop_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle();
-      shopId = userShop?.shop_id;
-    }
-    if (!shopId) {
-      const { data: ownedShop } = await supabase
-        .from('shops')
-        .select('id')
-        .eq('owner_id', user.id)
-        .limit(1)
-        .maybeSingle();
-      shopId = ownedShop?.id;
-    }
 
     // 1. Update shop name in shops table if shop exists
     if (shopId) {

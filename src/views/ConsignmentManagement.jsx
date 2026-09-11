@@ -21,10 +21,6 @@ export default function ConsignmentManagement() {
   const [isDropInOpen, setIsDropInOpen] = useState(false);
   const [settleModalBatch, setSettleModalBatch] = useState(null);
 
-  useEffect(() => {
-    loadAllData();
-  }, []);
-
   const loadAllData = async () => {
     setLoading(true);
     try {
@@ -44,6 +40,11 @@ export default function ConsignmentManagement() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadAllData();
+  }, []);
 
   const formatRupiah = (val) => `Rp ${Number(val || 0).toLocaleString('id-ID')}`;
 
@@ -253,23 +254,33 @@ export default function ConsignmentManagement() {
                       {s.products?.nama}
                     </td>
                     <td className="p-3 font-mono text-center">
-                      <span className="text-slate-900 font-bold">{s.received_qty}</span>
+                      <span className="text-slate-900 font-bold" title="Masuk">{s.received_qty}</span>
                       <span className="text-slate-400"> / </span>
-                      <span className="text-emerald-700 font-bold">{s.sold_qty}</span>
+                      <span className="text-emerald-700 font-bold" title="Terjual POS">{s.sold_qty}</span>
                       <span className="text-slate-400"> / </span>
-                      <span className="text-rose-700 font-bold">{s.returned_qty}</span>
+                      <span className="text-rose-700 font-bold" title="Retur Baik + Basi">
+                        {s.total_items_returned_good !== undefined ? `${s.total_items_returned_good}B+${s.total_items_returned_stale || 0}X` : s.returned_qty}
+                      </span>
                     </td>
                     <td className="p-3 font-mono font-bold text-right text-slate-900">
-                      {formatRupiah(s.total_payout)}
+                      {formatRupiah(s.vendor_payout_amount || s.total_payout)}
                     </td>
                     <td className="p-3 font-mono font-bold text-right text-emerald-800">
-                      {formatRupiah(s.total_profit)}
+                      {formatRupiah(s.store_margin_amount || s.total_profit)}
                     </td>
                     <td className="p-3 text-center font-mono">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        s.loss_borne_by === 'STORE' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        (s.stale_policy || s.loss_borne_by) === 'STORE_BORNE' || (s.stale_policy || s.loss_borne_by) === 'STORE'
+                          ? 'bg-emerald-100 text-emerald-800' 
+                          : (s.stale_policy || s.loss_borne_by) === 'SHARED_50_50'
+                          ? 'bg-sky-100 text-sky-800'
+                          : 'bg-amber-100 text-amber-800'
                       }`}>
-                        {s.loss_borne_by === 'STORE' ? 'Toko' : 'Vendor'}
+                        {(s.stale_policy || s.loss_borne_by) === 'STORE_BORNE' || (s.stale_policy || s.loss_borne_by) === 'STORE' 
+                          ? 'Toko' 
+                          : (s.stale_policy || s.loss_borne_by) === 'SHARED_50_50' 
+                          ? 'Bagi 50:50' 
+                          : 'Vendor'}
                       </span>
                     </td>
                   </tr>
@@ -292,7 +303,18 @@ export default function ConsignmentManagement() {
                   {v.active_batch_count || 0} Titipan Aktif
                 </span>
               </div>
-              <p className="text-xs font-mono text-slate-600">{v.phone || 'Tanpa no. telepon'}</p>
+              <div className="flex justify-between items-center text-xs font-mono">
+                <span className="text-slate-600">{v.phone || 'Tanpa no. telepon'}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  v.stale_policy === 'STORE_BORNE'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : v.stale_policy === 'SHARED_50_50'
+                    ? 'bg-sky-100 text-sky-800'
+                    : 'bg-amber-100 text-amber-800'
+                }`}>
+                  Basi: {v.stale_policy === 'STORE_BORNE' ? 'Toko' : v.stale_policy === 'SHARED_50_50' ? '50:50' : 'Vendor'}
+                </span>
+              </div>
               <div className="pt-2 border-t border-slate-200 flex justify-between text-xs font-mono">
                 <span className="text-slate-500">Total Settlement:</span>
                 <span className="font-bold text-slate-900">{formatRupiah(v.total_payout_settled)}</span>

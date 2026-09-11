@@ -1,55 +1,86 @@
-# Design System: HL Manager Pro
+# Design System Universe: KlolaWarung
 
-## 1. Visual Theme & Atmosphere
-HL Manager Pro utilizes an **Exaggerated Minimalist** and **Technical Finance** atmosphere tailored to senior business owners (age 50–65). The interface balances structural layout precision with large, readable elements, giving it a technical and trustworthy character. The feel is akin to a high-end financial terminal that has been distilled for extreme senior accessibility. It uses high-contrast typography, generous spacing, and smooth transition physics (spring dynamics) to create a premium, calm, and confidence-inspiring workflow.
+This document defines the comprehensive Design System Universe for HL Manager Pro, strictly adhering to the Master Design Brief.
 
-- **Density:** Daily App Balanced (5/10) — elements are large and readable, with generous padding.
-- **Variance:** Structured Offset (4/10) — layouts are structured for readability, with offset information cards to break monotony.
-- **Motion:** Fluid CSS & Haptic Spring (5/10) — micro-interactions and transitions simulate real-world weight and dampening.
+## 04. Archetype & Personality
+- **Archetype**: Magician x Creator
+- **Personality**: Senior-Friendly Technical Finance
+- **Vibe**: The interface balances precision and trustworthiness with a premium, accessible feel designed specifically for senior business owners. It acts as an authoritative financial terminal that performs complex logic effortlessly behind a clean, readable surface.
 
-## 2. Color Palette & Roles
-The color palette represents trust, authority, and financial precision with navy and gold.
-- **Slate Canvas Background** (`#F8FAFC`) — Primary background surface.
-- **Pure Surface** (`#FFFFFF`) — Cards, tables, and container fills.
-- **Navy Deep Ink** (`#0F172A`) — Primary text, headings, and high-importance details.
-- **Deep Steel** (`#020617`) — Ultimate dark contrast text.
-- **Muted Navy** (`#1E3A8A`) — Secondary information, borders, and hover accent states.
-- **Rupiah Gold Accent** (`#CA8A04`) — Single CTA accent for key actions, warnings, active states, and highlighting unpaid debt (piutang).
-- **Light Navy Tint** (`#EFF6FF`) — Background for active navigation and highlighted information.
-- **Whisper Border** (`#E2E8F0`) — Card borders and subtle dividing lines.
+## 05. The Foundational Systems
 
-## 3. Typography Rules
-- **Display & Headlines:** `Fira Code` (Monospace) — Track-tight, weight-driven hierarchy, giving a precise, technical calculator feel. Balanced display letter-spacing floor: `-0.02em`.
-- **Body & Controls:** `Fira Sans` (Sans-Serif) — Large size (minimum `16px`/`1rem` for body, `18px`/`1.125rem` for large text), relaxed leading (`1.7` line-height), maximum 70ch line-width to ensure ease of reading for senior users.
-- **Mono:** `Fira Code` (Monospace) — Exclusively used for rupiah currency numbers (tabular-nums), transaction codes, phone numbers, and timestamps.
-- **Banned:** `Inter`, `Roboto`, `Arial`, `Helvetica`.
+### Spatial System (Base Unit: 4px)
+To ensure rhythm and predictable senior-friendly touch targets, we use a strict 4px grid.
+- `xs` = 4px
+- `sm` = 8px
+- `md` = 16px
+- `lg` = 24px
+- `xl` = 32px
+- `2xl` = 48px
+- `3xl` = 64px
 
-## 4. Component Stylings
-- **Buttons:** Fully rounded pills (`rounded-full`) or clean rounded rectangles (`rounded-lg`). Primary button features Gold Accent (`#CA8A04`) with white text and a tactile scale-down on click (`active:scale-[0.98]`). Secondary buttons use transparent backgrounds with Navy Deep borders.
-- **Cards:** Double-Bezel nested architecture.
-  - *Outer Shell:* Subtle background (`bg-black/5` or `bg-white/5`), border (`border-white/10` or `ring-black/5`), padding (`p-1.5` or `p-2`), large outer radius (`rounded-[2rem]`).
-  - *Inner Core:* Clean white surface (`bg-white`), inner highlight (`shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]`), smaller calculated radius (`rounded-[calc(2rem-0.375rem)]`).
-- **Inputs:** Label above the input field, error message in red below. Focus ring in Gold Accent. Large click targets (minimum height `48px`).
-- **Loaders:** Skeletal shimmer matching the exact card/table dimensions. No generic spinning wheel loaders.
-- **Empty States:** Composed illustrations/icons indicating clear actions (e.g., "Mulai tambah pelanggan baru").
-- **Error States:** Displayed in red text with a visual shake animation (`animate-shake`).
+### Typography Universe
+Typography is engineered for maximum legibility and financial accuracy.
+- **Primary Font**: `Fira Sans` (Sans-Serif) – Optimized for screen readability and relaxed pacing.
+- **Heading & Monospace Font**: `Fira Code` (Monospace) – Used for headings to give a technical calculator feel and tabular financial data.
+- **Banned Fonts**: `Inter`, `Roboto`, `Arial`, `Helvetica`.
 
-## 5. Layout Principles
-- **No Overlapping:** Elements occupy distinct spatial zones. No absolute stacking that obscures content.
-- **Header & Title:** Navigation features a floating glass pill navbar detached from the top (`mx-auto`, `w-max`, `rounded-full`, `mt-6`) for desktop, collapsing to a sticky header on mobile.
-- **Mobile-First Collapse:** Below `768px`, all layouts aggressively collapse to a single-column flow (`w-full`, `px-4`, `py-8`) with touch targets expanded to at least `48px` to ensure physical accessibility.
-- **Tabular Alignment:** Financial tables must align numerically using monospace fonts.
+**Type Scale (in rem)**:
+- `display`: 3rem (Line Height: 1.1)
+- `h1`: 2.25rem (Line Height: 1.2)
+- `h2`: 1.75rem (Line Height: 1.3)
+- `h3`: 1.375rem (Line Height: 1.35)
+- `h4`: 1.125rem (Line Height: 1.4)
+- `body-lg`: 1rem (Line Height: 1.7)
+- `body`: 0.875rem (Line Height: 1.7 for senior accessibility, equivalent to 1rem visual weight)
+- `caption`: 0.75rem (Line Height: 1.5)
+- `micro`: 0.625rem (Line Height: 1.4)
 
-## 6. Motion & Interaction
-- **Haptic Feedback:** Interactive elements translate slightly (`-1px`) and scale down slightly (`active:scale-[0.98]`) on press.
-- **Spring Physics Transitions:** All animations use a cubic-bezier transition (`transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`).
-- **Staggered Entry:** Lists and cards slide up and fade in with staggered delays (`delay-100`, `delay-150`, etc.) when loading.
+### Color Universe Tokens
+The color palette represents trust, authority, and financial precision with deep earthy tones and golds.
 
-## 7. Anti-Patterns (Banned)
-- ❌ No emojis as icons (use precise vector SVGs like Lucide/Phosphor).
-- ❌ No `Inter` or `Roboto` font usage.
-- ❌ No pure black (`#000000`) for text or backgrounds.
-- ❌ No neon purple/blue SaaS gradient flows or outer glows.
-- ❌ No symmetrical 3-column Bootstrap grids without whitespace gaps.
-- ❌ No text that overflows containers (check all copy at every viewport).
-- ❌ No generic placeholder names (e.g., "John Doe" - use Indonesian names like "Budi", "Siti", "Agus").
+**Signature Scale:**
+- Deep Slate Brown (`#3D1A0F`) & Rupiah Gold (`#C97B1A`)
+- Tokens range from `signature-50` to `signature-900`.
+  - `signature-900`: `#3D1A0F`
+  - `signature-500`: `#C97B1A`
+  - *Note: Exact scale steps are derived from these base colors in implementation.*
+
+**Foundation Neutral Scale:**
+- Extends from pure surface to deep ink.
+- `neutral-0`: `#FFFFFF`
+- `neutral-950`: `#0F172A`
+
+**Semantic Tokens:**
+- `Success`: `#059669`
+- `Warning`: `#D97706`
+- `Danger`: `#E11D48`
+- `Info`: `#2563EB`
+
+### Motion Universe
+Motion must feel physical, purposeful, and never dizzying.
+- **Timing Scale** (Max 700ms):
+  - `instant`: 0ms
+  - `micro`: 150ms
+  - `fast`: 250ms
+  - `normal`: 350ms
+  - `slow`: 500ms
+  - `deliberate`: 700ms
+- **Easing**: Spring easing using `cubic-bezier(0.16, 1, 0.3, 1)`.
+- **Accessibility**: Mandatory reduced-motion guidelines. If OS settings request reduced motion, animations must fallback to `instant` (0ms) or simple opacities to prevent nausea and cognitive overload.
+
+## 06. Component Design System
+
+### Architecture & Touch Targets
+- **Double-Bezel Card Architecture**: Cards utilize a nested dual-layer border system (outer shell + inner core) to provide depth without heavy shadows.
+- **Accessibility Minimums**: All interactive elements (buttons, links, inputs) MUST have a minimum touch target area of `44px` by `44px` to ensure physical accessibility for senior users.
+- **Financial Precision**: All currency values and numeric codes must use Tabular Numbers (`tabular-nums font-mono`) to ensure vertical alignment of digits.
+
+### State Completeness
+Every component must explicitly handle the following states:
+1. **Default**: Standard interactive state.
+2. **Empty**: Clear illustration/copy indicating no data.
+3. **Loading**: Skeletal shimmer or layout-aware placeholders (no generic spinners).
+4. **Error**: Clear, contrasting error feedback (e.g., inline red text, shake animations).
+5. **Success**: Positive confirmation (e.g., emerald green highlighting).
+6. **Disabled**: Visually distinct, non-interactive state that maintains WCAG contrast minimums.

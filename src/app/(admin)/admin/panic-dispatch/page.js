@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { 
   LifeBuoy, 
   Clock, 
@@ -15,18 +15,28 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
+function subscribeClock(callback) {
+  const interval = setInterval(callback, 1000);
+  return () => clearInterval(interval);
+}
+function getClockSnapshot() {
+  return Date.now();
+}
+function getServerClockSnapshot() {
+  return 0;
+}
+
 export default function PanicDispatchPage() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [resolvingId, setResolvingId] = useState(null);
   const [resolveNote, setResolveNote] = useState('');
   const [audioPlayed, setAudioPlayed] = useState(false);
-
+  const now = useSyncExternalStore(subscribeClock, getClockSnapshot, getServerClockSnapshot);
   const supabase = createClient();
 
   const fetchTickets = useCallback(async () => {
     try {
-      setLoading(true);
       const res = await fetch('/api/v1/admin/panic-dispatch?status=OPEN');
       const json = await res.json();
       if (res.ok && json.data) {
@@ -40,13 +50,26 @@ export default function PanicDispatchPage() {
   }, []);
 
   useEffect(() => {
-    fetchTickets();
+    let ignore = false;
+    async function loadInitial() {
+      try {
+        const res = await fetch('/api/v1/admin/panic-dispatch?status=OPEN');
+        const json = await res.json();
+        if (!ignore && res.ok && json.data) {
+          setTickets(json.data.tickets || []);
+        }
+      } catch (err) {
+        console.error('[Fetch Tickets Error]', err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    loadInitial();
 
     // Supabase Realtime Listener on platform_events
     const channel = supabase
       .channel('platform_events')
-      .on('broadcast', { event: 'PANIC_TICKET_RAISED' }, (payload) => {
-        console.log('🚨 REALTIME PANIC TICKET RECEIVED:', payload);
+      .on('broadcast', { event: 'PANIC_TICKET_RAISED' }, () => {
         fetchTickets();
         // Play notification beep
         try {
@@ -64,6 +87,7 @@ export default function PanicDispatchPage() {
       .subscribe();
 
     return () => {
+      ignore = true;
       supabase.removeChannel(channel);
     };
   }, [fetchTickets, supabase]);
@@ -87,7 +111,8 @@ export default function PanicDispatchPage() {
   };
 
   const getSlaTime = (createdAt) => {
-    const diffMs = Date.now() - new Date(createdAt).getTime();
+    if (!now) return '00m 00s';
+    const diffMs = Math.max(0, now - new Date(createdAt).getTime());
     const mins = Math.floor(diffMs / 60000);
     const secs = Math.floor((diffMs % 60000) / 1000);
     return `${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
@@ -197,7 +222,7 @@ export default function PanicDispatchPage() {
                   </div>
                   <p>• Perangkat &amp; Browser: <span className="text-zinc-400">{telemetry.userAgent || 'Tidak tersedia'}</span></p>
                   {telemetry.custom_note && (
-                    <p>• Catatan Tambahan Kasir: <span className="text-amber-300">"{telemetry.custom_note}"</span></p>
+                    <p>• Catatan Tambahan Kasir: <span className="text-amber-300">&quot;{telemetry.custom_note}&quot;</span></p>
                   )}
                   <p>• ID Tiket Sistem: <span className="text-zinc-500">{ticket.id}</span></p>
                 </div>

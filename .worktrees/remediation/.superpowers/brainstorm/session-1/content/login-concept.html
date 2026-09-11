@@ -1,0 +1,346 @@
+<style>
+  .concept-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    font-family: 'Fira Sans', system-ui, sans-serif;
+  }
+  
+  .concept-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .concept-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .concept-card:hover {
+    transform: translateY(-4px);
+    border-color: #ca8a04;
+    box-shadow: 0 12px 24px -10px rgba(202, 138, 4, 0.15);
+  }
+  
+  .concept-card.selected {
+    border-color: #ca8a04;
+    background: #fdfaf2;
+    box-shadow: 0 0 0 2px #ca8a04;
+  }
+
+  .concept-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #ca8a04;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px;
+  }
+
+  .preview-box {
+    aspect-ratio: 16/10;
+    background: #f8fafc;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* Preview A: Ledger Style */
+  .ledger-bg {
+    background: #e7e2d6; /* Warm wood table bg */
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+  }
+  .ledger-book {
+    background: #faf8f5; /* Warm paper */
+    border-radius: 8px;
+    width: 95%;
+    height: 90%;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1), inset 0 0 20px rgba(0,0,0,0.05);
+    display: flex;
+    border: 1px solid #d9d4c7;
+    position: relative;
+  }
+  .ledger-book::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to right, rgba(0,0,0,0.15), rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.15));
+  }
+  .ledger-page {
+    width: 50%;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .ledger-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #4b3d30;
+    margin-bottom: 0.25rem;
+    font-family: 'Fira Code', monospace;
+  }
+  .ledger-desc {
+    font-size: 0.55rem;
+    color: #7c6a59;
+    line-height: 1.4;
+  }
+  .ledger-form {
+    background: white;
+    border: 1px solid #e5e0d4;
+    border-radius: 6px;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .ledger-input {
+    height: 18px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 0.5rem;
+    padding-left: 0.25rem;
+  }
+  .ledger-btn {
+    height: 18px;
+    background: #ca8a04;
+    color: white;
+    font-size: 0.5rem;
+    font-weight: 800;
+    border: none;
+    border-radius: 4px;
+  }
+
+  /* Preview B: Bento Box Style */
+  .bento-bg {
+    background: #faf8f5; /* Warm bg */
+    width: 100%;
+    height: 100%;
+    padding: 0.75rem;
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 0.5rem;
+  }
+  .bento-left {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+  .bento-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .bento-cell {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .bento-cell.dark {
+    background: #0f172a;
+    color: white;
+    border-color: #0f172a;
+  }
+
+  /* Preview C: Minimalist Warm Drenched */
+  .drenched-bg {
+    background: #4b1f14; /* Deep Terrakota / Rust Brown */
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .drenched-card {
+    background: #faf8f5; /* Warm paper contrast */
+    width: 70%;
+    height: 80%;
+    border-radius: 16px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+  }
+
+  /* Color comparison */
+  .color-strip {
+    display: flex;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 24px;
+    margin-top: 0.5rem;
+  }
+  .color-block {
+    flex: 1;
+    height: 100%;
+  }
+
+  .pros-list {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: #475569;
+    list-style-type: disc;
+    padding-left: 1rem;
+  }
+  .pros-list li {
+    margin-bottom: 0.25rem;
+  }
+</style>
+
+<div class="concept-container">
+  <div>
+    <h2>Pilih Konsep Kreatif Halaman Login & Atmosfer Warm</h2>
+    <p class="subtitle">Kami ingin merombak halaman masuk agar tidak terlihat seperti template standar, bernuansa hangat (warm) & ramah bagi Lansia (tidak membuat pusing atau banyak scroll).</p>
+  </div>
+
+  <div class="concept-grid">
+    <!-- CONCEPT A: LEDGER BOOK -->
+    <div class="concept-card" data-choice="ledger" onclick="toggleSelect(this)">
+      <div class="concept-badge">Saran Kami</div>
+      <div class="preview-box">
+        <div class="ledger-bg">
+          <div class="ledger-book">
+            <div class="ledger-page">
+              <div class="ledger-title" style="color: #ca8a04;">HL SALES</div>
+              <div class="ledger-desc" style="font-size: 0.45rem;">Pencatatan Bon & Piutang Digital dengan nuansa Buku Kas fisik yang akrab.</div>
+            </div>
+            <div class="ledger-page" style="justify-content: space-around;">
+              <div class="ledger-form">
+                <div style="font-size:0.45rem; font-weight:bold; color:#7c6a59;">Masuk</div>
+                <input class="ledger-input" type="text" placeholder="Username" disabled value="operator_hl">
+                <input class="ledger-input" type="password" placeholder="••••" disabled>
+                <button class="ledger-btn">Masuk 🔑</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>A. Buku Kas Tradisional (Ledger Style)</h3>
+        <p style="font-size: 0.85rem; color: #64748b; font-weight: 500;">
+          Menampilkan visualisasi "buku kas terbuka" bertingkat dengan kertas ivory/linen. Sangat akrab untuk lansia yang biasa memakai pembukuan manual.
+        </p>
+        <ul class="pros-list">
+          <li><strong>Sangat Unik & Khas:</strong> Menghilangkan kesan template SaaS komersial standar.</li>
+          <li><strong>Psikologi Akrab:</strong> Lansia mengenali metafora buku kas fisik.</li>
+          <li><strong>Warna Sangat Hangat:</strong> Kombinasi cokelat kayu, kertas krem (#F6F3EA), dan tinta arang.</li>
+        </ul>
+        <div class="color-strip">
+          <div class="color-block" style="background: #e7e2d6;" title="Wood Frame"></div>
+          <div class="color-block" style="background: #f6f3ea;" title="Warm Linen Paper"></div>
+          <div class="color-block" style="background: #1a1612;" title="Espresso Dark Ink"></div>
+          <div class="color-block" style="background: #b45309;" title="Warm Amber Accent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCEPT B: BENTO GRID -->
+    <div class="concept-card" data-choice="bento" onclick="toggleSelect(this)">
+      <div class="preview-box">
+        <div class="bento-bg">
+          <div class="bento-left">
+            <div style="font-size:0.75rem; font-weight:900; color:#0f172a; font-family:'Fira Code';">Masuk Akun</div>
+            <div style="background:#f1f5f9; height:12px; border-radius:4px;"></div>
+            <div style="background:#f1f5f9; height:12px; border-radius:4px;"></div>
+            <div style="background:#ca8a04; height:14px; border-radius:4px;"></div>
+          </div>
+          <div class="bento-right">
+            <div class="bento-cell" style="background: #eff6ff; border-color: #bfdbfe;">
+              <span style="font-size:0.4rem; font-weight:bold; color:#1e40af;">🔒 Aman</span>
+            </div>
+            <div class="bento-cell dark">
+              <span style="font-size:0.4rem; font-weight:bold; color:white;">📖 100% RI</span>
+            </div>
+            <div class="bento-cell" style="background: #fef3c7; border-color: #fde68a;">
+              <span style="font-size:0.4rem; font-weight:bold; color:#b45309;">💡 Bantuan</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>B. Bento Box Lansia (Clean Info Grid)</h3>
+        <p style="font-size: 0.85rem; color: #64748b; font-weight: 500;">
+          Formulir masuk diletakkan di dalam modul bento utama, dikelilingi oleh widget-widget informasi penting yang berukuran besar untuk membangun kepercayaan.
+        </p>
+        <ul class="pros-list">
+          <li><strong>Presisi Layout:</strong> Struktur grid rapi yang mengorganisasi form dan teks bantuan.</li>
+          <li><strong>Efisien Tempat:</strong> Tidak membutuhkan area kosong yang terlalu lebar.</li>
+          <li><strong>Keterbacaan Tinggi:</strong> Pemisahan informasi yang sangat tegas dengan border yang ramah lansia.</li>
+        </ul>
+        <div class="color-strip">
+          <div class="color-block" style="background: #faf8f5;" title="Warm Canvas"></div>
+          <div class="color-block" style="background: #ffffff;" title="Card Bg"></div>
+          <div class="color-block" style="background: #0f172a;" title="Navy Deep Ink"></div>
+          <div class="color-block" style="background: #ca8a04;" title="Gold Accent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCEPT C: WARM DRENCHED -->
+    <div class="concept-card" data-choice="drenched" onclick="toggleSelect(this)">
+      <div class="preview-box">
+        <div class="drenched-bg">
+          <div class="drenched-card">
+            <div style="font-size: 0.7rem; font-weight: 900; color: #4b1f14;">HL Manager Pro</div>
+            <div style="background:#e2e8f0; height:12px; border-radius:4px; margin-top:0.25rem;"></div>
+            <div style="background:#e2e8f0; height:12px; border-radius:4px;"></div>
+            <div style="background:#ca8a04; height:14px; border-radius:4px; margin-top:0.25rem;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>C. Terrakota Drenched (Premium Artisanal)</h3>
+        <p style="font-size: 0.85rem; color: #64748b; font-weight: 500;">
+          Latar belakang halaman masuk menggunakan warna penuh karat/tanah liat merah (terrakota) yang drenching, dengan box login berwarna krem kontras tinggi.
+        </p>
+        <ul class="pros-list">
+          <li><strong>Kesan Premium Tinggi:</strong> Menghasilkan atmosfer artistik seperti majalah atau brand butik.</li>
+          <li><strong>Kontras Ekstrim:</strong> Kartu putih/krem menyala di atas latar belakang gelap yang hangat.</li>
+          <li><strong>Nuansa Profesional Modern:</strong> Terlihat sangat kekinian tanpa terasa "dingin/teknikal".</li>
+        </ul>
+        <div class="color-strip">
+          <div class="color-block" style="background: #4b1f14;" title="Terracotta Bg"></div>
+          <div class="color-block" style="background: #faf8f5;" title="Form Paper"></div>
+          <div class="color-block" style="background: #0f172a;" title="Primary text"></div>
+          <div class="color-block" style="background: #d97706;" title="Warm Amber"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

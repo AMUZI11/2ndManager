@@ -5,7 +5,7 @@ import { withAuthSupabase, withBossOnly, errorResponse, successResponse, checkSu
 import { checkQuotaLimit } from '@/lib/subscription';
 import { logActivity } from '@/lib/audit';
 
-export const GET = withAuthSupabase(async (request, context, { profile, supabase }) => {
+export const GET = withAuthSupabase(async (request, context, { profile, shopId, shopIds, isAllShops, supabase }) => {
   try {
     const { searchParams } = new URL(request.url);
     const tipe = searchParams.get('tipe');
@@ -19,6 +19,12 @@ export const GET = withAuthSupabase(async (request, context, { profile, supabase
 
     if (tipe && tipe.trim()) {
       query = query.eq('tipe', tipe.trim().toUpperCase());
+    }
+
+    if (isAllShops && shopIds?.length > 0) {
+      query = query.in('shop_id', shopIds);
+    } else if (shopId) {
+      query = query.eq('shop_id', shopId);
     }
 
     const { data: products, error } = await query;
@@ -64,15 +70,15 @@ export const POST = withBossOnly(async (request, context, { user, profile, shopI
     const { data: product, error } = await supabase
       .from('products')
       .insert({
-        shop_id: userShop.shop_id,
+        shop_id: shopId,
         nama: nama.trim(),
         barcode: cleanBarcode,
         harga_modal: parseInt(harga_modal, 10),
         harga_base: parseInt(harga_base, 10),
         tipe: tipe.trim().toUpperCase(),
-        stock: parseInt(stock || 0, 10),
-        reorder_threshold: parseInt(reorder_threshold || 5, 10),
-        supplier_id: supplier_id || null,
+        stock: parseInt(body.stock || stok_saat_ini || 0, 10),
+        reorder_threshold: parseInt(body.reorder_threshold || min_stock || 5, 10),
+        supplier_id: body.supplier_id || null,
       })
       .select()
       .single();
@@ -84,8 +90,8 @@ export const POST = withBossOnly(async (request, context, { user, profile, shopI
       .from('product_units')
       .insert({
         product_id: product.id,
-        shop_id: userShop.shop_id,
-        unit_name: 'Pcs',
+        shop_id: shopId,
+        unit_name: satuan || 'Pcs',
         multiplier_to_base: 1,
         barcode: cleanBarcode,
         price: parseInt(harga_base, 10),
@@ -104,7 +110,7 @@ export const POST = withBossOnly(async (request, context, { user, profile, shopI
       .eq('id', product.id)
       .single();
 
-    await logActivity(supabase, userShop.shop_id, profile.username || user.email, 'Tambah Produk',
+    await logActivity(supabase, shopId, profile.username || user.email, 'Tambah Produk',
       `Menambahkan produk "${product.nama}" (${tipe}) harga jual Rp${Number(harga_base).toLocaleString('id-ID')}`);
 
     return successResponse(fullProduct || product, 201);

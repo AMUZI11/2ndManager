@@ -1,0 +1,1515 @@
+{
+  "communities": {
+    "0": [
+      "src_components_analyticscharts_categorypiechart",
+      "src_components_analyticscharts_monthlytrendchart",
+      "src_components_confirmmodal_confirmmodal",
+      "src_components_customers_assetloanmodal_assetloanmodal",
+      "src_components_emptystate_emptystate",
+      "src_components_fomopaywallcard_fomopaywallcard",
+      "src_components_paranoiamarketingalert_paranoiamarketingalert",
+      "src_components_skeletonloader_bentoskeleton",
+      "src_components_skeletonloader_cardgridskeleton",
+      "src_components_skeletonloader_tableskeleton",
+      "src_components_ui_paywallmodal_paywallmodal",
+      "src_lib_subscription_canaccessfeature",
+      "src_lib_subscription_checkcapacitylimit",
+      "src_lib_subscription_checkquotalimit",
+      "src_lib_subscription_getplanconfig",
+      "src_lib_subscription_normalizeplan",
+      "src_lib_supabase_client_createclient",
+      "src_utils_api_calculatecascadingdiscount",
+      "src_utils_export_exporttocsv",
+      "src_views_customerdetail",
+      "src_views_customermanagement",
+      "src_views_dashboard",
+      "src_views_productmanagement",
+      "src_views_reporting",
+      "src_views_settings",
+      "src_views_transactiondetail",
+      "src_views_transactionform"
+    ],
+    "1": [
+      "agents_skills_impeccable_scripts_context_resolvecontextdir",
+      "agents_skills_impeccable_scripts_lib_design_parser_parsedesignmd",
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getdesignsidecarpath",
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getliveannotationsdir",
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_removeliveserverinfo",
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_resolvedesignsidecarpath",
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_writeliveserverinfo",
+      "agents_skills_impeccable_scripts_live_browser_script_parts_assemblelivebrowserscript",
+      "agents_skills_impeccable_scripts_live_browser_script_parts_assertlivebrowserscriptparts",
+      "agents_skills_impeccable_scripts_live_browser_script_parts_readlivebrowserscriptparts",
+      "agents_skills_impeccable_scripts_live_browser_script_parts_resolvelivebrowserscriptparts",
+      "agents_skills_impeccable_scripts_live_event_validation_validateevent",
+      "agents_skills_impeccable_scripts_live_manual_apply_createmanualapplycontroller",
+      "agents_skills_impeccable_scripts_live_manual_edit_routes_createmanualeditroutes",
+      "agents_skills_impeccable_scripts_live_server",
+      "agents_skills_impeccable_scripts_live_svelte_component_removeallsveltecomponentsessions",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_server_cleanupsveltecomponentsessionsbeforeexit",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_server_createrequesthandler",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_server_loadbrowserscripts",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_server_shutdown"
+    ],
+    "2": [
+      "agents_skills_impeccable_scripts_live_commit_manual_edits",
+      "agents_skills_impeccable_scripts_live_commit_manual_edits_commitmanualedits",
+      "agents_skills_impeccable_scripts_live_copy_edit_agent_runcopyeditbatchagent",
+      "agents_skills_impeccable_scripts_live_copy_edit_agent_runcopyeditpostapplychecks",
+      "agents_skills_impeccable_scripts_live_discard_manual_edits",
+      "agents_skills_impeccable_scripts_live_manual_apply_summarizemanualapplyfailures",
+      "agents_skills_impeccable_scripts_live_manual_apply_summarizemanualdiagnostics",
+      "agents_skills_impeccable_scripts_live_manual_apply_summarizemanuallogfile",
+      "agents_skills_impeccable_scripts_live_manual_edit_evidence_buildmanualeditevidence",
+      "agents_skills_impeccable_scripts_live_manual_edit_routes",
+      "agents_skills_impeccable_scripts_live_manual_edits_buffer_countbypage",
+      "agents_skills_impeccable_scripts_live_manual_edits_buffer_readbufferstrict",
+      "agents_skills_impeccable_scripts_live_manual_edits_buffer_removeentries",
+      "agents_skills_impeccable_scripts_live_manual_edits_buffer_stageentry",
+      "agents_skills_impeccable_scripts_live_manual_edits_buffer_truncatebuffer",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_commit_manual_edits_repairpostapplyvalidation",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_server_getmanualeditstatus",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_server_handlepollpost"
+    ],
+    "3": [
+      "agents_skills_impeccable_scripts_detector_cli_main",
+      "agents_skills_impeccable_scripts_detector_design_system",
+      "agents_skills_impeccable_scripts_detector_detect_antipatterns",
+      "agents_skills_impeccable_scripts_detector_engines_browser_detect_url",
+      "agents_skills_impeccable_scripts_detector_engines_regex_detect_text",
+      "agents_skills_impeccable_scripts_detector_engines_static_html_detect_html",
+      "agents_skills_impeccable_scripts_detector_node_file_system",
+      "agents_skills_impeccable_scripts_detector_profile_profiler",
+      "agents_skills_impeccable_scripts_detector_registry_antipatterns",
+      "agents_skills_impeccable_scripts_detector_rules_checks",
+      "agents_skills_impeccable_scripts_detector_shared_color",
+      "agents_skills_impeccable_scripts_detector_shared_constants",
+      "agents_skills_impeccable_scripts_detector_shared_page",
+      "agents_skills_impeccable_scripts_lib_impeccable_config_filterdetectionfindings",
+      "agents_skills_impeccable_scripts_lib_impeccable_config_readdetectionconfig",
+      "agents_skills_impeccable_scripts_lib_impeccable_config_shouldignoredetectionfile",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_detector_cli_main_detectcli"
+    ],
+    "4": [
+      "agents_skills_impeccable_scripts_hook_admin",
+      "agents_skills_impeccable_scripts_hook_lib_ensurehookgitexcludes",
+      "agents_skills_impeccable_scripts_hook_lib_getcachepath",
+      "agents_skills_impeccable_scripts_hook_lib_getconfigpath",
+      "agents_skills_impeccable_scripts_hook_lib_getlocalconfigpath",
+      "agents_skills_impeccable_scripts_hook_lib_getpendingpath",
+      "agents_skills_impeccable_scripts_hook_lib_normalizeignorevalue",
+      "agents_skills_impeccable_scripts_hook_lib_normalizeignorevalueentries",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_admin_mergedetectorconfig",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_admin_mergeignorevalueentries",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_admin_parseignorevalueargs",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_admin_readrawdetectorconfig",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_admin_readrawhookconfig",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_admin_reset",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_admin_statusreport",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_admin_writedetectorconfig",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_admin_writehookconfig"
+    ],
+    "5": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getlivedir",
+      "agents_skills_impeccable_scripts_live_accept",
+      "agents_skills_impeccable_scripts_live_manual_apply",
+      "agents_skills_impeccable_scripts_live_manual_edits_buffer",
+      "agents_skills_impeccable_scripts_live_manual_edits_buffer_readbuffer",
+      "agents_skills_impeccable_scripts_live_manual_edits_buffer_writebuffer",
+      "agents_skills_impeccable_scripts_live_svelte_component",
+      "agents_skills_impeccable_scripts_live_svelte_component_applydeferredsveltecomponentaccepts",
+      "agents_skills_impeccable_scripts_live_svelte_component_findsveltecomponentmanifest",
+      "agents_skills_impeccable_scripts_live_svelte_component_inlinesveltecomponentaccept",
+      "agents_skills_impeccable_scripts_live_svelte_component_removesveltecomponentsession",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_accept_scrubmanualeditsagainstoriginalblock",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_commit_manual_edits_clearappliedentries",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_manual_edit_routes_summarizependingmanualeditbatch",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_server_applylegacydeferredacceptsonstartup",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_server_recordmanualeditactivity"
+    ],
+    "6": [
+      "agents_skills_impeccable_scripts_hook_before_edit",
+      "agents_skills_impeccable_scripts_hook_lib_appenddesignsystemnote",
+      "agents_skills_impeccable_scripts_hook_lib_designsystemoptions",
+      "agents_skills_impeccable_scripts_hook_lib_filterfindings",
+      "agents_skills_impeccable_scripts_hook_lib_loaddetector",
+      "agents_skills_impeccable_scripts_hook_lib_matchesanyglob",
+      "agents_skills_impeccable_scripts_hook_lib_persistcache",
+      "agents_skills_impeccable_scripts_hook_lib_readcache",
+      "agents_skills_impeccable_scripts_hook_lib_readconfig",
+      "agents_skills_impeccable_scripts_hook_lib_rendertemplate",
+      "agents_skills_impeccable_scripts_hook_lib_resolveprojectcwd",
+      "agents_skills_impeccable_scripts_hook_lib_truthy",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_before_edit_cursorblockmessage",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_before_edit_main"
+    ],
+    "7": [
+      "agents_skills_impeccable_scripts_lib_is_generated_isgeneratedfile",
+      "agents_skills_impeccable_scripts_live_insert",
+      "agents_skills_impeccable_scripts_live_manual_edit_evidence",
+      "agents_skills_impeccable_scripts_live_manual_edits_buffer_getbufferpath",
+      "agents_skills_impeccable_scripts_live_svelte_component_buildsveltecomponentcssauthoring",
+      "agents_skills_impeccable_scripts_live_svelte_component_scaffoldsveltecomponentinsertsession",
+      "agents_skills_impeccable_scripts_live_svelte_component_scaffoldsveltecomponentsession",
+      "agents_skills_impeccable_scripts_live_svelte_component_shouldusesveltecomponentinjection",
+      "agents_skills_impeccable_scripts_live_wrap",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_commit_manual_edits_normalizeprojectsourcepath",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_commit_manual_edits_scanrollbackdir",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_manual_edit_evidence_analyzesourcehint",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_manual_edit_evidence_maybeaddsearchfile",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_wrap_searchdir"
+    ],
+    "8": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_readliveserverinfo",
+      "agents_skills_impeccable_scripts_live_complete",
+      "agents_skills_impeccable_scripts_live_completion_completionackforacceptresult",
+      "agents_skills_impeccable_scripts_live_completion_completiontypeforacceptresult",
+      "agents_skills_impeccable_scripts_live_poll",
+      "agents_skills_impeccable_scripts_live_resume",
+      "agents_skills_impeccable_scripts_live_resume_manualapplyresumehint",
+      "agents_skills_impeccable_scripts_live_session_store_createlivesessionstore",
+      "agents_skills_impeccable_scripts_live_status",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_complete_readserverinfo",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_ensureserverrunning",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_poll_readserverinfo",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_status_readserverinfo"
+    ],
+    "9": [
+      "agents_skills_impeccable_scripts_context_extractregister",
+      "agents_skills_impeccable_scripts_context_loadcontext",
+      "agents_skills_impeccable_scripts_context_signals",
+      "agents_skills_impeccable_scripts_critique_storage",
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getcritiquedir",
+      "agents_skills_impeccable_scripts_live",
+      "agents_skills_impeccable_scripts_live_inject_resolvefiles",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_context_signals_latestcritique",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_critique_storage_listsnapshotsforslug",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_livecli"
+    ],
+    "10": [
+      "agents_skills_impeccable_scripts_hook",
+      "agents_skills_impeccable_scripts_hook_lib_runhook",
+      "agents_skills_impeccable_scripts_hook_lib_writeauditlog",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_before_edit_allow",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_before_edit_deny",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_main"
+    ],
+    "11": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_resolveliveconfigpath",
+      "agents_skills_impeccable_scripts_live_inject",
+      "agents_skills_impeccable_scripts_live_sveltekit_adapter_applysveltekitliveadapter",
+      "agents_skills_impeccable_scripts_live_sveltekit_adapter_detectsveltekitproject",
+      "agents_skills_impeccable_scripts_live_sveltekit_adapter_removesveltekitliveadapter"
+    ],
+    "12": [
+      "agents_skills_impeccable_scripts_live_event_validation",
+      "agents_skills_impeccable_scripts_live_insert_ui_cancreateinsert",
+      "agents_skills_impeccable_scripts_live_vocabulary",
+      "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_live_event_validation_validateinsertgenerate"
+    ],
+    "13": [
+      "src_components_landing_footer",
+      "src_components_landing_pricingsection",
+      "src_components_ui_ledgercard_ledgercard",
+      "src_components_ui_waxsealbadge_waxsealbadge"
+    ],
+    "14": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getlegacylivesessionsdir",
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getlivesessionsdir",
+      "agents_skills_impeccable_scripts_live_session_store"
+    ],
+    "15": [
+      "src_components_cashiersandbox_cashiersandbox",
+      "src_components_panichelpmodal_panichelpmodal",
+      "src_views_helpcenter"
+    ],
+    "16": [
+      "src_components_landing_featurepinning",
+      "src_components_landing_glasscard_glasscard"
+    ],
+    "17": [
+      "src_components_landing_featuressection",
+      "src_components_ui_smokedglassplate_smokedglassplate"
+    ],
+    "18": [
+      "src_components_landing_hero",
+      "src_components_landing_premiumbutton_premiumbutton"
+    ],
+    "19": [
+      "src_components_landing_leakcalculator_leakcalculator",
+      "src_components_landing_problemagitation"
+    ],
+    "20": [
+      "agents_skills_impeccable_scripts_context_signals_gathersignals"
+    ],
+    "21": [
+      "agents_skills_impeccable_scripts_critique_storage_nowfilenamestamp"
+    ],
+    "22": [
+      "agents_skills_impeccable_scripts_critique_storage_readlatestsnapshot"
+    ],
+    "23": [
+      "agents_skills_impeccable_scripts_critique_storage_readtrend"
+    ],
+    "24": [
+      "agents_skills_impeccable_scripts_critique_storage_slugfromtarget"
+    ],
+    "25": [
+      "agents_skills_impeccable_scripts_critique_storage_writesnapshot"
+    ],
+    "26": [
+      "agents_skills_impeccable_scripts_detect_csp_detectcsp"
+    ],
+    "27": [
+      "agents_skills_impeccable_scripts_hook_lib_bumpeditcount"
+    ],
+    "28": [
+      "agents_skills_impeccable_scripts_hook_lib_colocatedstylesheets"
+    ],
+    "29": [
+      "agents_skills_impeccable_scripts_hook_lib_dedupeagainstcache"
+    ],
+    "30": [
+      "agents_skills_impeccable_scripts_hook_lib_expandscantargets"
+    ],
+    "31": [
+      "agents_skills_impeccable_scripts_hook_lib_extractfindingignorevalue"
+    ],
+    "32": [
+      "agents_skills_impeccable_scripts_hook_lib_normalizehookevent"
+    ],
+    "33": [
+      "agents_skills_impeccable_scripts_hook_lib_normalizescantargets"
+    ],
+    "34": [
+      "agents_skills_impeccable_scripts_hook_lib_parseapplypatchpaths"
+    ],
+    "35": [
+      "agents_skills_impeccable_scripts_hook_lib_parsestaticstyleimports"
+    ],
+    "36": [
+      "agents_skills_impeccable_scripts_hook_lib_payload"
+    ],
+    "37": [
+      "agents_skills_impeccable_scripts_hook_lib_rememberfindings"
+    ],
+    "38": [
+      "agents_skills_impeccable_scripts_hook_lib_rendercleanack"
+    ],
+    "39": [
+      "agents_skills_impeccable_scripts_hook_lib_renderpendingack"
+    ],
+    "40": [
+      "agents_skills_impeccable_scripts_hook_lib_resolveharness"
+    ],
+    "41": [
+      "agents_skills_impeccable_scripts_hook_lib_resolvetargetfiles"
+    ],
+    "42": [
+      "agents_skills_impeccable_scripts_hook_lib_setdetectorfortesting"
+    ],
+    "43": [
+      "agents_skills_impeccable_scripts_hook_lib_shouldemitackforfile"
+    ],
+    "44": [
+      "agents_skills_impeccable_scripts_hook_lib_suppressionnotice"
+    ],
+    "45": [
+      "agents_skills_impeccable_scripts_lib_impeccable_config_ensureconfiggitexclude"
+    ],
+    "46": [
+      "agents_skills_impeccable_scripts_lib_impeccable_config_extractfindingignorevalue"
+    ],
+    "47": [
+      "agents_skills_impeccable_scripts_lib_impeccable_config_getconfigpath"
+    ],
+    "48": [
+      "agents_skills_impeccable_scripts_lib_impeccable_config_gethookconsent"
+    ],
+    "49": [
+      "agents_skills_impeccable_scripts_lib_impeccable_config_getlocalconfigpath"
+    ],
+    "50": [
+      "agents_skills_impeccable_scripts_lib_impeccable_config_matchesanyglob"
+    ],
+    "51": [
+      "agents_skills_impeccable_scripts_lib_impeccable_config_normalizeignorevalue"
+    ],
+    "52": [
+      "agents_skills_impeccable_scripts_lib_impeccable_config_normalizeignorevalueentries"
+    ],
+    "53": [
+      "agents_skills_impeccable_scripts_lib_impeccable_config_readrawdetectionconfig"
+    ],
+    "54": [
+      "agents_skills_impeccable_scripts_lib_impeccable_config_sethookconsent"
+    ],
+    "55": [
+      "agents_skills_impeccable_scripts_lib_impeccable_config_writedetectionconfig"
+    ],
+    "56": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getdesignsidecarcandidates"
+    ],
+    "57": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getimpeccabledir"
+    ],
+    "58": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getlegacyliveannotationsdir"
+    ],
+    "59": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getlegacyliveconfigpath"
+    ],
+    "60": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getlegacyliveserverpath"
+    ],
+    "61": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getliveconfigpath"
+    ],
+    "62": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_getliveserverpath"
+    ],
+    "63": [
+      "agents_skills_impeccable_scripts_lib_impeccable_paths_isliveserverpidreachable"
+    ],
+    "64": [
+      "agents_skills_impeccable_scripts_live_accept_acceptcli"
+    ],
+    "65": [
+      "agents_skills_impeccable_scripts_live_complete_completecli"
+    ],
+    "66": [
+      "agents_skills_impeccable_scripts_live_copy_edit_agent_buildcopyeditbatchprompt"
+    ],
+    "67": [
+      "agents_skills_impeccable_scripts_live_copy_edit_agent_choosecopyeditagent"
+    ],
+    "68": [
+      "agents_skills_impeccable_scripts_live_copy_edit_agent_describenoprovidererror"
+    ],
+    "69": [
+      "agents_skills_impeccable_scripts_live_copy_edit_agent_extractrunnererrormessage"
+    ],
+    "70": [
+      "agents_skills_impeccable_scripts_live_copy_edit_agent_parsecopyeditagentresult"
+    ],
+    "71": [
+      "agents_skills_impeccable_scripts_live_copy_edit_agent_parsecopyeditbatchresult"
+    ],
+    "72": [
+      "agents_skills_impeccable_scripts_live_inject_ensurelivegitignores"
+    ],
+    "73": [
+      "agents_skills_impeccable_scripts_live_inject_injectcli"
+    ],
+    "74": [
+      "agents_skills_impeccable_scripts_live_inject_patchcspmeta"
+    ],
+    "75": [
+      "agents_skills_impeccable_scripts_live_inject_revertcspmeta"
+    ],
+    "76": [
+      "agents_skills_impeccable_scripts_live_insert_buildinsertwrapperlines"
+    ],
+    "77": [
+      "agents_skills_impeccable_scripts_live_insert_computeinsertline"
+    ],
+    "78": [
+      "agents_skills_impeccable_scripts_live_insert_insertcli"
+    ],
+    "79": [
+      "agents_skills_impeccable_scripts_live_insert_isinsertposition"
+    ],
+    "80": [
+      "agents_skills_impeccable_scripts_live_insert_ui_applyinserttoggle"
+    ],
+    "81": [
+      "agents_skills_impeccable_scripts_live_insert_ui_applypicktoggle"
+    ],
+    "82": [
+      "agents_skills_impeccable_scripts_live_insert_ui_buildinsertgeneratepayload"
+    ],
+    "83": [
+      "agents_skills_impeccable_scripts_live_insert_ui_buildinsertplaceholdersnapshot"
+    ],
+    "84": [
+      "agents_skills_impeccable_scripts_live_insert_ui_clampplaceholdersize"
+    ],
+    "85": [
+      "agents_skills_impeccable_scripts_live_insert_ui_computeinsertposition"
+    ],
+    "86": [
+      "agents_skills_impeccable_scripts_live_insert_ui_cursorforinsertaxis"
+    ],
+    "87": [
+      "agents_skills_impeccable_scripts_live_insert_ui_cursorforplaceholderedge"
+    ],
+    "88": [
+      "agents_skills_impeccable_scripts_live_insert_ui_detectinsertaxisfromstyle"
+    ],
+    "89": [
+      "agents_skills_impeccable_scripts_live_insert_ui_findinsertanchorindom"
+    ],
+    "90": [
+      "agents_skills_impeccable_scripts_live_insert_ui_hitsiblinginsertgap"
+    ],
+    "91": [
+      "agents_skills_impeccable_scripts_live_insert_ui_insertcreatedisabledreason"
+    ],
+    "92": [
+      "agents_skills_impeccable_scripts_live_insert_ui_insertlinecoords"
+    ],
+    "93": [
+      "agents_skills_impeccable_scripts_live_insert_ui_isvariantshown"
+    ],
+    "94": [
+      "agents_skills_impeccable_scripts_live_insert_ui_placeholdersizing"
+    ],
+    "95": [
+      "agents_skills_impeccable_scripts_live_insert_ui_placeholderwidthisimplicit"
+    ],
+    "96": [
+      "agents_skills_impeccable_scripts_live_insert_ui_resizeplaceholderfromedge"
+    ],
+    "97": [
+      "agents_skills_impeccable_scripts_live_insert_ui_resolveinserthover"
+    ],
+    "98": [
+      "agents_skills_impeccable_scripts_live_insert_ui_resolveinsertsessionanchor"
+    ],
+    "99": [
+      "agents_skills_impeccable_scripts_live_insert_ui_setvariantshown"
+    ],
+    "100": [
+      "agents_skills_impeccable_scripts_live_manual_apply_buildmanualapplyagentaction"
+    ],
+    "101": [
+      "agents_skills_impeccable_scripts_live_manual_apply_clearmanualapplytransaction"
+    ],
+    "102": [
+      "agents_skills_impeccable_scripts_live_manual_apply_collectmanualapplyfiles"
+    ],
+    "103": [
+      "agents_skills_impeccable_scripts_live_manual_apply_compactmanualapplybatch"
+    ],
+    "104": [
+      "agents_skills_impeccable_scripts_live_manual_apply_compactmanualapplycandidates"
+    ],
+    "105": [
+      "agents_skills_impeccable_scripts_live_manual_apply_compactmanuallogtext"
+    ],
+    "106": [
+      "agents_skills_impeccable_scripts_live_manual_apply_countmanualapplyops"
+    ],
+    "107": [
+      "agents_skills_impeccable_scripts_live_manual_apply_manualapplyevidencedir"
+    ],
+    "108": [
+      "agents_skills_impeccable_scripts_live_manual_apply_manualapplytransactionpath"
+    ],
+    "109": [
+      "agents_skills_impeccable_scripts_live_manual_apply_manualeditapplychunksize"
+    ],
+    "110": [
+      "agents_skills_impeccable_scripts_live_manual_apply_normalizemanualapplyevidencepath"
+    ],
+    "111": [
+      "agents_skills_impeccable_scripts_live_manual_apply_readmanualapplytransaction"
+    ],
+    "112": [
+      "agents_skills_impeccable_scripts_live_manual_apply_removemanualapplyevidence"
+    ],
+    "113": [
+      "agents_skills_impeccable_scripts_live_manual_apply_rollbackapplysnapshot"
+    ],
+    "114": [
+      "agents_skills_impeccable_scripts_live_manual_apply_rollbackmanualapplytransaction"
+    ],
+    "115": [
+      "agents_skills_impeccable_scripts_live_manual_apply_snapshotapplyeventfiles"
+    ],
+    "116": [
+      "agents_skills_impeccable_scripts_live_manual_apply_splitmanualapplybatch"
+    ],
+    "117": [
+      "agents_skills_impeccable_scripts_live_manual_apply_summarizemanualapplyevent"
+    ],
+    "118": [
+      "agents_skills_impeccable_scripts_live_manual_apply_validatemanualapplyresultmessage"
+    ],
+    "119": [
+      "agents_skills_impeccable_scripts_live_manual_apply_writemanualapplyevidence"
+    ],
+    "120": [
+      "agents_skills_impeccable_scripts_live_manual_apply_writemanualapplytransaction"
+    ],
+    "121": [
+      "agents_skills_impeccable_scripts_live_poll_augmenteventwithaccepthandling"
+    ],
+    "122": [
+      "agents_skills_impeccable_scripts_live_poll_buildacceptscriptargs"
+    ],
+    "123": [
+      "agents_skills_impeccable_scripts_live_poll_buildpollreplypayload"
+    ],
+    "124": [
+      "agents_skills_impeccable_scripts_live_poll_fetchnextevent"
+    ],
+    "125": [
+      "agents_skills_impeccable_scripts_live_poll_fetchserverstatus"
+    ],
+    "126": [
+      "agents_skills_impeccable_scripts_live_poll_iseventpending"
+    ],
+    "127": [
+      "agents_skills_impeccable_scripts_live_poll_manualapplypollbanner"
+    ],
+    "128": [
+      "agents_skills_impeccable_scripts_live_poll_parsereplyargs"
+    ],
+    "129": [
+      "agents_skills_impeccable_scripts_live_poll_pollcli"
+    ],
+    "130": [
+      "agents_skills_impeccable_scripts_live_poll_postreply"
+    ],
+    "131": [
+      "agents_skills_impeccable_scripts_live_poll_printpollevent"
+    ],
+    "132": [
+      "agents_skills_impeccable_scripts_live_poll_requiresagentreply"
+    ],
+    "133": [
+      "agents_skills_impeccable_scripts_live_poll_runpollonce"
+    ],
+    "134": [
+      "agents_skills_impeccable_scripts_live_poll_runpollstream"
+    ],
+    "135": [
+      "agents_skills_impeccable_scripts_live_poll_waitforeventack"
+    ],
+    "136": [
+      "agents_skills_impeccable_scripts_live_poll_writecarbonizebanner"
+    ],
+    "137": [
+      "agents_skills_impeccable_scripts_live_resume_resumecli"
+    ],
+    "138": [
+      "agents_skills_impeccable_scripts_live_status_statuscli"
+    ],
+    "139": [
+      "agents_skills_impeccable_scripts_live_svelte_component_buildpropcontract"
+    ],
+    "140": [
+      "agents_skills_impeccable_scripts_live_svelte_component_componentsessiondir"
+    ],
+    "141": [
+      "agents_skills_impeccable_scripts_live_svelte_component_deferredacceptspath"
+    ],
+    "142": [
+      "agents_skills_impeccable_scripts_live_svelte_component_ensureruntimehelper"
+    ],
+    "143": [
+      "agents_skills_impeccable_scripts_live_svelte_component_extractmustacheexpressions"
+    ],
+    "144": [
+      "agents_skills_impeccable_scripts_live_svelte_component_manifestpathforsession"
+    ],
+    "145": [
+      "agents_skills_impeccable_scripts_live_svelte_component_parsesveltecomponentfile"
+    ],
+    "146": [
+      "agents_skills_impeccable_scripts_live_svelte_component_readdeferredaccepts"
+    ],
+    "147": [
+      "agents_skills_impeccable_scripts_live_svelte_component_readmanifest"
+    ],
+    "148": [
+      "agents_skills_impeccable_scripts_live_svelte_component_resolvesourcefile"
+    ],
+    "149": [
+      "agents_skills_impeccable_scripts_live_svelte_component_substituteexprswithprops"
+    ],
+    "150": [
+      "agents_skills_impeccable_scripts_live_svelte_component_substitutepropswithexprs"
+    ],
+    "151": [
+      "agents_skills_impeccable_scripts_live_svelte_component_writedeferredaccept"
+    ],
+    "152": [
+      "agents_skills_impeccable_scripts_live_sveltekit_adapter_buildsvelteliverootcomponent"
+    ],
+    "153": [
+      "agents_skills_impeccable_scripts_live_sveltekit_adapter_ensuresvelteliverootcomponent"
+    ],
+    "154": [
+      "agents_skills_impeccable_scripts_live_sveltekit_adapter_patchsveltelayout"
+    ],
+    "155": [
+      "agents_skills_impeccable_scripts_live_sveltekit_adapter_unpatchsveltelayout"
+    ],
+    "156": [
+      "agents_skills_impeccable_scripts_live_ui_core_activeelementdeep"
+    ],
+    "157": [
+      "agents_skills_impeccable_scripts_live_ui_core_appendstyletoliveuiroot"
+    ],
+    "158": [
+      "agents_skills_impeccable_scripts_live_ui_core_appendtoliveuiroot"
+    ],
+    "159": [
+      "agents_skills_impeccable_scripts_live_ui_core_getliveuielementbyid"
+    ],
+    "160": [
+      "agents_skills_impeccable_scripts_live_ui_core_resolveliveuiroot"
+    ],
+    "161": [
+      "agents_skills_impeccable_scripts_live_wrap_wrapcli"
+    ],
+    "162": [
+      "src_app_admin_admin_audit_logs_page_auditlogspage"
+    ],
+    "163": [
+      "src_app_admin_admin_categories_master_page_categoriesmasterpage"
+    ],
+    "164": [
+      "src_app_admin_admin_dashboard_page_admindashboard"
+    ],
+    "165": [
+      "src_app_admin_admin_fraud_radar_page_fraudradarpage"
+    ],
+    "166": [
+      "src_app_admin_admin_page_adminrootpage"
+    ],
+    "167": [
+      "src_app_admin_admin_panic_dispatch_page_panicdispatchpage"
+    ],
+    "168": [
+      "src_app_admin_admin_payment_proofs_page_adminpaymentproofspage"
+    ],
+    "169": [
+      "src_app_admin_admin_tenants_id_page_tenantdetailpage"
+    ],
+    "170": [
+      "src_app_admin_admin_tenants_page_tenantspage"
+    ],
+    "171": [
+      "src_app_admin_error_adminerror"
+    ],
+    "172": [
+      "src_app_admin_layout_adminlayout"
+    ],
+    "173": [
+      "src_app_admin_loading_adminloading"
+    ],
+    "174": [
+      "src_app_api_v1_admin_payment_proofs_id_route_post"
+    ],
+    "175": [
+      "src_app_api_v1_admin_payment_proofs_route_get"
+    ],
+    "176": [
+      "src_app_api_v1_tutorial_progress_route_get"
+    ],
+    "177": [
+      "src_app_api_v1_tutorial_progress_route_put"
+    ],
+    "178": [
+      "src_app_authenticated_billing_page_billingpage"
+    ],
+    "179": [
+      "src_app_authenticated_customers_id_page_customerdetailpage"
+    ],
+    "180": [
+      "src_app_authenticated_customers_page_customerspage"
+    ],
+    "181": [
+      "src_app_authenticated_dashboard_page_dashboardpage"
+    ],
+    "182": [
+      "src_app_authenticated_help_page_helppage"
+    ],
+    "183": [
+      "src_app_authenticated_layout_authenticatedlayout"
+    ],
+    "184": [
+      "src_app_authenticated_products_page_productspage"
+    ],
+    "185": [
+      "src_app_authenticated_reporting_page_reportingpage"
+    ],
+    "186": [
+      "src_app_authenticated_settings_page_settingspage"
+    ],
+    "187": [
+      "src_app_authenticated_transactions_id_edit_page_edittransactionpage"
+    ],
+    "188": [
+      "src_app_authenticated_transactions_id_page_transactiondetailpage"
+    ],
+    "189": [
+      "src_app_authenticated_transactions_new_page_newtransactionpage"
+    ],
+    "190": [
+      "src_app_authenticated_transactions_page_transactionslist"
+    ],
+    "191": [
+      "src_app_layout_rootlayout"
+    ],
+    "192": [
+      "src_app_login_page_loginpage"
+    ],
+    "193": [
+      "src_app_page_landingpage"
+    ],
+    "194": [
+      "src_app_pos_page_pospage"
+    ],
+    "195": [
+      "src_app_superadmin_page_superadminpage"
+    ],
+    "196": [
+      "src_components_admin_adminnotificationtoast_adminnotificationtoast"
+    ],
+    "197": [
+      "src_components_admin_adminsidebar_adminsidebar"
+    ],
+    "198": [
+      "src_components_admin_chokeholdmodal_chokeholdmodal"
+    ],
+    "199": [
+      "src_components_admin_commandpalette_commandpalette"
+    ],
+    "200": [
+      "src_components_admin_commandpalettetrigger_commandpalettetrigger"
+    ],
+    "201": [
+      "src_components_branchswitcher_branchswitcher"
+    ],
+    "202": [
+      "src_components_errorboundary_errorboundary"
+    ],
+    "203": [
+      "src_components_landing_cashdrawerbento_cashdrawerbento"
+    ],
+    "204": [
+      "src_components_landing_citizencalculator_citizencalculator"
+    ],
+    "205": [
+      "src_components_landing_comparisonsection_comparisonsection"
+    ],
+    "206": [
+      "src_components_landing_conciergeworkflow_conciergeworkflow"
+    ],
+    "207": [
+      "src_components_landing_faqsection_faqsection"
+    ],
+    "208": [
+      "src_components_landing_featurepinning_featurepinning"
+    ],
+    "209": [
+      "src_components_landing_featuressection_featuressection"
+    ],
+    "210": [
+      "src_components_landing_footer_footer"
+    ],
+    "211": [
+      "src_components_landing_hero_hero"
+    ],
+    "212": [
+      "src_components_landing_herosection_herosection"
+    ],
+    "213": [
+      "src_components_landing_interactivepospreview_interactivepospreview"
+    ],
+    "214": [
+      "src_components_landing_kasbonpaywall_kasbonpaywall"
+    ],
+    "215": [
+      "src_components_landing_landingfooter_landingfooter"
+    ],
+    "216": [
+      "src_components_landing_landinghero_landinghero"
+    ],
+    "217": [
+      "src_components_landing_landingnavbar_landingnavbar"
+    ],
+    "218": [
+      "src_components_landing_paranoiacalculator_paranoiacalculator"
+    ],
+    "219": [
+      "src_components_landing_paranoiacctv_paranoiacctv"
+    ],
+    "220": [
+      "src_components_landing_pricingsection_pricingsection"
+    ],
+    "221": [
+      "src_components_landing_problemagitation_problemagitation"
+    ],
+    "222": [
+      "src_components_landing_problemsolutionbento_problemsolutionbento"
+    ],
+    "223": [
+      "src_components_landing_roicalculator_roicalculator"
+    ],
+    "224": [
+      "src_components_landing_socialproofsection_socialproofsection"
+    ],
+    "225": [
+      "src_components_landing_testimonialssection_testimonialssection"
+    ],
+    "226": [
+      "src_components_landing_v2_conciergetimeline_conciergetimeline"
+    ],
+    "227": [
+      "src_components_landing_v2_faqaccordion_faqaccordion"
+    ],
+    "228": [
+      "src_components_landing_v2_featuresbento_featuresbento"
+    ],
+    "229": [
+      "src_components_landing_v2_finalcta_finalcta"
+    ],
+    "230": [
+      "src_components_landing_v2_floatingwhatsapp_floatingwhatsapp"
+    ],
+    "231": [
+      "src_components_landing_v2_herovaultreveal_herovaultreveal"
+    ],
+    "232": [
+      "src_components_landing_v2_leakcalculator_leakcalculator"
+    ],
+    "233": [
+      "src_components_landing_v2_pricingvault_pricingvault"
+    ],
+    "234": [
+      "src_components_landing_v2_problemagitation_problemagitation"
+    ],
+    "235": [
+      "src_components_landing_v2_socialproofcarousel_socialproofcarousel"
+    ],
+    "236": [
+      "src_components_landing_v2_vaultfooter_vaultfooter"
+    ],
+    "237": [
+      "src_components_landing_v2_vaultnavbar_vaultnavbar"
+    ],
+    "238": [
+      "src_components_modalantibencana_modalantibencana"
+    ],
+    "239": [
+      "src_components_pos_upgradepromptmodal_upgradepromptmodal"
+    ],
+    "240": [
+      "src_components_products_stockinmodal_stockinmodal"
+    ],
+    "241": [
+      "src_components_products_unitconversionmodal_unitconversionmodal"
+    ],
+    "242": [
+      "src_components_setupwizard_setupwizard"
+    ],
+    "243": [
+      "src_components_themeprovider_themeprovider"
+    ],
+    "244": [
+      "src_components_themetoggle_themetoggle"
+    ],
+    "245": [
+      "src_components_ui_auroraember_auroraember"
+    ],
+    "246": [
+      "src_components_ui_stempelbadge_stempelbadge"
+    ],
+    "247": [
+      "src_components_ui_vaultbutton_vaultbutton"
+    ],
+    "248": [
+      "src_components_ui_vaultglass_vaultglass"
+    ],
+    "249": [
+      "src_components_welcomesplash_welcomesplash"
+    ],
+    "250": [
+      "src_config_tiers_calculateadditivecapacity"
+    ],
+    "251": [
+      "src_config_tiers_gettierconfig"
+    ],
+    "252": [
+      "src_config_tiers_getwibstartofmonth"
+    ],
+    "253": [
+      "src_config_tiers_normalizetier"
+    ],
+    "254": [
+      "src_lib_admin_auth_issuperadminemail"
+    ],
+    "255": [
+      "src_lib_admin_auth_logadminaudit"
+    ],
+    "256": [
+      "src_lib_admin_auth_withadminauth"
+    ],
+    "257": [
+      "src_lib_audit_logactivity"
+    ],
+    "258": [
+      "src_lib_auth_comparepassword"
+    ],
+    "259": [
+      "src_lib_auth_errorresponse"
+    ],
+    "260": [
+      "src_lib_auth_getauthuser"
+    ],
+    "261": [
+      "src_lib_auth_hashpassword"
+    ],
+    "262": [
+      "src_lib_auth_helpers_checksubscriptionactive"
+    ],
+    "263": [
+      "src_lib_auth_helpers_errorresponse"
+    ],
+    "264": [
+      "src_lib_auth_helpers_successresponse"
+    ],
+    "265": [
+      "src_lib_auth_helpers_withauthsupabase"
+    ],
+    "266": [
+      "src_lib_auth_helpers_withbossonly"
+    ],
+    "267": [
+      "src_lib_auth_signtoken"
+    ],
+    "268": [
+      "src_lib_auth_successresponse"
+    ],
+    "269": [
+      "src_lib_auth_verifytoken"
+    ],
+    "270": [
+      "src_lib_auth_withauth"
+    ],
+    "271": [
+      "src_lib_calculations_calculatebonusstatus"
+    ],
+    "272": [
+      "src_lib_calculations_calculatecascadingdiscount"
+    ],
+    "273": [
+      "src_lib_calculations_calculatetransactiontotals"
+    ],
+    "274": [
+      "src_lib_calculations_checkandgrantbonuses"
+    ],
+    "275": [
+      "src_lib_calculations_formatcustomer"
+    ],
+    "276": [
+      "src_lib_calculations_formatproduct"
+    ],
+    "277": [
+      "src_lib_calculations_formattransaction"
+    ],
+    "278": [
+      "src_lib_calculations_formattransactionitem"
+    ],
+    "279": [
+      "src_lib_calculations_getfiveyearsagodate"
+    ],
+    "280": [
+      "src_lib_supabase_middleware_client_createmiddlewareclient"
+    ],
+    "281": [
+      "src_lib_supabase_server_createserversupabaseclient"
+    ],
+    "282": [
+      "src_lib_utils_cn"
+    ],
+    "283": [
+      "src_providers_localeprovider_localeprovider"
+    ],
+    "284": [
+      "src_proxy_proxy"
+    ],
+    "285": [
+      "src_utils_api_mockdb"
+    ],
+    "286": [
+      "src_views_customerdetail_customerdetail"
+    ],
+    "287": [
+      "src_views_customermanagement_customermanagement"
+    ],
+    "288": [
+      "src_views_dashboard_dashboard"
+    ],
+    "289": [
+      "src_views_helpcenter_helpcenter"
+    ],
+    "290": [
+      "src_views_login_login"
+    ],
+    "291": [
+      "src_views_productmanagement_productmanagement"
+    ],
+    "292": [
+      "src_views_reporting_reporting"
+    ],
+    "293": [
+      "src_views_settings_settings"
+    ],
+    "294": [
+      "src_views_transactiondetail_transactiondetail"
+    ],
+    "295": [
+      "src_views_transactionform_transactionform"
+    ]
+  },
+  "cohesion": {
+    "0": 0.08547008547008547,
+    "1": 0.13157894736842105,
+    "2": 0.13725490196078433,
+    "3": 0.1323529411764706,
+    "4": 0.19852941176470587,
+    "5": 0.14166666666666666,
+    "6": 0.24175824175824176,
+    "7": 0.16483516483516483,
+    "8": 0.16666666666666666,
+    "9": 0.2222222222222222,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.5,
+    "13": 0.5,
+    "14": 0.6666666666666666,
+    "15": 0.6666666666666666,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0,
+    "21": 1.0,
+    "22": 1.0,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0,
+    "42": 1.0,
+    "43": 1.0,
+    "44": 1.0,
+    "45": 1.0,
+    "46": 1.0,
+    "47": 1.0,
+    "48": 1.0,
+    "49": 1.0,
+    "50": 1.0,
+    "51": 1.0,
+    "52": 1.0,
+    "53": 1.0,
+    "54": 1.0,
+    "55": 1.0,
+    "56": 1.0,
+    "57": 1.0,
+    "58": 1.0,
+    "59": 1.0,
+    "60": 1.0,
+    "61": 1.0,
+    "62": 1.0,
+    "63": 1.0,
+    "64": 1.0,
+    "65": 1.0,
+    "66": 1.0,
+    "67": 1.0,
+    "68": 1.0,
+    "69": 1.0,
+    "70": 1.0,
+    "71": 1.0,
+    "72": 1.0,
+    "73": 1.0,
+    "74": 1.0,
+    "75": 1.0,
+    "76": 1.0,
+    "77": 1.0,
+    "78": 1.0,
+    "79": 1.0,
+    "80": 1.0,
+    "81": 1.0,
+    "82": 1.0,
+    "83": 1.0,
+    "84": 1.0,
+    "85": 1.0,
+    "86": 1.0,
+    "87": 1.0,
+    "88": 1.0,
+    "89": 1.0,
+    "90": 1.0,
+    "91": 1.0,
+    "92": 1.0,
+    "93": 1.0,
+    "94": 1.0,
+    "95": 1.0,
+    "96": 1.0,
+    "97": 1.0,
+    "98": 1.0,
+    "99": 1.0,
+    "100": 1.0,
+    "101": 1.0,
+    "102": 1.0,
+    "103": 1.0,
+    "104": 1.0,
+    "105": 1.0,
+    "106": 1.0,
+    "107": 1.0,
+    "108": 1.0,
+    "109": 1.0,
+    "110": 1.0,
+    "111": 1.0,
+    "112": 1.0,
+    "113": 1.0,
+    "114": 1.0,
+    "115": 1.0,
+    "116": 1.0,
+    "117": 1.0,
+    "118": 1.0,
+    "119": 1.0,
+    "120": 1.0,
+    "121": 1.0,
+    "122": 1.0,
+    "123": 1.0,
+    "124": 1.0,
+    "125": 1.0,
+    "126": 1.0,
+    "127": 1.0,
+    "128": 1.0,
+    "129": 1.0,
+    "130": 1.0,
+    "131": 1.0,
+    "132": 1.0,
+    "133": 1.0,
+    "134": 1.0,
+    "135": 1.0,
+    "136": 1.0,
+    "137": 1.0,
+    "138": 1.0,
+    "139": 1.0,
+    "140": 1.0,
+    "141": 1.0,
+    "142": 1.0,
+    "143": 1.0,
+    "144": 1.0,
+    "145": 1.0,
+    "146": 1.0,
+    "147": 1.0,
+    "148": 1.0,
+    "149": 1.0,
+    "150": 1.0,
+    "151": 1.0,
+    "152": 1.0,
+    "153": 1.0,
+    "154": 1.0,
+    "155": 1.0,
+    "156": 1.0,
+    "157": 1.0,
+    "158": 1.0,
+    "159": 1.0,
+    "160": 1.0,
+    "161": 1.0,
+    "162": 1.0,
+    "163": 1.0,
+    "164": 1.0,
+    "165": 1.0,
+    "166": 1.0,
+    "167": 1.0,
+    "168": 1.0,
+    "169": 1.0,
+    "170": 1.0,
+    "171": 1.0,
+    "172": 1.0,
+    "173": 1.0,
+    "174": 1.0,
+    "175": 1.0,
+    "176": 1.0,
+    "177": 1.0,
+    "178": 1.0,
+    "179": 1.0,
+    "180": 1.0,
+    "181": 1.0,
+    "182": 1.0,
+    "183": 1.0,
+    "184": 1.0,
+    "185": 1.0,
+    "186": 1.0,
+    "187": 1.0,
+    "188": 1.0,
+    "189": 1.0,
+    "190": 1.0,
+    "191": 1.0,
+    "192": 1.0,
+    "193": 1.0,
+    "194": 1.0,
+    "195": 1.0,
+    "196": 1.0,
+    "197": 1.0,
+    "198": 1.0,
+    "199": 1.0,
+    "200": 1.0,
+    "201": 1.0,
+    "202": 1.0,
+    "203": 1.0,
+    "204": 1.0,
+    "205": 1.0,
+    "206": 1.0,
+    "207": 1.0,
+    "208": 1.0,
+    "209": 1.0,
+    "210": 1.0,
+    "211": 1.0,
+    "212": 1.0,
+    "213": 1.0,
+    "214": 1.0,
+    "215": 1.0,
+    "216": 1.0,
+    "217": 1.0,
+    "218": 1.0,
+    "219": 1.0,
+    "220": 1.0,
+    "221": 1.0,
+    "222": 1.0,
+    "223": 1.0,
+    "224": 1.0,
+    "225": 1.0,
+    "226": 1.0,
+    "227": 1.0,
+    "228": 1.0,
+    "229": 1.0,
+    "230": 1.0,
+    "231": 1.0,
+    "232": 1.0,
+    "233": 1.0,
+    "234": 1.0,
+    "235": 1.0,
+    "236": 1.0,
+    "237": 1.0,
+    "238": 1.0,
+    "239": 1.0,
+    "240": 1.0,
+    "241": 1.0,
+    "242": 1.0,
+    "243": 1.0,
+    "244": 1.0,
+    "245": 1.0,
+    "246": 1.0,
+    "247": 1.0,
+    "248": 1.0,
+    "249": 1.0,
+    "250": 1.0,
+    "251": 1.0,
+    "252": 1.0,
+    "253": 1.0,
+    "254": 1.0,
+    "255": 1.0,
+    "256": 1.0,
+    "257": 1.0,
+    "258": 1.0,
+    "259": 1.0,
+    "260": 1.0,
+    "261": 1.0,
+    "262": 1.0,
+    "263": 1.0,
+    "264": 1.0,
+    "265": 1.0,
+    "266": 1.0,
+    "267": 1.0,
+    "268": 1.0,
+    "269": 1.0,
+    "270": 1.0,
+    "271": 1.0,
+    "272": 1.0,
+    "273": 1.0,
+    "274": 1.0,
+    "275": 1.0,
+    "276": 1.0,
+    "277": 1.0,
+    "278": 1.0,
+    "279": 1.0,
+    "280": 1.0,
+    "281": 1.0,
+    "282": 1.0,
+    "283": 1.0,
+    "284": 1.0,
+    "285": 1.0,
+    "286": 1.0,
+    "287": 1.0,
+    "288": 1.0,
+    "289": 1.0,
+    "290": 1.0,
+    "291": 1.0,
+    "292": 1.0,
+    "293": 1.0,
+    "294": 1.0,
+    "295": 1.0
+  },
+  "gods": [
+    {
+      "id": "agents_skills_impeccable_scripts_live_server",
+      "label": "server",
+      "degree": 21
+    },
+    {
+      "id": "agents_skills_impeccable_scripts_detector_detect_antipatterns",
+      "label": "antipatterns",
+      "degree": 12
+    },
+    {
+      "id": "agents_skills_impeccable_scripts_hook_before_edit",
+      "label": "edit",
+      "degree": 12
+    },
+    {
+      "id": "agents_skills_impeccable_scripts_live_manual_edit_routes",
+      "label": "routes",
+      "degree": 11
+    },
+    {
+      "id": "agents_skills_impeccable_scripts_lib_is_generated_isgeneratedfile",
+      "label": "isGeneratedFile",
+      "degree": 10
+    },
+    {
+      "id": "agents_skills_impeccable_scripts_live_manual_edits_buffer_readbuffer",
+      "label": "readBuffer",
+      "degree": 10
+    },
+    {
+      "id": "c_users_user_desktop_project_2ndmanager_agents_skills_impeccable_scripts_hook_before_edit_main",
+      "label": "main",
+      "degree": 10
+    },
+    {
+      "id": "agents_skills_impeccable_scripts_lib_impeccable_paths_readliveserverinfo",
+      "label": "readLiveServerInfo",
+      "degree": 9
+    },
+    {
+      "id": "agents_skills_impeccable_scripts_live_commit_manual_edits",
+      "label": "edits",
+      "degree": 8
+    },
+    {
+      "id": "agents_skills_impeccable_scripts_live_accept",
+      "label": "accept",
+      "degree": 8
+    }
+  ],
+  "surprises": [
+    {
+      "source": "main",
+      "target": "truthy",
+      "source_files": [
+        ".agents/skills/impeccable/scripts/hook-before-edit.mjs",
+        ".agents/skills/impeccable/scripts/hook-lib.mjs"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `truthy` unexpectedly reaches hub `main`"
+    },
+    {
+      "source": "readrawdetectorconfig",
+      "target": "getConfigPath",
+      "source_files": [
+        ".agents/skills/impeccable/scripts/hook-admin.mjs",
+        ".agents/skills/impeccable/scripts/hook-lib.mjs"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `readrawdetectorconfig` unexpectedly reaches hub `getConfigPath`"
+    },
+    {
+      "source": "readrawhookconfig",
+      "target": "getConfigPath",
+      "source_files": [
+        ".agents/skills/impeccable/scripts/hook-admin.mjs",
+        ".agents/skills/impeccable/scripts/hook-lib.mjs"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `readrawhookconfig` unexpectedly reaches hub `getConfigPath`"
+    },
+    {
+      "source": "readrawdetectorconfig",
+      "target": "getLocalConfigPath",
+      "source_files": [
+        ".agents/skills/impeccable/scripts/hook-admin.mjs",
+        ".agents/skills/impeccable/scripts/hook-lib.mjs"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `readrawdetectorconfig` unexpectedly reaches hub `getLocalConfigPath`"
+    },
+    {
+      "source": "readrawhookconfig",
+      "target": "getLocalConfigPath",
+      "source_files": [
+        ".agents/skills/impeccable/scripts/hook-admin.mjs",
+        ".agents/skills/impeccable/scripts/hook-lib.mjs"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `readrawhookconfig` unexpectedly reaches hub `getLocalConfigPath`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `server` connect `Subsystem 1 (20 components)` to `Subsystem 8 (13 components)`, `Subsystem 2 (18 components)`, `Subsystem 5 (16 components)`?",
+      "why": "High betweenness centrality (0.024) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `readLiveServerInfo` connect `Subsystem 8 (13 components)` to `Subsystem 9 (10 components)`, `Subsystem 1 (20 components)`?",
+      "why": "High betweenness centrality (0.013) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `countByPage` connect `Subsystem 2 (18 components)` to `Subsystem 1 (20 components)`?",
+      "why": "High betweenness centrality (0.008) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `gatherSignals`, `resolveContextDir`, `extractRegister` to the rest of the system?",
+      "why": "356 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Subsystem 0 (27 components)` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.08547008547008547 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Subsystem 1 (20 components)` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.13157894736842105 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Subsystem 2 (18 components)` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.13725490196078433 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

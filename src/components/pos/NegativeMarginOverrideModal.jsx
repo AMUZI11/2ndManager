@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Lock, ShieldAlert, KeyRound, Check, X, Delete } from 'lucide-react';
 import { api } from '@/utils/api';
+import { emitStealthMetric } from '@/utils/stealthTelemetry';
 
 export default function NegativeMarginOverrideModal({
   isOpen,
@@ -75,6 +76,13 @@ export default function NegativeMarginOverrideModal({
         onAuthorize({ pin });
       }
     } catch (err) {
+      // Telemetry: FPA on wrong PIN attempt
+      emitStealthMetric('FPA', {
+        attempt_number: 4 - (err.remainingAttempts !== undefined ? err.remainingAttempts : remainingAttempts),
+        target_action: 'NEGATIVE_MARGIN_BYPASS',
+        error_code: err.code || 'INVALID_PIN'
+      });
+
       if (err.status === 429 || err.code === 'PIN_LOCKED') {
         setIsLocked(true);
         setErrorMsg(err.message || 'PIN terkunci selama 15 menit.');

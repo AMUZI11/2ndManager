@@ -24,10 +24,16 @@ function LoginContent() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (password.length < 6) {
+      setErrorMsg('Kata sandi minimal 6 karakter.');
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       setErrorMsg('Email atau kata sandi salah. Silakan periksa kembali.');
@@ -44,20 +50,43 @@ function LoginContent() {
       .map((e) => e.trim().toLowerCase());
     const isSuperadmin = adminEmails.includes(email.trim().toLowerCase());
     const redirectTo = searchParams.get('redirectTo');
-    const targetUrl = redirectTo || (isSuperadmin ? '/admin/dashboard' : '/dashboard');
+
+    let targetUrl = redirectTo;
+    if (!targetUrl) {
+      if (isSuperadmin) {
+        targetUrl = '/admin/dashboard';
+      } else {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', authData?.user?.id)
+            .single();
+          targetUrl = profile?.role === 'CASHIER' ? '/pos' : '/dashboard';
+        } catch {
+          targetUrl = '/dashboard';
+        }
+      }
+    }
+
     setTimeout(() => router.push(targetUrl), 1000);
   };
 
   const handleSignUp = async (e) => {
     e.preventDefault();
     setErrorMsg('');
-    setLoading(true);
 
     if (!shopName.trim()) {
       setErrorMsg('Nama toko wajib diisi.');
-      setLoading(false);
       return;
     }
+
+    if (password.length < 6) {
+      setErrorMsg('Kata sandi pendaftaran minimal 6 karakter.');
+      return;
+    }
+
+    setLoading(true);
 
     const formattedShopName = shopName.trim();
     const supabase = createClient();
@@ -311,9 +340,9 @@ function LoginContent() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Minimal 8 karakter"
+                    placeholder={mode === 'register' ? 'Minimal 6 karakter' : 'Masukkan kata sandi'}
                     className="w-full bg-slate-50 focus:bg-white border-2 border-slate-800 rounded-xl p-3.5 pr-12 font-sans text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00] transition-colors h-14"
-                    minLength={8}
+                    minLength={6}
                     required
                   />
                   <button

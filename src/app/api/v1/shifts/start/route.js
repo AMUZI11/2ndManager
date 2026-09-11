@@ -1,6 +1,6 @@
-// POST /api/v1/shifts/start — Buka sesi shift kasir baru dengan modal awal (starting_cash)
-
-import { withAuthSupabase, errorResponse, successResponse } from '@/lib/auth-helpers';
+// POST /api/v1/shifts/start — Buka sesi shift kasir baru dengan evaluasi serah terima estafet laci
+import { withAuthSupabase, errorResponse } from '@/lib/auth-helpers';
+import { getTierConfig } from '@/config/tiers';
 import { logActivity } from '@/lib/audit';
 
 export const POST = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
@@ -19,68 +19,84 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
     const body = await request.json();
-    const { starting_cash = 0, notes } = body;
+    const { starting_cash = 0, register_id = 'REGISTER_MAIN', denominations = {} } = body;
 
     const initialCash = parseInt(starting_cash, 10);
     if (isNaN(initialCash) || initialCash < 0) {
       return errorResponse('Modal awal laci kasir (starting_cash) tidak valid.', 'INVALID_INPUT', 400);
     }
 
-    // Periksa apakah sudah ada shift yang berstatus 'OPEN' untuk toko ini
-    const { data: existingShift, error: checkErr } = await supabase
-      .from('cashier_shifts')
-      .select('id, shift_number, cashier_id, start_time, starting_cash')
-      .eq('shop_id', shopId)
-      .eq('status', 'OPEN')
-      .maybeSingle();
+    const registerId = (typeof register_id === 'string' && register_id.trim()) 
+      ? register_id.trim().toUpperCase() 
+      : 'REGISTER_MAIN';
 
-    if (checkErr) throw checkErr;
+    // Eksekusi RPC Database Atomic untuk pembukaan shift & audit estafet
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('start_shift_with_estafet_audit', {
+      p_shop_id: shopId,
+      p_cashier_id: profile.id,
+      p_register_id: registerId,
+      p_starting_cash: initialCash,
+      p_denominations: denominations || {},
+    });
 
-    if (existingShift) {
-      return errorResponse(
-        `Masih ada shift kasir yang aktif (Shift #${existingShift.shift_number}). Tutup shift sebelumnya terlebih dahulu.`,
-        'ACTIVE_SHIFT_EXISTS',
-        400,
-        { active_shift: existingShift }
-      );
+    if (rpcErr) {
+      console.error('[start_shift_with_estafet_audit error]', rpcErr);
+      return errorResponse(rpcErr.message || 'Gagal membuka sesi shift kasir.', 'SHIFT_START_FAILED', 400);
     }
 
-    // Hitung nomor urut shift hari ini
-    const todayStr = new Date().toISOString().split('T')[0];
-    const { count } = await supabase
-      .from('cashier_shifts')
-      .select('*', { count: 'exact', head: true })
-      .eq('shop_id', shopId)
-      .gte('start_time', `${todayStr}T00:00:00.000Z`);
+    // Ambil tier toko untuk pengecekan notifikasi realtime
+    const { data: shop } = await supabase
+      .from('shops')
+      .select('subscription_tier')
+      .eq('id', shopId)
+      .maybeSingle();
 
-    const shiftNumber = (count || 0) + 1;
+    const tierConfig = getTierConfig(shop?.subscription_tier || 'MAGANG');
+    const features = tierConfig?.features || {};
 
-    // Buat row shift baru
-    const { data: newShift, error: insertErr } = await supabase
-      .from('cashier_shifts')
-      .insert({
-        shop_id: shopId,
-        cashier_id: profile.id,
-        shift_number: shiftNumber,
-        starting_cash: initialCash,
-        status: 'OPEN',
-        notes: notes?.trim() || null,
-        start_time: new Date().toISOString(),
-      })
-      .select('*, cashier:profiles!cashier_id(id, username, role)')
-      .single();
+    // Jika terjadi selisih serah terima (DISCREPANCY / HEM) dan tier mengizinkan alert realtime
+    if (rpcRes?.handover_status === 'DISCREPANCY' && features.realtime_security_alerts) {
+      try {
+        // Ambil anomali HEM terbaru yang baru dibuat
+        const { data: hemEvent } = await supabase
+          .from('security_anomaly_events')
+          .select('*')
+          .eq('shop_id', shopId)
+          .eq('event_type', 'HEM')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-    if (insertErr) throw insertErr;
+        if (hemEvent) {
+          const channel = supabase.channel(`shop_security:${shopId}`);
+          await channel.send({
+            type: 'broadcast',
+            event: 'ANOMALY_TRIGGERED',
+            payload: hemEvent,
+          });
+        }
+      } catch (broadcastErr) {
+        console.warn('[Estafet alert broadcast error]', broadcastErr);
+      }
+    }
 
     await logActivity({
       user_id: user.id,
       action: 'START_CASHIER_SHIFT',
       entity: 'cashier_shifts',
-      entity_id: newShift.id,
-      metadata: { shift_number: shiftNumber, starting_cash: initialCash },
+      entity_id: rpcRes.shift_id,
+      metadata: { register_id: registerId, starting_cash: initialCash, handover_status: rpcRes.handover_status },
     });
 
-    return successResponse(newShift);
+    // Respons ke kasir: Dilarang menyertakan selisih nominal laci (Zero Bocoran)
+    return Response.json(
+      {
+        success: true,
+        shift_id: rpcRes.shift_id,
+        register_id: rpcRes.register_id,
+      },
+      { status: 201 }
+    );
   } catch (err) {
     console.error('Error POST /api/v1/shifts/start:', err);
     return errorResponse('Gagal memulai shift kasir: ' + err.message, 'INTERNAL_ERROR', 500);

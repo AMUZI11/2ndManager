@@ -3,9 +3,11 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Scale, CheckCircle2, AlertTriangle, MessageCircle, X,
-  Banknote, RefreshCw, AlertCircle, Send, ShieldAlert
+  Banknote, RefreshCw, AlertCircle, Send, ShieldAlert, Sparkles
 } from 'lucide-react';
 import { api } from '@/utils/api';
+import { calculateTripartiteSettlement, generateConsignmentWhatsAppReceipt } from '@/utils/consignmentEngine';
+import { kickCashDrawerDirect } from '@/utils/escposPrinter';
 
 export default function ConsignmentSettleModal({
   isOpen,
@@ -17,9 +19,9 @@ export default function ConsignmentSettleModal({
   const [errorMsg, setErrorMsg] = useState('');
 
   // Form states
-  const [returnedQty, setReturnedQty] = useState('0');
-  const [damagedQty, setDamagedQty] = useState('0');
-  const [lossBorneBy, setLossBorneBy] = useState('STORE'); // 'STORE' | 'VENDOR'
+  const [returnedGoodQty, setReturnedGoodQty] = useState('0');
+  const [returnedStaleQty, setReturnedStaleQty] = useState('0');
+  const [stalePolicy, setStalePolicy] = useState(batch?.consignment_vendors?.stale_policy || 'VENDOR_BORNE');
   const [paymentMethod, setPaymentMethod] = useState('TUNAI'); // 'TUNAI' | 'TRANSFER'
   const [settleNotes, setSettleNotes] = useState('');
 
@@ -27,38 +29,21 @@ export default function ConsignmentSettleModal({
   const vendorPrice = Number(batch?.vendor_price_per_unit || 0);
   const sellingPrice = Number(batch?.selling_price_per_unit || 0);
 
-  // Estimasi Q_pos: jika ada data sold_qty di batch, gunakan; jika tidak anggap sisa yang tidak diretur
-  const numRetur = Math.max(0, parseInt(returnedQty, 10) || 0);
-  const numDamaged = Math.max(0, parseInt(damagedQty, 10) || 0);
+  const numGood = Math.max(0, parseInt(returnedGoodQty, 10) || 0);
+  const numStale = Math.max(0, parseInt(returnedStaleQty, 10) || 0);
 
-  // Perhitungan Tripartit
+  // Kalkulasi Tripartit menggunakan consignmentEngine
   const calculations = useMemo(() => {
-    // Estimasi penjualan POS: minimal 0, maksimal (qMasuk - numRetur - numDamaged)
-    const estimatedPos = Math.max(0, qMasuk - numRetur - numDamaged);
-    const lostQty = Math.max(0, qMasuk - estimatedPos - numRetur - numDamaged);
-
-    let vendorQtyPaid = 0;
-    if (lossBorneBy === 'STORE') {
-      // Toko menanggung barang rusak & selisih hilang
-      vendorQtyPaid = Math.max(0, qMasuk - numRetur);
-    } else {
-      // Vendor menanggung barang rusak & hilang -> warung hanya bayar barang laku di kasir
-      vendorQtyPaid = estimatedPos;
-    }
-
-    const totalPayout = vendorQtyPaid * vendorPrice;
-    const totalOmzetPos = estimatedPos * sellingPrice;
-    const totalProfit = totalOmzetPos - totalPayout;
-
-    return {
-      estimatedPos,
-      lostQty,
-      vendorQtyPaid,
-      totalPayout,
-      totalOmzetPos,
-      totalProfit,
-    };
-  }, [qMasuk, vendorPrice, sellingPrice, numRetur, numDamaged, lossBorneBy]);
+    return calculateTripartiteSettlement({
+      qReceived: qMasuk,
+      qSoldPos: batch?.sold_qty !== undefined ? batch.sold_qty : null,
+      qReturnedGood: numGood,
+      qReturnedStale: numStale,
+      vendorPrice,
+      sellingPrice,
+      stalePolicy,
+    });
+  }, [qMasuk, batch?.sold_qty, numGood, numStale, vendorPrice, sellingPrice, stalePolicy]);
 
   if (!isOpen || !batch) return null;
 
@@ -68,13 +53,24 @@ export default function ConsignmentSettleModal({
     setLoading(true);
     setErrorMsg('');
     try {
+      // 1. Eksekusi settlement di database
       await api.settleConsignmentBatch(batch.id, {
-        returned_qty: numRetur,
-        damaged_qty: numDamaged,
-        loss_borne_by: lossBorneBy,
+        returned_qty: numGood,
+        damaged_qty: numStale,
+        loss_borne_by: stalePolicy,
+        stale_policy: stalePolicy,
         payment_method: paymentMethod,
         notes: settleNotes.trim() || null,
       });
+
+      // 2. Jika bayar tunai via laci kasir, hentak laci fisik
+      if (paymentMethod === 'TUNAI') {
+        try {
+          await kickCashDrawerDirect();
+        } catch (drawerErr) {
+          console.warn('[Consignment Settle] Kick drawer error:', drawerErr);
+        }
+      }
 
       if (onSuccess) onSuccess();
       onClose();
@@ -86,31 +82,31 @@ export default function ConsignmentSettleModal({
   };
 
   // WhatsApp Message Generator
-  const generateWhatsAppUrl = () => {
-    const phone = batch.consignment_vendors?.phone?.replace(/[^0-9]/g, '');
-    const vendorName = batch.consignment_vendors?.nama_vendor || 'Bapak/Ibu Vendor';
-    const prodName = batch.products?.nama || 'Produk Titipan';
+  const handleOpenWhatsApp = () => {
+    const wa = generateConsignmentWhatsAppReceipt({
+      vendorName: batch.consignment_vendors?.nama_vendor || 'Bapak/Ibu Vendor',
+      vendorPhone: batch.consignment_vendors?.phone || batch.consignment_vendors?.phone_number || '',
+      productName: batch.products?.nama || 'Produk Titipan',
+      qReceived: qMasuk,
+      qSold: calculations.qSold,
+      qReturnedGood: numGood,
+      qReturnedStale: numStale,
+      stalePolicy,
+      vendorPayout: calculations.vendorPayout,
+      vendorPrice,
+      storeName: '2ndManager Warung',
+    });
 
-    const msg = `*REKAP SETTLEMENT KONSINYASI KLOLAWARUNG* 🧾
-Kepada: *${vendorName}*
-Produk: *${prodName}*
-
-• Barang Dititipkan: ${qMasuk} pcs
-• Terjual di Kasir: ${calculations.estimatedPos} pcs
-• Sisa Retur Fisik: ${numRetur} pcs
-${numDamaged > 0 ? `• Barang Rusak/Basi: ${numDamaged} pcs\n` : ''}• Harga Setor: ${formatRupiah(vendorPrice)} / pcs
-
-*TOTAL HAK VENDOR: ${formatRupiah(calculations.totalPayout)}*
-Status: *TELAH DIBAYARKAN (${paymentMethod})*
-
-Terima kasih atas kerja sama titip jualnya! 🙏`;
-
-    return `https://wa.me/${phone ? (phone.startsWith('0') ? '62' + phone.slice(1) : phone) : ''}?text=${encodeURIComponent(msg)}`;
+    if (wa.encodedUrl) {
+      window.open(wa.encodedUrl, '_blank');
+    } else {
+      alert('Nomor telepon vendor tidak valid atau belum diisi.');
+    }
   };
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto font-sans">
+      <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto font-sans">
         <motion.div
           initial={{ scale: 0.95, y: 20, opacity: 0 }}
           animate={{ scale: 1, y: 0, opacity: 1 }}
@@ -128,13 +124,13 @@ Terima kasih atas kerja sama titip jualnya! 🙏`;
                   Rekonsiliasi &amp; Settlement Konsinyasi
                 </h3>
                 <p className="text-[11px] text-white/70 font-sans">
-                  Hitung perbandingan tripartit &amp; setor uang laci kasir
+                  Hitung tripartit sisa kue, kebijakan basi &amp; laci kasir
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+              className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
             >
               <X size={18} />
             </button>
@@ -143,7 +139,7 @@ Terima kasih atas kerja sama titip jualnya! 🙏`;
           <div className="p-5 space-y-4">
             {errorMsg && (
               <div className="p-3 bg-rose-50 border-2 border-rose-500 rounded-xl text-rose-800 text-xs font-mono font-bold flex items-center gap-2">
-                <AlertCircle size={15} className="flex-shrink-0" />
+                <AlertCircle size={15} className="shrink-0" />
                 <span>{errorMsg}</span>
               </div>
             )}
@@ -152,160 +148,185 @@ Terima kasih atas kerja sama titip jualnya! 🙏`;
             <div className="p-3.5 bg-slate-50 border-2 border-slate-800 rounded-xl space-y-1">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-900">
-                  {batch.products?.nama || 'Produk'}
+                  {batch.products?.nama || 'Produk Titipan'}
                 </span>
                 <span className="text-[11px] font-mono px-2 py-0.5 bg-indigo-100 text-indigo-900 rounded font-bold">
-                  {batch.consignment_vendors?.nama_vendor}
+                  {batch.consignment_vendors?.nama_vendor || 'Vendor'}
                 </span>
               </div>
               <div className="flex justify-between text-xs font-mono text-slate-600 pt-1 border-t border-slate-200">
                 <span>Titip Masuk: <strong className="text-slate-900">{qMasuk} Pcs</strong></span>
-                <span>Setor: <strong className="text-slate-900">{formatRupiah(vendorPrice)}</strong></span>
-                <span>Jual: <strong className="text-slate-900">{formatRupiah(sellingPrice)}</strong></span>
+                <span>Harga Titip: <strong className="text-slate-900">{formatRupiah(vendorPrice)}</strong></span>
+                <span>Harga Jual: <strong className="text-slate-900">{formatRupiah(sellingPrice)}</strong></span>
               </div>
             </div>
 
-            {/* Form Input Retur & Rusak */}
+            {/* Form Input Retur Baik vs Basi */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-[11px] font-mono font-bold text-slate-700 block mb-1 uppercase">
-                  Sisa Fisik Retur (Bagus)
+                  Sisa Fisik Retur Baik (Pcs)
                 </label>
                 <input
                   type="number"
                   min="0"
                   max={qMasuk}
-                  value={returnedQty}
-                  onChange={(e) => setReturnedQty(e.target.value)}
+                  value={returnedGoodQty}
+                  onChange={(e) => setReturnedGoodQty(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border-2 border-slate-800 rounded-xl text-sm font-mono font-bold text-slate-900 text-center"
                 />
-                <span className="text-[10px] text-slate-500 block mt-0.5">Dikembalikan ke vendor</span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">Layak konsumsi / dibawa pulang vendor</span>
               </div>
               <div>
                 <label className="text-[11px] font-mono font-bold text-slate-700 block mb-1 uppercase">
-                  Sisa Barang Rusak/Basi
+                  Sisa Fisik Basi / Rusak (Pcs)
                 </label>
                 <input
                   type="number"
                   min="0"
                   max={qMasuk}
-                  value={damagedQty}
-                  onChange={(e) => setDamagedQty(e.target.value)}
+                  value={returnedStaleQty}
+                  onChange={(e) => setReturnedStaleQty(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border-2 border-slate-800 rounded-xl text-sm font-mono font-bold text-slate-900 text-center"
                 />
-                <span className="text-[10px] text-slate-500 block mt-0.5">Tidak bisa dijual lagi</span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">Basi / kadaluarsa / tidak layak</span>
               </div>
             </div>
 
-            {/* Opsi Tanggungan Selisih / Kerusakan */}
+            {/* 3-Way Selector Kebijakan Barang Basi */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-mono font-bold text-slate-700 block uppercase">
-                Kebijakan Tanggungan Kerusakan / Selisih:
+                Kebijakan Penanganan Barang Basi:
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => setLossBorneBy('STORE')}
-                  className={`p-2.5 rounded-xl border-2 text-left transition cursor-pointer ${
-                    lossBorneBy === 'STORE'
-                      ? 'border-slate-900 bg-emerald-50 shadow-[2px_2px_0_#1E293B]'
+                  onClick={() => setStalePolicy('VENDOR_BORNE')}
+                  className={`p-2 rounded-xl border-2 text-left transition cursor-pointer ${
+                    stalePolicy === 'VENDOR_BORNE'
+                      ? 'border-slate-900 bg-amber-100 shadow-[2px_2px_0_#1E293B]'
                       : 'border-slate-200 bg-white hover:border-slate-400'
                   }`}
                 >
-                  <span className="text-xs font-bold font-sans text-slate-900 block">
-                    🛡️ Ditanggung Warung
+                  <span className="text-xs font-black text-slate-900 block">
+                    ✂️ Vendor
                   </span>
-                  <span className="text-[10px] text-slate-500 font-sans block">
-                    Vendor tetap dibayar untuk barang rusak/pecah
+                  <span className="text-[9px] text-slate-600 block mt-0.5">
+                    Hanya bayar yang laku di kasir.
                   </span>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => setLossBorneBy('VENDOR')}
-                  className={`p-2.5 rounded-xl border-2 text-left transition cursor-pointer ${
-                    lossBorneBy === 'VENDOR'
-                      ? 'border-slate-900 bg-amber-50 shadow-[2px_2px_0_#1E293B]'
+                  onClick={() => setStalePolicy('SHARED_50_50')}
+                  className={`p-2 rounded-xl border-2 text-left transition cursor-pointer ${
+                    stalePolicy === 'SHARED_50_50'
+                      ? 'border-slate-900 bg-sky-100 shadow-[2px_2px_0_#1E293B]'
                       : 'border-slate-200 bg-white hover:border-slate-400'
                   }`}
                 >
-                  <span className="text-xs font-bold font-sans text-slate-900 block">
-                    ✂️ Dipotong dari Vendor
+                  <span className="text-xs font-black text-slate-900 block">
+                    🤝 Bagi 50:50
                   </span>
-                  <span className="text-[10px] text-slate-500 font-sans block">
-                    Hanya bayar barang yang tercatat laku terjual
+                  <span className="text-[9px] text-slate-600 block mt-0.5">
+                    Kerugian basi dibagi dua sama rata.
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStalePolicy('STORE_BORNE')}
+                  className={`p-2 rounded-xl border-2 text-left transition cursor-pointer ${
+                    stalePolicy === 'STORE_BORNE'
+                      ? 'border-slate-900 bg-emerald-100 shadow-[2px_2px_0_#1E293B]'
+                      : 'border-slate-200 bg-white hover:border-slate-400'
+                  }`}
+                >
+                  <span className="text-xs font-black text-slate-900 block">
+                    🛡️ Toko
+                  </span>
+                  <span className="text-[9px] text-slate-600 block mt-0.5">
+                    Warung ganti penuh kue basi.
                   </span>
                 </button>
               </div>
             </div>
 
             {/* Metode Bayar Tunai / Transfer */}
-            <div className="flex items-center gap-3 pt-1">
+            <div className="flex items-center justify-between p-2.5 bg-slate-50 border-2 border-slate-800 rounded-xl">
               <span className="text-[11px] font-mono font-bold text-slate-700 uppercase">
-                Metode Bayar:
+                Metode Pembayaran:
               </span>
-              <label className="flex items-center gap-1.5 text-xs font-sans cursor-pointer">
-                <input
-                  type="radio"
-                  name="payment_method"
-                  value="TUNAI"
-                  checked={paymentMethod === 'TUNAI'}
-                  onChange={() => setPaymentMethod('TUNAI')}
-                  className="text-slate-900"
-                />
-                <span>Uang Tunai Laci Kasir</span>
-              </label>
-              <label className="flex items-center gap-1.5 text-xs font-sans cursor-pointer">
-                <input
-                  type="radio"
-                  name="payment_method"
-                  value="TRANSFER"
-                  checked={paymentMethod === 'TRANSFER'}
-                  onChange={() => setPaymentMethod('TRANSFER')}
-                  className="text-slate-900"
-                />
-                <span>Transfer Bank</span>
-              </label>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-900 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="payment_method"
+                    value="TUNAI"
+                    checked={paymentMethod === 'TUNAI'}
+                    onChange={() => setPaymentMethod('TUNAI')}
+                    className="text-slate-900 cursor-pointer"
+                  />
+                  <span>💵 Tunai (Hentak Laci Kasir)</span>
+                </label>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-900 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="payment_method"
+                    value="TRANSFER"
+                    checked={paymentMethod === 'TRANSFER'}
+                    onChange={() => setPaymentMethod('TRANSFER')}
+                    className="text-slate-900 cursor-pointer"
+                  />
+                  <span>🏦 Transfer Bank</span>
+                </label>
+              </div>
             </div>
 
             {/* Kalkulasi Akhir & Hak Vendor */}
             <div className="p-4 bg-slate-900 text-white rounded-xl space-y-2 font-mono text-xs border border-slate-800">
               <div className="flex justify-between text-white/70">
                 <span>Barang Terjual di Kasir:</span>
-                <span className="font-bold text-[#CCFF00]">{calculations.estimatedPos} Pcs</span>
+                <span className="font-bold text-[#CCFF00]">{calculations.qSold} Pcs</span>
               </div>
               <div className="flex justify-between text-white/70">
                 <span>Unit Dibayar ke Vendor:</span>
-                <span>{calculations.vendorQtyPaid} Pcs</span>
+                <span>{calculations.vendorPaidQty} Pcs</span>
               </div>
+              {calculations.staleLossCompensated > 0 && (
+                <div className="flex justify-between text-sky-400">
+                  <span>Kompensasi Basi ke Vendor:</span>
+                  <span>+{formatRupiah(calculations.staleLossCompensated)}</span>
+                </div>
+              )}
               <div className="flex justify-between pt-1 border-t border-slate-700 text-sm font-bold">
                 <span className="text-[#CCFF00] uppercase">UANG WAJIB DISETOR KE VENDOR:</span>
                 <span className="text-lg font-extrabold text-[#CCFF00]">
-                  {formatRupiah(calculations.totalPayout)}
+                  {formatRupiah(calculations.vendorPayout)}
                 </span>
               </div>
               <div className="flex justify-between text-[11px] text-emerald-400">
                 <span>Keuntungan Bersih Warung:</span>
-                <span>{formatRupiah(calculations.totalProfit)}</span>
+                <span>{formatRupiah(calculations.storeNetMargin)}</span>
               </div>
             </div>
           </div>
 
           {/* Footer */}
           <div className="p-4 bg-slate-100 border-t-2 border-slate-800 flex flex-wrap items-center justify-between gap-2">
-            <a
-              href={generateWhatsAppUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs font-bold rounded-xl border border-emerald-800 flex items-center gap-1.5"
+            <button
+              type="button"
+              onClick={handleOpenWhatsApp}
+              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs font-bold rounded-xl border border-emerald-800 flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0_#1E293B]"
             >
-              <MessageCircle size={15} /> Kirim WA Rekap
-            </a>
+              <MessageCircle size={15} /> Kirim WhatsApp Rekap
+            </button>
 
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-mono font-bold text-slate-600 hover:text-slate-900"
+                className="px-4 py-2 text-xs font-mono font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
               >
                 Batal
               </button>
@@ -313,7 +334,7 @@ Terima kasih atas kerja sama titip jualnya! 🙏`;
                 type="button"
                 disabled={loading}
                 onClick={handleSettle}
-                className="btn-arcade px-5 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] disabled:opacity-50 text-slate-900 font-extrabold text-xs font-mono uppercase rounded-xl border-2 border-slate-800 shadow-[3px_3px_0_#1E293B] flex items-center gap-2 cursor-pointer"
+                className="btn-arcade px-5 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] disabled:opacity-50 text-slate-900 font-extrabold text-xs font-mono uppercase rounded-xl border-2 border-slate-800 shadow-[3px_3px_0_#1E293B] flex items-center gap-2 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
               >
                 {loading ? <RefreshCw size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
                 Setor &amp; Lunasi Vendor

@@ -5,16 +5,20 @@ import {
   RefreshCw, Plus, Edit2, Trash2, Clock,
   MessageCircle, Copy, ChevronDown, ChevronUp,
   PackagePlus, Sparkles, Check, Phone, User, AlertCircle,
-  History, Building2, Sunrise, ShieldCheck, X
+  History, Building2, ShieldCheck, X, Moon, Printer
 } from 'lucide-react';
 import { api } from '@/utils/api';
 import { normalizeIndonesianPhone } from '@/lib/phone';
 import { createClient } from '@/lib/supabase/client';
 import StockInModal from '@/components/products/StockInModal';
+import CashEnvelopeCard from '@/components/reorder/CashEnvelopeCard';
+import MarketModeModal from '@/components/reorder/MarketModeModal';
+import { generateSupplierWhatsAppUrl } from '@/utils/whatsappPoFormatter';
+import { printReorderSlipDirect } from '@/utils/escposPrinter';
 
 export default function ReorderManagement() {
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('REORDER'); // 'REORDER' | 'HISTORY' | 'SUPPLIERS' | 'BRIEFING'
+  const [activeTab, setActiveTab] = useState('REORDER'); // 'REORDER' | 'HISTORY' | 'SUPPLIERS'
   
   // Data States
   const [reorderData, setReorderData] = useState(null);
@@ -47,12 +51,8 @@ export default function ReorderManagement() {
   const [isStockInOpen, setIsStockInOpen] = useState(false);
   const [stockInPo, setStockInPo] = useState(null);
 
-  // Briefing Testing State
-  const [briefingPhone, setBriefingPhone] = useState('');
-  const [briefingPreview, setBriefingPreview] = useState(null);
-  const [briefingLoading, setBriefingLoading] = useState(false);
-  const [briefingSuccess, setBriefingSuccess] = useState('');
-  const [briefingError, setBriefingError] = useState('');
+  // Market Mode Modal (Pasar Subuh Taktil)
+  const [isMarketModeOpen, setIsMarketModeOpen] = useState(false);
 
   // General Notification Toast
   const [toastMsg, setToastMsg] = useState('');
@@ -249,31 +249,21 @@ export default function ReorderManagement() {
         notes: `PO via WhatsApp ke ${supplierGroup.supplier_name}`,
       });
 
-      // 2. Susun Pesan Ringkas Format Pasar Subuh (Patch 4)
-      const now = new Date();
-      const timeStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ', ' +
-                      now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
-
-      let msg = `*PESANAN KULAKAN - 2ndManager*\n`;
-      msg += `Tgl: ${timeStr}\n`;
-      msg += `No. PO: *#${createdPo.po_number}*\n`;
-      msg += `Agen: *${supplierGroup.supplier_name}*\n`;
-      msg += `═══════════════════════\n\n`;
-      msg += `Halo *${supplierGroup.supplier_name}*, mau order barang untuk pengiriman/ambil pagi ini:\n\n`;
-
-      itemsPayload.forEach((it, idx) => {
-        msg += `${idx + 1}. ${it.nama}: *${it.quantity_packs} ${it.pack_unit_name.toUpperCase()}* (~${formatRupiah(it.subtotal)})\n`;
+      // 2. Susun Pesan Ringkas & URL WhatsApp Aman (< 2000 Karakter)
+      const waUrl = generateSupplierWhatsAppUrl({
+        supplierName: supplierGroup.supplier_name,
+        supplierPhone: supplierGroup.supplier_phone,
+        poNumber: createdPo.po_number,
+        shopName: currentShop?.name || '2ndManager Warung',
+        items: itemsPayload.map(it => ({
+          name: it.nama,
+          packs: it.quantity_packs,
+          unit: it.pack_unit_name,
+          subtotal: it.subtotal,
+        })),
+        totalCost: supplierTotal,
+        notes: 'Pesanan Kulakan Pasar Subuh',
       });
-
-      msg += `\n*Total Estimasi: ${formatRupiah(supplierTotal)}*\n`;
-      msg += `Mohon konfirmasi kesiapan barang & total tagihannya ya. Makasih! 🙏\n`;
-      msg += `_Dikirim otomatis via 2ndManager Smart Re-Order_`;
-
-      const cleanPhone = normalizeIndonesianPhone(supplierGroup.supplier_phone);
-      const encoded = encodeURIComponent(msg);
-      const waUrl = cleanPhone 
-        ? `https://wa.me/${cleanPhone}?text=${encoded}`
-        : `https://wa.me/?text=${encoded}`;
 
       // Refresh PO List
       const updatedPoList = await api.getPurchaseOrders();
@@ -288,6 +278,50 @@ export default function ReorderManagement() {
     } catch (err) {
       console.error('Gagal membuat PO:', err);
       alert(err.message || 'Gagal membuat Purchase Order.');
+    }
+  };
+
+  // ─── CETAK STRUK DAFTAR BELANJA THERMAL (ESC/POS Direct Print) ────────────
+  const handlePrintReorderSlip = async () => {
+    if (!reorderData?.all_reorder_items) return;
+    const selected = reorderData.all_reorder_items.filter(it => itemSelections[it.id]?.selected);
+    if (selected.length === 0) {
+      alert('Tidak ada barang yang dipilih untuk dicetak.');
+      return;
+    }
+
+    const itemsForSlip = selected.map(it => {
+      const sel = itemSelections[it.id] || {};
+      const packs = sel.packs || 1;
+      const unit = sel.unitName || 'Pcs';
+      const sub = (packs * (sel.multiplier || 1)) * (it.harga_modal || 0);
+      return {
+        name: it.nama,
+        packs: packs,
+        unit: unit,
+        subtotal: sub,
+      };
+    });
+
+    const totalCost = calculateGrandTotal();
+
+    showToast('Mengirim struk belanja ke printer thermal...');
+    try {
+      const res = await printReorderSlipDirect({
+        shopName: currentShop?.name || '2ndManager Warung',
+        items: itemsForSlip,
+        totalCost: totalCost,
+        dateStr: new Date().toLocaleDateString('id-ID'),
+      });
+
+      if (res.success) {
+        showToast('Struk reorder berhasil dicetak!');
+      } else {
+        showToast(`Cetak struk: ${res.error || 'Selesai'}`);
+      }
+    } catch (err) {
+      console.error('Print slip error:', err);
+      showToast('Gagal mencetak struk direct.');
     }
   };
 
@@ -385,28 +419,6 @@ export default function ReorderManagement() {
       setSuppliers(updated || []);
     } catch (err) {
       alert(err.message || 'Gagal menghapus supplier.');
-    }
-  };
-
-  // ─── TEST MORNING BRIEFING ─────────────────────────────────────────────────
-  const handleTestBriefing = async () => {
-    setBriefingLoading(true);
-    setBriefingSuccess('');
-    setBriefingError('');
-    try {
-      const res = await api.triggerMorningBriefing({
-        phone: briefingPhone || undefined,
-        testOnly: true,
-      });
-      setBriefingPreview(res.message);
-      setBriefingSuccess(`Briefing Pagi berhasil disusun! Siap dikirim ke ${res.recipient_phone || 'WhatsApp'}.`);
-      if (res.whatsapp_url && typeof window !== 'undefined') {
-        window.open(res.whatsapp_url, '_blank');
-      }
-    } catch (err) {
-      setBriefingError(err.message || 'Gagal menyusun briefing pagi.');
-    } finally {
-      setBriefingLoading(false);
     }
   };
 
@@ -613,21 +625,6 @@ export default function ReorderManagement() {
             {suppliers.length}
           </span>
         </button>
-
-        <button
-          onClick={() => setActiveTab('BRIEFING')}
-          className={`btn-arcade px-4 py-2.5 text-xs font-mono font-black uppercase rounded-xl transition-all border-2 border-slate-800 flex items-center gap-2 min-h-[44px] cursor-pointer ${
-            activeTab === 'BRIEFING'
-              ? 'bg-slate-900 text-[#CCFF00] shadow-[3px_3px_0px_#1E293B]'
-              : 'bg-white text-slate-700 hover:bg-slate-100 shadow-[2px_2px_0px_#1E293B]'
-          }`}
-        >
-          <Sunrise size={15} />
-          <span>Asisten WA 06:00</span>
-          <span className="text-[10px] font-mono font-black bg-amber-400 text-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
-            EKSEKUTIF
-          </span>
-        </button>
       </div>
 
       {/* TAB 1: DAFTAR BELANJA PASAR (GROUPED BY SUPPLIER) */}
@@ -671,7 +668,16 @@ export default function ReorderManagement() {
               </p>
             </div>
           ) : (
-            reorderData.supplier_groups.map(group => {
+            <>
+              {/* Amplop Uang Fisik Kasir Pasar Subuh */}
+              <CashEnvelopeCard
+                totalAmount={calculateGrandTotal()}
+                reorderData={reorderData}
+                onOpenMarketMode={() => setIsMarketModeOpen(true)}
+                onPrintSlip={handlePrintReorderSlip}
+              />
+
+              {reorderData.supplier_groups.map(group => {
               const sKey = group.supplier_id || 'unassigned';
               const isCollapsed = collapsedSuppliers[sKey];
               const groupTotal = calculateSupplierTotal(group);
@@ -868,7 +874,8 @@ export default function ReorderManagement() {
                   )}
                 </div>
               );
-            })
+            })}
+          </>
           )}
         </div>
       )}
@@ -1079,98 +1086,6 @@ export default function ReorderManagement() {
         </div>
       )}
 
-      {/* TAB 4: ASISTEN BRIEFING PAGI 06:00 (TIER 3 EKSEKUTIF AUTOPILOT) */}
-      {activeTab === 'BRIEFING' && (
-        <div className="space-y-6">
-          {/* Executive Header Banner (Neo-Brutalist Dark Pitch) */}
-          <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-2xl border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B] space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono font-black bg-[#CCFF00] text-slate-900 px-2.5 py-0.5 rounded uppercase tracking-wider">
-                [ TIER 3: EKSEKUTIF AUTOPILOT ]
-              </span>
-              <span className="text-xs font-mono text-slate-400">06:00 WIB ASSISTANT</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black font-display text-[#CCFF00] uppercase flex items-center gap-2.5">
-              <Sunrise size={24} className="text-amber-400" />
-              Asisten Briefing Pagi WhatsApp Jam 06:00
-            </h2>
-            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-              Puncak otonomi juragan warung. Sistem secara otomatis merangkum kinerja keuangan kemarin (Omzet, Laba Bersih, Selisih Laci Kasir) serta radar barang habis yang harus dibeli ke pasar subuh hari ini langsung ke WhatsApp pribadi Anda setiap pukul 06:00 pagi.
-            </p>
-          </div>
-
-          {/* Test & Trigger Panel */}
-          <div className="bg-white p-6 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] space-y-5">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-400 border border-slate-800 text-slate-900 flex items-center justify-center">
-                <Sparkles size={16} />
-              </div>
-              <div>
-                <h3 className="font-black text-slate-900 text-sm font-display uppercase tracking-tight">
-                  Uji Coba Kirim Laporan Briefing Pagi
-                </h3>
-                <p className="text-xs text-slate-600">
-                  Kirim simulasi pesan ringkasan subuh langsung ke nomor WhatsApp Anda sekarang.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-              <div className="sm:col-span-2 space-y-1.5">
-                <label className="text-xs font-mono font-bold text-slate-700 uppercase tracking-wider">
-                  Nomor WhatsApp Pemilik:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: 08123456789 atau 628123456789"
-                  value={briefingPhone}
-                  onChange={(e) => setBriefingPhone(e.target.value)}
-                  className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl px-3.5 text-xs font-mono font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#CCFF00] outline-none transition-all shadow-[1px_1px_0px_#1E293B]"
-                />
-              </div>
-
-              <button
-                onClick={handleTestBriefing}
-                disabled={briefingLoading}
-                className="btn-arcade h-11 px-5 bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-mono font-black text-xs uppercase rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 min-h-[44px]"
-              >
-                {briefingLoading ? (
-                  <RefreshCw size={16} className="animate-spin" />
-                ) : (
-                  <MessageCircle size={16} />
-                )}
-                <span>Tes Kirim Briefing</span>
-              </button>
-            </div>
-
-            {briefingSuccess && (
-              <div className="p-3.5 bg-emerald-100 border-2 border-slate-800 text-emerald-950 rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-[2px_2px_0px_#1E293B]">
-                <CheckCircle2 size={16} className="text-emerald-700 shrink-0" />
-                <span>{briefingSuccess}</span>
-              </div>
-            )}
-
-            {briefingError && (
-              <div className="p-3.5 bg-rose-100 border-2 border-slate-800 text-rose-950 rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-[2px_2px_0px_#1E293B]">
-                <AlertTriangle size={16} className="text-rose-600 shrink-0" />
-                <span>{briefingError}</span>
-              </div>
-            )}
-
-            {briefingPreview && (
-              <div className="space-y-2 mt-4">
-                <span className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wider block">
-                  Pratinjau Format Pesan WhatsApp:
-                </span>
-                <pre className="p-4 bg-slate-900 text-[#CCFF00] rounded-xl border-2 border-slate-800 font-mono text-xs whitespace-pre-wrap overflow-x-auto shadow-[3px_3px_0px_#1E293B]">
-                  {briefingPreview}
-                </pre>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* STICKY BOTTOM TACTILE CASH BAR (BAR KAS TUNAI PASAR SUBUH) */}
       {activeTab === 'REORDER' && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t-2 border-slate-800 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] p-3.5 md:p-4 font-sans">
@@ -1331,6 +1246,25 @@ export default function ReorderManagement() {
           const sugg = await api.getReorderSuggestions();
           setReorderData(sugg);
         }}
+      />
+
+      {/* Floating Mode Pasar Subuh Button */}
+      {activeTab === 'REORDER' && !isTierLocked && (reorderData?.all_reorder_items?.length || 0) > 0 && (
+        <button
+          onClick={() => setIsMarketModeOpen(true)}
+          className="fixed bottom-6 right-6 z-40 bg-slate-900 text-[#CCFF00] hover:bg-slate-800 px-5 py-3.5 rounded-2xl border-2 border-slate-700 shadow-[4px_4px_0px_#000000] font-mono font-black text-xs uppercase flex items-center gap-2.5 transition-transform active:translate-y-0.5 cursor-pointer"
+        >
+          <Moon size={18} className="text-[#CCFF00]" />
+          <span>Mode Pasar Subuh</span>
+        </button>
+      )}
+
+      {/* MARKET MODE MODAL (Fullscreen Taktil Satu Jempol) */}
+      <MarketModeModal
+        isOpen={isMarketModeOpen}
+        onClose={() => setIsMarketModeOpen(false)}
+        reorderData={reorderData}
+        shopId={currentShop?.id}
       />
     </div>
   );

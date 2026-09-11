@@ -1,0 +1,57 @@
+<h2>Rencana Desain & Optimasi Halaman</h2>
+<p class="subtitle">Berikut adalah detail spesifikasi desain visual dan fungsional yang akan diimplementasikan. Silakan tinjau sebelum kita membuat dokumen spesifikasi formal.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Rencana Tata Letak Komponen</div>
+  <div class="mockup-body">
+    <div class="section">
+      <h3>1. Navigasi & Tata Letak (Glass Navigation)</h3>
+      <ul>
+        <li><strong>Desktop Sidebar:</strong> Tampilan samping melayang (floating) dengan efek kaca (glassmorphic), tombol berukuran besar (target klik &ge; 48px), label Bahasa Indonesia yang jelas, dan indikator lencana operator aktif.</li>
+        <li><strong>Mobile Navigation:</strong> Header atas yang ringkas dengan tombol keluar yang jelas, ditambah dengan bilah navigasi bawah (bottom bar) yang memiliki tombol melayang emas bulat besar <strong>(+) BON BARU</strong> di bagian tengah agar mudah ditekan jempol.</li>
+      </ul>
+    </div>
+
+    <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border);" />
+
+    <div class="section">
+      <h3>2. Dashboard Utama (Asymmetrical Bento Grid)</h3>
+      <ul>
+        <li><strong>Struktur Kartu Double-Bezel:</strong> Semua kartu statistik utama menggunakan doppelrand (outer shell + inner content) untuk efek kedalaman premium.</li>
+        <li><strong>Informasi Threshold Bonus:</strong> Menampilkan progress bar visual untuk pelanggan yang hampir mencapai batas bonus (misal: "Siti kurang Rp 1.500.000 lagi untuk mendapatkan 1 Box Bonus").</li>
+        <li><strong>Tabel Transaksi Terbaru:</strong> Baris transaksi dapat diklik langsung untuk menuju ke halaman detail transaksi baru.</li>
+      </ul>
+    </div>
+
+    <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border);" />
+
+    <div class="section">
+      <h3>3. Halaman Detail Transaksi Baru (New Route!)</h3>
+      <ul>
+        <li><strong>Dynamic Route:</strong> Menambahkan route baru <code>/transactions/[id]</code> untuk melihat rincian setiap bon secara mandiri.</li>
+        <li><strong>Transparansi Diskon Bertingkat:</strong> Menampilkan jalur hitung diskon secara runut, contoh: <code>Rp 100.000 &rarr; Diskon 20% (Rp 80.000) &rarr; Diskon 10% (Rp 72.000)</code> agar Bapak/Ibu lansia mudah memverifikasi kebenaran nominal.</li>
+        <li><strong>Pelunasan Instan & Cetak Rapi:</strong> Tombol "LUNASKAN BON" langsung di halaman detail, serta tata letak cetak khusus (@media print) yang otomatis menyembunyikan navigasi saat dicetak atau dijadikan PDF.</li>
+      </ul>
+    </div>
+
+    <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border);" />
+
+    <div class="section">
+      <h3>4. Peningkatan Efisiensi Kelola Pelanggan & Produk</h3>
+      <ul>
+        <li><strong>Tab Produk:</strong> Filter cepat di halaman produk (SEMUA | LM | BR) untuk mempercepat pencarian barang.</li>
+        <li><strong>Indikator Piutang:</strong> Lencana merah nominal piutang langsung tampil di samping nama pelanggan pada daftar pelanggan utama.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option selected" data-choice="approve-design" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Setujui Desain Ini</h3>
+      <p>Saya setuju dengan spesifikasi desain dan optimasi di atas. Silakan buat dokumen spesifikasi desain formal.</p>
+    </div>
+  </div>
+</div>

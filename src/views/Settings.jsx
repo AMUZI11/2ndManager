@@ -203,6 +203,7 @@ export default function Settings() {
       loadPinStatus();
     }, 0);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleShopSubmit = async (e) => {
@@ -275,6 +276,11 @@ export default function Settings() {
 
     if (!newCashierName.trim() || !newCashierEmail.trim() || !newCashierPassword || !selectedBranchId) {
       setCashierError("Semua kolom (Nama, Email, Password, Cabang) wajib diisi.");
+      return;
+    }
+
+    if (newCashierPassword.length < 8) {
+      setCashierError("Password kasir minimal 8 karakter.");
       return;
     }
     setCashierLoading(true);
@@ -654,7 +660,8 @@ PETUNJUK PENTING UNTUK BAPAK/IBU:
                   type={showNew ? "text" : "password"} 
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Masukkan kata sandi baru"
+                  placeholder="Masukkan kata sandi baru (min 6 karakter)"
+                  minLength={6}
                   className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl pl-3 pr-10 text-xs font-mono font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#CCFF00]"
                   required
                 />
@@ -677,6 +684,7 @@ PETUNJUK PENTING UNTUK BAPAK/IBU:
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Ketik ulang kata sandi baru"
+                  minLength={6}
                   className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl pl-3 pr-10 text-xs font-mono font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#CCFF00]"
                   required
                 />
@@ -1047,7 +1055,8 @@ PETUNJUK PENTING UNTUK BAPAK/IBU:
                       type="password"
                       value={newCashierPassword}
                       onChange={(e) => setNewCashierPassword(e.target.value)}
-                      placeholder="Min 6 karakter"
+                      placeholder="Minimal 8 karakter"
+                      minLength={8}
                       className="w-full h-9 bg-white border-2 border-slate-800 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 outline-none"
                       required
                     />
@@ -1143,7 +1152,7 @@ PETUNJUK PENTING UNTUK BAPAK/IBU:
                 <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse"></span>
                 <span>Cloud Database Live</span>
               </div>
-              <span className="text-[10px] text-slate-300 font-sans font-normal">Tersinkronisasi Otomatis di Supabase</span>
+              <span className="text-[10px] text-slate-300 font-sans font-normal">Tersinkronisasi Otomatis ke Cloud</span>
             </div>
           </div>
 

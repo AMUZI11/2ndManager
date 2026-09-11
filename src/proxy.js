@@ -1,6 +1,19 @@
-// src/proxy.js — Next.js 16 Edge Runtime Route Guard & RBAC for The Obsidian Terminal
+// src/proxy.js - Next.js 16 Edge Runtime Route Guard & RBAC for The Obsidian Terminal
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  try {
+    const url = new URL(origin);
+    const host = url.hostname.toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1') return true;
+    if (host === '2ndmanager.com' || host.endsWith('.2ndmanager.com')) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 export async function proxy(request) {
   let response = NextResponse.next({
@@ -11,12 +24,45 @@ export async function proxy(request) {
 
   const { pathname } = request.nextUrl;
 
-  // Bypass static files and favicon
+  // CORS guard for API routes
+  if (pathname.startsWith('/api/')) {
+    const origin = request.headers.get('origin');
+    if (origin && !isAllowedOrigin(origin)) {
+      return NextResponse.json(
+        { error: true, code: 'CORS_FORBIDDEN', message: 'Akses API ditolak: Domain origin tidak sah.' },
+        { status: 403 }
+      );
+    }
+
+    if (request.method === 'OPTIONS') {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': origin && isAllowedOrigin(origin) ? origin : 'https://2ndmanager.com',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
+
+    if (origin && isAllowedOrigin(origin)) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+      response.headers.set('Access-Control-Allow-Credentials', 'true');
+    }
+  }
+
+  // Bypass static files, favicon, robots, sitemap, and text discovery files
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/static') ||
     pathname === '/favicon.ico' ||
-    /\.(svg|png|jpg|jpeg|gif|webp)$/.test(pathname)
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/llms.txt' ||
+    pathname === '/manifest.webmanifest' ||
+    /\.(svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$/.test(pathname)
   ) {
     return response;
   }
@@ -107,22 +153,55 @@ export async function proxy(request) {
     return response;
   }
 
-  // Public pages
-  if (pathname === '/' || pathname === '/login' || pathname.startsWith('/api/')) {
+  // Public marketing & legal pages
+  const publicRoutes = ['/', '/login', '/pricing', '/features', '/privacy', '/terms', '/refund'];
+  if (publicRoutes.includes(pathname) || pathname.startsWith('/api/')) {
     return response;
   }
 
+  // Owner route alias: automatically redirect /owner to /dashboard
+  if (pathname === '/owner' || pathname.startsWith('/owner/')) {
+    const dashboardUrl = request.nextUrl.clone();
+    dashboardUrl.pathname = '/dashboard';
+    return NextResponse.redirect(dashboardUrl);
+  }
+
   // User Side Protected Routes: Check for Supabase auth cookie
-  const allCookies = request.cookies.getAll();
-  const hasAuthCookie = allCookies.some(
-    (c) => c.name.startsWith('sb-') && (c.name.includes('-auth-token') || c.name.includes('access-token'))
+  const protectedPrefixes = [
+    '/admin',
+    '/dashboard',
+    '/owner',
+    '/radar',
+    '/reporting',
+    '/help',
+    '/pos',
+    '/products',
+    '/reorder',
+    '/consignments',
+    '/customers',
+    '/settings',
+    '/billing',
+    '/panic-dispatch',
+    '/superadmin',
+    '/transactions',
+  ];
+
+  const isProtected = protectedPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + '/')
   );
 
-  if (!hasAuthCookie) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/login';
-    loginUrl.searchParams.set('redirectTo', pathname);
-    return NextResponse.redirect(loginUrl);
+  if (isProtected) {
+    const allCookies = request.cookies.getAll();
+    const hasAuthCookie = allCookies.some(
+      (c) => c.name.startsWith('sb-') && (c.name.includes('-auth-token') || c.name.includes('access-token'))
+    );
+
+    if (!hasAuthCookie) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      loginUrl.searchParams.set('redirectTo', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   return response;

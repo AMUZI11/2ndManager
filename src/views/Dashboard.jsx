@@ -7,9 +7,6 @@ import {
   ShieldAlert, X, AlertTriangle, ArrowUpRight 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
-import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import { api } from '../utils/api';
 import { useTutorial } from '../components/TutorialEngine';
 import { BentoSkeleton, TableSkeleton } from '../components/SkeletonLoader';
@@ -18,10 +15,6 @@ import ParanoiaMarketingAlert from '../components/ParanoiaMarketingAlert';
 import FomoPaywallCard from '../components/FomoPaywallCard';
 import { normalizeTier } from '../config/tiers';
 import { supabase } from '../lib/supabase/client';
-
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger, useGSAP);
-}
 
 export default function Dashboard({ setView, setSelectedCustomerId }) {
   const router = useRouter();
@@ -43,43 +36,117 @@ export default function Dashboard({ setView, setSelectedCustomerId }) {
   // Realtime & Header UI State
   const [currentDate, setCurrentDate] = useState('');
   const [shopName, setShopName] = useState('Memuat...');
-  
-  const containerRef = React.useRef();
+  const [shopType, setShopType] = useState('Utama');
 
-  useGSAP(() => {
-    if (loading || !containerRef.current) return;
-    
-    // Stagger stats cards
-    const statCards = containerRef.current.querySelectorAll('.gsap-stat-card');
-    if (statCards.length > 0) {
-      gsap.from(statCards, {
-        y: 30,
-        opacity: 0,
-        stagger: 0.1,
-        duration: 0.6,
-        ease: 'power2.out',
-        delay: 0.1
+  const loadData = React.useCallback(async (isBackground = false) => {
+    try {
+      const [transactions, customersData, alerts, billingData, shopProfile] = await Promise.all([
+        api.getTransactions(),
+        api.getCustomers(),
+        api.getBonusAlerts(),
+        api.getBilling().catch(() => null),
+        api.getShopProfile().catch(() => null)
+      ]);
+
+      setAllTransactions(transactions || []);
+      setCustomers(customersData || []);
+
+      // Initialize Header Data
+      const date = new Date().toLocaleDateString('id-ID', {
+        day: '2-digit', month: 'short', year: 'numeric'
+      }).toUpperCase();
+      setCurrentDate(date);
+      
+      if (shopProfile?.name) {
+        setShopName(shopProfile.name);
+        if (shopProfile?.id === 'ALL' || shopProfile?.parent_shop_id === 'ALL' || shopProfile?.name === 'Semua Cabang') {
+          setShopType('Konsolidasi');
+        } else if (shopProfile?.parent_shop_id) {
+          setShopType('Cabang');
+        } else {
+          setShopType('Utama');
+        }
+      } else {
+        const savedName = typeof window !== 'undefined' ? localStorage.getItem('hl_current_shop_name') : null;
+        setShopName(savedName || 'Toko Utama');
+      }
+
+      // Read active subscription plan
+      const sessionUser = api.getCurrentSession();
+      const planFromBilling = billingData?.plan || billingData?.subscription?.plan || billingData?.tier;
+      const planFromSession = sessionUser?.plan || sessionUser?.subscription_plan;
+      const rawPlan = planFromBilling || planFromSession || shopProfile?.subscription_tier || 'MAGANG';
+      const activePlan = normalizeTier(rawPlan);
+      setUserPlan(activePlan);
+
+      // Check shift closing discrepancy from localStorage
+      if (typeof window !== 'undefined') {
+        try {
+          const savedDiscrepancy = localStorage.getItem('hl_shift_discrepancy') || localStorage.getItem('hl_last_closing_selisih');
+          if (savedDiscrepancy !== null) {
+            setClosingDiscrepancy(Number(savedDiscrepancy));
+          } else {
+            const lastClosingRaw = localStorage.getItem('hl_last_shift_closing');
+            if (lastClosingRaw) {
+              const parsed = JSON.parse(lastClosingRaw);
+              if (typeof parsed.selisih === 'number') {
+                setClosingDiscrepancy(parsed.selisih);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Error reading shift discrepancy:", e);
+        }
+      }
+
+      // Sum overall stats & detailed metrics
+      let piutang = 0;
+      let omzet = 0;
+      let laba = 0;
+      let activeCount = 0;
+      let voidCount = 0;
+      let unpaidCount = 0;
+
+      (transactions || []).forEach(t => {
+        if (t.status === "Void") {
+          voidCount++;
+        } else {
+          activeCount++;
+          if (t.status === "Piutang") {
+            piutang += Number(t.amount_owed || 0);
+            unpaidCount++;
+          } else if (t.status === "Lunas") {
+            omzet += Number(t.omzet_total || 0);
+            laba += Number(t.laba_total || 0);
+          }
+        }
       });
-    }
 
-    // Stagger recent tx rows on scroll
-    const txContainer = containerRef.current.querySelector('.gsap-tx-container');
-    const txRows = containerRef.current.querySelectorAll('.gsap-tx-row');
-    if (txContainer && txRows.length > 0) {
-      gsap.from(txRows, {
-        scrollTrigger: {
-          trigger: txContainer,
-          start: 'top 85%',
-        },
-        y: 15,
-        opacity: 0,
-        stagger: 0.08,
-        duration: 0.5,
-        ease: 'power2.out'
+      setStats({ piutang, omzet, laba, count: activeCount, voidCount, unpaidCount });
+
+      // Calculate total lunas omzet per customer
+      const omzets = {};
+      (transactions || []).forEach(t => {
+        if (t.status === "Lunas") {
+          omzets[t.customer_id] = (omzets[t.customer_id] || 0) + Number(t.omzet_total || 0);
+        }
       });
-    }
-  }, { scope: containerRef, dependencies: [loading, allTransactions.length] });
+      setCustomerOmzets(omzets);
 
+      // Recent 5 transactions
+      const sorted = [...(transactions || [])].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+      setRecentTx(sorted.slice(0, 5));
+
+      setBonusAlerts(alerts || []);
+    } catch (err) {
+      console.error("Gagal mengambil data dashboard:", err);
+      if (!isBackground) setFetchError(err.message || 'Gagal memuat data');
+    } finally {
+      if (!isBackground) setLoading(false);
+    }
+  }, []);
+
+  // Listen to branch change & profile updates
   useEffect(() => {
     const handleShopUpdate = (e) => {
       if (e.detail?.name) setShopName(e.detail.name);
@@ -87,135 +154,60 @@ export default function Dashboard({ setView, setSelectedCustomerId }) {
     const handlePlanUpdate = (e) => {
       if (e.detail?.plan) setUserPlan(e.detail.plan);
     };
+    const handleBranchUpdate = (e) => {
+      if (e.detail?.shopName) setShopName(e.detail.shopName);
+      setLoading(true);
+      loadData(false);
+    };
+
     window.addEventListener('hl-shop-changed', handleShopUpdate);
     window.addEventListener('hl-plan-changed', handlePlanUpdate);
+    window.addEventListener('hl_branch_changed', handleBranchUpdate);
+
     return () => {
       window.removeEventListener('hl-shop-changed', handleShopUpdate);
       window.removeEventListener('hl-plan-changed', handlePlanUpdate);
+      window.removeEventListener('hl_branch_changed', handleBranchUpdate);
     };
-  }, []);
+  }, [loadData]);
 
+  // Initial load and polling fallback
   useEffect(() => {
     let isMounted = true;
-    
-    async function loadData(isBackground = false) {
-      try {
-        const [transactions, customersData, alerts, billingData, shopProfile] = await Promise.all([
-          api.getTransactions(),
-          api.getCustomers(),
-          api.getBonusAlerts(),
-          api.getBilling().catch(() => null),
-          api.getShopProfile().catch(() => null)
-        ]);
-        
-        if (!isMounted) return;
 
-        setAllTransactions(transactions || []);
-        setCustomers(customersData || []);
+    const initData = async () => {
+      await loadData();
+    };
+    initData();
 
-        // Initialize Header Data
-        if (isMounted) {
-          const date = new Date().toLocaleDateString('id-ID', {
-            day: '2-digit', month: 'short', year: 'numeric'
-          }).toUpperCase();
-          setCurrentDate(date);
-          
-          if (shopProfile?.name) {
-            setShopName(shopProfile.name);
-          } else {
-            const savedName = typeof window !== 'undefined' ? localStorage.getItem('hl_current_shop_name') : null;
-            setShopName(savedName || 'Toko Utama');
-          }
-        }
-
-        // Read active subscription plan
-        const sessionUser = api.getCurrentSession();
-        const planFromBilling = billingData?.plan || billingData?.subscription?.plan || billingData?.tier;
-        const planFromSession = sessionUser?.plan || sessionUser?.subscription_plan;
-        const rawPlan = planFromBilling || planFromSession || shopProfile?.subscription_tier || 'MAGANG';
-        const activePlan = normalizeTier(rawPlan);
-        setUserPlan(activePlan);
-
-        // Check shift closing discrepancy from localStorage
-        if (typeof window !== 'undefined') {
-          try {
-            const savedDiscrepancy = localStorage.getItem('hl_shift_discrepancy') || localStorage.getItem('hl_last_closing_selisih');
-            if (savedDiscrepancy !== null) {
-              setClosingDiscrepancy(Number(savedDiscrepancy));
-            } else {
-              const lastClosingRaw = localStorage.getItem('hl_last_shift_closing');
-              if (lastClosingRaw) {
-                const parsed = JSON.parse(lastClosingRaw);
-                if (typeof parsed.selisih === 'number') {
-                  setClosingDiscrepancy(parsed.selisih);
-                }
-              }
-            }
-          } catch (e) {
-            console.warn("Error reading shift discrepancy:", e);
-          }
-        }
-
-        // Sum overall stats & detailed metrics
-        let piutang = 0;
-        let omzet = 0;
-        let laba = 0;
-        let activeCount = 0;
-        let voidCount = 0;
-        let unpaidCount = 0;
-
-        (transactions || []).forEach(t => {
-          if (t.status === "Void") {
-            voidCount++;
-          } else {
-            activeCount++;
-            if (t.status === "Piutang") {
-              piutang += Number(t.amount_owed || 0);
-              unpaidCount++;
-            } else if (t.status === "Lunas") {
-              omzet += Number(t.omzet_total || 0);
-              laba += Number(t.laba_total || 0);
-            }
-          }
-        });
-
-        setStats({ piutang, omzet, laba, count: activeCount, voidCount, unpaidCount });
-
-        // Calculate total lunas omzet per customer
-        const omzets = {};
-        (transactions || []).forEach(t => {
-          if (t.status === "Lunas") {
-            omzets[t.customer_id] = (omzets[t.customer_id] || 0) + Number(t.omzet_total || 0);
-          }
-        });
-        setCustomerOmzets(omzets);
-
-        // Recent 5 transactions
-        const sorted = [...(transactions || [])].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-        setRecentTx(sorted.slice(0, 5));
-
-        setBonusAlerts(alerts || []);
-      } catch (err) {
-        console.error("Gagal mengambil data dashboard:", err);
-        if (!isBackground) setFetchError(err.message || 'Gagal memuat data');
-      } finally {
-        if (!isBackground) setLoading(false);
-      }
-    }
-    
-    // Initial Load
-    loadData();
-
-    // REAL-TIME AUTO POLLING EVERY 5 SECONDS
+    // REAL-TIME AUTO POLLING EVERY 5 SECONDS (FALLBACK)
     const intervalId = setInterval(() => {
-      loadData(true); // background fetch, no loading spinner
+      if (isMounted) loadData(true);
     }, 5000);
 
     return () => {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, []);
+  }, [loadData]);
+
+  // Real-time Supabase Database Change Subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel(`dashboard_realtime_tx_${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions' },
+        () => {
+          loadData(true);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadData]);
 
   // Heatmap Jam Sibuk Data
   const hourlyData = useMemo(() => {
@@ -292,10 +284,9 @@ export default function Dashboard({ setView, setSelectedCustomerId }) {
 
   return (
     <motion.div 
-      ref={containerRef}
-      initial={{ opacity: 0, y: 10 }} 
+      initial={{ opacity: 0, y: 8 }} 
       animate={{ opacity: 1, y: 0 }} 
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
       className="space-y-6 pb-32 bg-transparent"
     >
       {/* ─── 1. HEADER DASHBOARD UTAMA ─── */}
@@ -307,13 +298,13 @@ export default function Dashboard({ setView, setSelectedCustomerId }) {
           </div>
           <h1 className="text-4xl sm:text-5xl font-black font-display tracking-tight flex items-center gap-2">
             <span className="text-slate-900">Dashboard</span>
-            <span className="text-slate-200" style={{ WebkitTextStroke: '1px #cbd5e1' }}>Utama</span>
+            <span className="text-slate-200" style={{ WebkitTextStroke: '1px #cbd5e1' }}>{shopType}</span>
           </h1>
         </div>
         
-        <div className="bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm flex items-center gap-2 text-xs font-mono">
-          <span className="text-slate-500">AREA:</span>
-          <span className="font-bold text-slate-900">{shopName}</span>
+        <div className="bg-white border-2 border-slate-800 px-4 py-2 rounded-full shadow-[2px_2px_0px_#1E293B] flex items-center gap-2 text-xs font-mono">
+          <span className="text-slate-500 font-bold">AREA:</span>
+          <span className="font-black text-slate-900 uppercase">{shopName}</span>
         </div>
       </div>
 
@@ -324,49 +315,49 @@ export default function Dashboard({ setView, setSelectedCustomerId }) {
       <div id="tour-dashboard-stats" className="grid grid-cols-1 md:grid-cols-3 gap-5">
         
         {/* Metric 1: Keuntungan Bersih */}
-        <div className="gsap-stat-card bg-[#fafff5] border border-lime-200/90 rounded-[26px] p-6 space-y-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] relative overflow-hidden group">
+        <div className="bg-white rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] p-6 space-y-4 relative overflow-hidden group hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#1E293B] transition-all">
           <div className="flex items-start justify-between">
-            <span className="text-[11px] font-mono font-extrabold text-slate-400 uppercase tracking-wider leading-relaxed">
+            <span className="text-xs font-mono font-extrabold text-slate-600 uppercase tracking-wider leading-relaxed">
               KEUNTUNGAN BERSIH (TRANSAKSI LUNAS)
             </span>
-            <span className="w-2.5 h-2.5 bg-[#CCFF00] rounded-full border border-slate-700 shrink-0 mt-0.5" />
+            <span className="w-3 h-3 bg-[#CCFF00] rounded-full border-2 border-slate-800 shrink-0 mt-0.5" />
           </div>
           <div>
             <p className="text-3xl sm:text-[34px] font-black font-display text-slate-900 tracking-tight leading-none">
               {formatRupiah(stats.laba)}
             </p>
-            <p className="text-xs font-mono font-bold text-slate-400 mt-2">
+            <p className="text-xs font-mono font-bold text-slate-500 mt-2">
               {stats.count} transaksi aktif • {stats.voidCount} void
             </p>
           </div>
-          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-800">
             <div className="bg-[#CCFF00] h-full rounded-full" style={{ width: '100%' }} />
           </div>
           <button 
             onClick={() => setView('reporting')}
-            className="w-full py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-800 transition-colors shadow-sm flex items-center justify-center gap-1 cursor-pointer"
+            className="btn-arcade w-full py-2.5 bg-slate-50 hover:bg-[#CCFF00] hover:text-slate-900 border-2 border-slate-800 rounded-xl text-xs font-mono font-black text-slate-900 transition-all shadow-[2px_2px_0px_#1E293B] flex items-center justify-center gap-1.5 cursor-pointer uppercase"
           >
             LIHAT LAPORAN ▸
           </button>
         </div>
 
         {/* Metric 2: Total Piutang */}
-        <div className="gsap-stat-card bg-white border border-slate-200/90 rounded-[26px] p-6 space-y-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] relative overflow-hidden group">
+        <div className="bg-white rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] p-6 space-y-4 relative overflow-hidden group hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#1E293B] transition-all">
           <div className="flex items-start justify-between">
-            <span className="text-[11px] font-mono font-extrabold text-slate-400 uppercase tracking-wider leading-relaxed">
+            <span className="text-xs font-mono font-extrabold text-slate-600 uppercase tracking-wider leading-relaxed">
               TOTAL PIUTANG (BUKU KASBON)
             </span>
-            <span className="w-2.5 h-2.5 bg-[#CCFF00] rounded-full border border-slate-700 shrink-0 mt-0.5" />
+            <span className="w-3 h-3 bg-[#CCFF00] rounded-full border-2 border-slate-800 shrink-0 mt-0.5" />
           </div>
           <div>
             <p className="text-3xl sm:text-[34px] font-black font-display text-slate-900 tracking-tight leading-none">
               {formatRupiah(stats.piutang)}
             </p>
-            <p className="text-xs font-mono font-bold text-slate-400 mt-2">
+            <p className="text-xs font-mono font-bold text-slate-500 mt-2">
               {stats.unpaidCount} nota belum lunas
             </p>
           </div>
-          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-800">
             <div 
               className="bg-slate-900 h-full rounded-full transition-all duration-500" 
               style={{ width: stats.omzet > 0 ? `${Math.min(100, Math.round((stats.piutang / (stats.omzet + stats.piutang)) * 100))}%` : "10%" }} 
@@ -374,34 +365,34 @@ export default function Dashboard({ setView, setSelectedCustomerId }) {
           </div>
           <button 
             onClick={() => setView('customers')}
-            className="w-full py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-800 transition-colors shadow-sm flex items-center justify-center gap-1 cursor-pointer"
+            className="btn-arcade w-full py-2.5 bg-slate-50 hover:bg-[#CCFF00] hover:text-slate-900 border-2 border-slate-800 rounded-xl text-xs font-mono font-black text-slate-900 transition-all shadow-[2px_2px_0px_#1E293B] flex items-center justify-center gap-1.5 cursor-pointer uppercase"
           >
             AUDIT PELANGGAN ▸
           </button>
         </div>
 
         {/* Metric 3: Penjualan Lunas */}
-        <div className="gsap-stat-card bg-white border border-slate-200/90 rounded-[26px] p-6 space-y-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] relative overflow-hidden group">
+        <div className="bg-white rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] p-6 space-y-4 relative overflow-hidden group hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#1E293B] transition-all">
           <div className="flex items-start justify-between">
-            <span className="text-[11px] font-mono font-extrabold text-slate-400 uppercase tracking-wider leading-relaxed">
+            <span className="text-xs font-mono font-extrabold text-slate-600 uppercase tracking-wider leading-relaxed">
               PENJUALAN LUNAS (CASH IN)
             </span>
-            <span className="w-2.5 h-2.5 bg-[#CCFF00] rounded-full border border-slate-700 shrink-0 mt-0.5" />
+            <span className="w-3 h-3 bg-[#CCFF00] rounded-full border-2 border-slate-800 shrink-0 mt-0.5" />
           </div>
           <div>
             <p className="text-3xl sm:text-[34px] font-black font-display text-slate-900 tracking-tight leading-none">
               {formatRupiah(stats.omzet)}
             </p>
-            <p className="text-xs font-mono font-bold text-slate-400 mt-2">
+            <p className="text-xs font-mono font-bold text-slate-500 mt-2">
               Kas masuk tercatat sistem
             </p>
           </div>
-          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-800">
             <div className="bg-gradient-to-r from-orange-400 via-pink-500 to-purple-500 h-full rounded-full" style={{ width: "85%" }} />
           </div>
           <button 
             onClick={() => setView('reporting')}
-            className="w-full py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-800 transition-colors shadow-sm flex items-center justify-center gap-1 cursor-pointer"
+            className="btn-arcade w-full py-2.5 bg-slate-50 hover:bg-[#CCFF00] hover:text-slate-900 border-2 border-slate-800 rounded-xl text-xs font-mono font-black text-slate-900 transition-all shadow-[2px_2px_0px_#1E293B] flex items-center justify-center gap-1.5 cursor-pointer uppercase"
           >
             LIHAT LAPORAN ▸
           </button>
@@ -643,7 +634,7 @@ export default function Dashboard({ setView, setSelectedCustomerId }) {
                 onAction={handleCreateBonClick}
               />
             ) : (
-              <table className="w-full text-left border-collapse border border-slate-800 bg-white rounded-xl overflow-hidden gsap-tx-container">
+              <table className="w-full text-left border-collapse border border-slate-800 bg-white rounded-xl overflow-hidden">
                 <thead>
                   <tr className="bg-slate-100 border-b-2 border-slate-800 font-mono text-[11px] text-slate-700 uppercase tracking-wider">
                     <th className="py-2.5 px-3 font-bold">NO. BON</th>
@@ -660,7 +651,7 @@ export default function Dashboard({ setView, setSelectedCustomerId }) {
                       <tr 
                         key={tx.id} 
                         onClick={() => router.push(`/transactions/${tx.id}`)}
-                        className="hover:bg-slate-50 cursor-pointer transition-colors group gsap-tx-row"
+                        className="hover:bg-slate-50 cursor-pointer transition-colors group"
                       >
                         <td className="py-3 px-3 font-bold group-hover:underline font-mono">{tx.nomor_bon}</td>
                         <td className="py-3 px-3 uppercase font-sans font-medium">{cust ? cust.nama : "Umum"}</td>

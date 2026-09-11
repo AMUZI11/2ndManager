@@ -12,11 +12,17 @@ export default function LandingNavbar() {
   const router = useRouter();
 
   useEffect(() => {
+    let isMounted = true;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      if (isMounted) {
+        setIsScrolled(window.scrollY > 50);
+      }
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      isMounted = false;
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   function scrollToSection(targetId) {

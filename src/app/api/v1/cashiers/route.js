@@ -1,6 +1,6 @@
 import { withBossOnly, errorResponse, successResponse, checkSubscriptionActive } from '@/lib/auth-helpers';
 import { checkQuotaLimit } from '@/lib/subscription';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export const GET = withBossOnly(async (request, context, { user, supabase }) => {
   try {
@@ -34,6 +34,10 @@ export const POST = withBossOnly(async (request, context, { user, profile, supab
 
     if (!email || !password || !branch_id || !cashierName) {
       return errorResponse('Email, password, cabang, dan nama kasir wajib diisi.', 'VALIDATION_ERROR', 422);
+    }
+
+    if (password.length < 8) {
+      return errorResponse('Kata sandi kasir minimal 8 karakter.', 'VALIDATION_ERROR', 422);
     }
 
     // Check subscription max_cashiers limit
@@ -71,31 +75,40 @@ export const POST = withBossOnly(async (request, context, { user, profile, supab
       return errorResponse(quotaCheck.message, 'LIMIT_EXCEEDED', 403);
     }
 
-    // Initialize Supabase Admin Service Role Client
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-
-    // Create auth user
+    // Create auth user with role CASHIER metadata
     const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: { username: cashierName, shop_name: 'Cabang Kasir' },
+      user_metadata: {
+        username: cashierName,
+        role: 'CASHIER',
+        shop_id: branch_id,
+        is_cashier: true,
+      },
     });
 
-    if (createErr) throw createErr;
+    if (createErr) {
+      console.error('[POST /cashiers] createUser error:', createErr);
+      return errorResponse(createErr.message || 'Gagal mendaftarkan akun kasir.', 'AUTH_ERROR', 400);
+    }
 
-    // Upsert profile for cashier
+    if (!newUser?.user) {
+      return errorResponse('Gagal membuat akun kasir di sistem otentikasi.', 'AUTH_ERROR', 500);
+    }
+
+    // Upsert profile for cashier (wariskan plan toko)
     const { error: profileErr } = await supabaseAdmin.from('profiles').upsert({
       id: newUser.user.id,
       username: cashierName,
       role: 'CASHIER',
       shop_id: branch_id,
+      subscription_plan: plan || 'EKSEKUTIF',
     });
 
-    if (profileErr) throw profileErr;
+    if (profileErr) {
+      console.error('[POST /cashiers] profileErr:', profileErr);
+    }
 
     // Insert user_shops junction
     const { error: shopErr } = await supabaseAdmin.from('user_shops').upsert({
@@ -103,11 +116,16 @@ export const POST = withBossOnly(async (request, context, { user, profile, supab
       shop_id: branch_id,
     });
 
-    if (shopErr) throw shopErr;
+    if (shopErr) {
+      console.error('[POST /cashiers] shopErr:', shopErr);
+    }
 
     return successResponse({ success: true, user: newUser.user }, 201);
   } catch (error) {
     console.error('[POST /cashiers]', error);
-    return errorResponse(`Gagal mendaftarkan kasir: ${error.message}`, 'SERVER_ERROR', 500);
+    const msg = error?.message && error.message !== '{}' 
+      ? error.message 
+      : (error?.error_description || 'Terjadi kesalahan sistem saat mendaftarkan kasir.');
+    return errorResponse(`Gagal mendaftarkan kasir: ${msg}`, 'SERVER_ERROR', 500);
   }
 });

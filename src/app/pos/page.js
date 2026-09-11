@@ -7,21 +7,46 @@ import {
   Barcode, Search, ShoppingBag, Plus, Minus, Trash2, CheckCircle2,
   Printer, Send, RefreshCw, LogOut, ArrowLeft, Store, UserCheck,
   AlertTriangle, ShieldCheck, AlertCircle, Sparkles, CreditCard, Wallet,
-  Package, Lock, Wifi, WifiOff, PiggyBank, Coins
+  Package, Lock, Wifi, WifiOff, PiggyBank, Coins, Monitor, X, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { api, calculateCascadingDiscount } from '@/utils/api';
 import { canAccessFeature } from '@/lib/subscription';
 import { getTierConfig } from '@/config/tiers';
-import PaywallModal from '@/components/ui/PaywallModal';
-import UpgradePromptModal from '@/components/pos/UpgradePromptModal';
-import AssetLoanModal from '@/components/customers/AssetLoanModal';
-import SmartChangeModal from '@/components/pos/SmartChangeModal';
-import NegativeMarginOverrideModal from '@/components/pos/NegativeMarginOverrideModal';
-import StartShiftModal from '@/components/pos/StartShiftModal';
-import ShiftHandoverModal from '@/components/pos/ShiftHandoverModal';
-import CashDrawerMovementModal from '@/components/pos/CashDrawerMovementModal';
+import nextDynamic from 'next/dynamic';
+
+const PaywallModal = nextDynamic(() => import('@/components/ui/PaywallModal'), { ssr: false });
+const UpgradePromptModal = nextDynamic(() => import('@/components/pos/UpgradePromptModal'), { ssr: false });
+const AssetLoanModal = nextDynamic(() => import('@/components/customers/AssetLoanModal'), { ssr: false });
+const SmartChangeModal = nextDynamic(() => import('@/components/pos/SmartChangeModal'), { ssr: false });
+const NegativeMarginOverrideModal = nextDynamic(() => import('@/components/pos/NegativeMarginOverrideModal'), { ssr: false });
+const StartShiftModal = nextDynamic(() => import('@/components/pos/StartShiftModal'), { ssr: false });
+const CloseShiftModal = nextDynamic(() => import('@/components/pos/CloseShiftModal'), { ssr: false });
+const CashDrawerMovementModal = nextDynamic(() => import('@/components/pos/CashDrawerMovementModal'), { ssr: false });
+const PrinterSettingsModal = nextDynamic(() => import('@/components/pos/PrinterSettingsModal'), { ssr: false });
+const FreezeRegisterOverlay = nextDynamic(() => import('@/components/pos/FreezeRegisterOverlay'), { ssr: false });
+const BranchSetupModal = nextDynamic(() => import('@/components/pos/BranchSetupModal'), { ssr: false });
+import { printReceiptDirect, kickCashDrawerDirect } from '@/utils/escposPrinter';
+import {
+  emitStealthMetric,
+  evaluateVacHeuristic,
+  evaluateCipHeuristic,
+  evaluateHemHeuristic,
+} from '@/utils/stealthTelemetry';
+import { getRegisterId, setRegisterId } from '@/utils/terminalConfig';
+import { getAssignedBranchId, getAssignedRegisterName } from '@/utils/branchDeviceGuard';
+import { getBranchProductCatalog } from '@/utils/inventoryResolver';
+import { attachBarcodeScannerListener } from '@/utils/barcodeScannerListener';
+import {
+  saveCatalogCache,
+  getCatalogCache,
+  queueOfflineTransaction,
+  mutateLocalCustomerDebtLimit,
+  getQueueStats,
+} from '@/utils/posOfflineDb';
+import { initPosSyncListeners, syncOfflineData } from '@/utils/posSyncEngine';
+import { checkAutoUnpackEligibility, applyOptimisticAutoUnpack } from '@/utils/posEngine';
 
 // Web Audio API beep sound for barcode scanner feedback
 function playScannerBeep() {
@@ -54,6 +79,9 @@ function generateUUID() {
   });
 }
 
+// Pure Currency Formatter (Module Scope: Anti-Hoisting)
+const formatRupiah = (val) => `Rp ${Number(val || 0).toLocaleString('id-ID')}`;
+
 export default function PosPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -61,6 +89,8 @@ export default function PosPage() {
   // ── States ──────────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [profile, setProfile] = useState(null);
   const [userPlan, setUserPlan] = useState('MAGANG');
   const [shopName, setShopName] = useState('Toko Saya');
@@ -71,6 +101,13 @@ export default function PosPage() {
 
   const [selectedCategory, setSelectedCategory] = useState('SEMUA');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Device Branch Binding (Tahap 7: Multi-Branch Terminal Guard)
+  const [assignedBranchId, setAssignedBranchId] = useState(null);
+  const [assignedBranchInfo, setAssignedBranchInfo] = useState(null);
+  const [assignedRegisterName, setAssignedRegisterName] = useState('POS-01');
+  const [isBranchSetupOpen, setIsBranchSetupOpen] = useState(false);
+  const [isBranchRebinding, setIsBranchRebinding] = useState(false);
 
   // Cart & Idempotency Key
   const cartIdRef = useRef(generateUUID());
@@ -162,6 +199,12 @@ export default function PosPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [toastMessage, setToastMessage] = useState('');
 
+  // Toast notification helper (Declared early for use in initPos)
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
   // Struk Modal
   const [completedTx, setCompletedTx] = useState(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -173,9 +216,26 @@ export default function PosPage() {
   // Phase 3: Shift Kasir & Cash Drawer States
   const [activeShift, setActiveShift] = useState(null);
   const [isStartShiftOpen, setIsStartShiftOpen] = useState(false);
-  const [isShiftHandoverOpen, setIsShiftHandoverOpen] = useState(false);
+  const [isCloseShiftOpen, setIsCloseShiftOpen] = useState(false);
   const [isCashDrawerModalOpen, setIsCashDrawerModalOpen] = useState(false);
   const [cashiersList, setCashiersList] = useState([]);
+
+  // Multi-terminal Register Identifier
+  const [registerId, setRegisterIdState] = useState('REGISTER_MAIN');
+  const [isEditRegisterOpen, setIsEditRegisterOpen] = useState(false);
+  const [newRegisterInput, setNewRegisterInput] = useState('');
+
+  // Hardware ESC/POS Printer Modal
+  const [isPrinterSettingsOpen, setIsPrinterSettingsOpen] = useState(false);
+
+  // Stealth Telemetry Tracker Refs
+  const purgedItemsRef = useRef([]); // tracks { name, line_total, timestamp }
+  const barcodeScanHistoryRef = useRef({}); // { [barcode]: count }
+  const discountApplicationLogRef = useRef([]); // [{ customer_id, timestamp }]
+  const hasEnteredPaymentPhaseRef = useRef(false); // Refinement 3: Tracks if cart entered payment phase for CIP
+
+  // Tactile Keyboard Selection State (Arrow Up / Down Navigation)
+  const [selectedCartIndex, setSelectedCartIndex] = useState(-1);
 
   // Phase 3: Radar Jual Rugi & PIN Override States
   const [isNegativeMarginModalOpen, setIsNegativeMarginModalOpen] = useState(false);
@@ -196,11 +256,18 @@ export default function PosPage() {
   const [customerBalance, setCustomerBalance] = useState(0);
   const [customerPiutang, setCustomerPiutang] = useState(0);
   const [useCustomerBalance, setUseCustomerBalance] = useState(0);
+  const [customerDebts, setCustomerDebts] = useState([]);
+
+  // Tahap 5: Citadel Freeze & Heuristic Refs
+  const [isRegisterFrozen, setIsRegisterFrozen] = useState(false);
+  const [freezeReason, setFreezeReason] = useState('');
+  const paymentPhaseStartTimeRef = useRef(0);
+  const drawerKickLogRef = useRef([]);
 
   // Auto-scanner barcode ref
   const barcodeInputRef = useRef(null);
 
-  // ── Network Status Monitor ──────────────────────────────────────────────────
+  // ── Network Status & Background Sync Engine Listener ───────────────────────
   const [isOnline, setIsOnline] = useState(() => typeof window !== 'undefined' ? navigator.onLine : true);
 
   useEffect(() => {
@@ -209,9 +276,31 @@ export default function PosPage() {
       const handleOffline = () => setIsOnline(false);
       window.addEventListener('online', handleOnline);
       window.addEventListener('offline', handleOffline);
+
+      // Inisialisasi background sync engine
+      const cleanupSync = initPosSyncListeners();
+
+      const handleSyncStatus = (e) => {
+        const { status, pending } = e.detail || {};
+        if (status === 'SYNCING') {
+          setIsSyncing(true);
+        } else {
+          setIsSyncing(false);
+          if (typeof pending === 'number') {
+            setPendingSyncCount(pending);
+          }
+        }
+      };
+      window.addEventListener('hl-pos-sync-status', handleSyncStatus);
+
+      // Ambil status antrean lokal terkini
+      getQueueStats().then((s) => setPendingSyncCount(s.pending)).catch(() => {});
+
       return () => {
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('offline', handleOffline);
+        window.removeEventListener('hl-pos-sync-status', handleSyncStatus);
+        cleanupSync();
       };
     }
   }, []);
@@ -283,22 +372,99 @@ export default function PosPage() {
 
       setUserPlan(activePlan);
 
-      // Fetch products, customers, categories, active shift, cashiers
+      // Initialize Register & Device Branch Binding from localStorage (Tahap 7)
+      const currentRegId = getRegisterId();
+      setRegisterIdState(currentRegId);
+
+      const currentBranchId = getAssignedBranchId();
+      const currentRegName = getAssignedRegisterName();
+      setAssignedBranchId(currentBranchId);
+      setAssignedRegisterName(currentRegName);
+
+      if (!currentBranchId) {
+        setIsBranchSetupOpen(true);
+      }
+
+      // Fetch products, customers, categories, active shift, cashiers (Online & Cache Fallback)
       try {
-        const [prodList, custList, catList, shiftData, cashiers] = await Promise.all([
-          api.getProducts(),
-          api.getCustomers(),
-          api.getCategories(),
-          api.getCurrentShift().catch(() => null),
-          api.getCashiers().catch(() => []),
-        ]);
-        setProducts(prodList || []);
-        setCustomers(custList || []);
-        setCategories(catList || []);
-        setActiveShift(shiftData || null);
-        setCashiersList(cashiers || []);
+        let prodList = [];
+        let custList = [];
+        let catList = [];
+        let shiftData = null;
+        let cashiers = [];
+
+        if (navigator.onLine) {
+          let branchProds = [];
+          if (currentBranchId) {
+            branchProds = await getBranchProductCatalog(supabase, currentBranchId).catch(() => []);
+            const { data: bData } = await supabase
+              .from('branches')
+              .select('id, branch_name, branch_code, is_main_branch')
+              .eq('id', currentBranchId)
+              .maybeSingle();
+            if (bData) setAssignedBranchInfo(bData);
+          }
+
+          [prodList, custList, catList, shiftData, cashiers] = await Promise.all([
+            branchProds && branchProds.length > 0 ? Promise.resolve(branchProds) : api.getProducts().catch(() => []),
+            api.getCustomers().catch(() => []),
+            api.getCategories().catch(() => []),
+            api.getCurrentShift(currentRegId).catch(() => null),
+            api.getCashiers().catch(() => []),
+          ]);
+        }
+
+        if (prodList && prodList.length > 0) {
+          setProducts(prodList);
+          setCustomers(custList || []);
+          setCategories(catList || []);
+          setActiveShift(shiftData || null);
+          setCashiersList(cashiers || []);
+
+          // Simpan snapshot katalog ke IndexedDB
+          saveCatalogCache({
+            products: prodList,
+            customers: custList || [],
+            categories: catList || [],
+            shopId,
+          }).catch(() => {});
+        } else {
+          // Fallback memuat dari IndexedDB lokal
+          const cached = await getCatalogCache();
+          if (cached && (cached.products?.length || cached.customers?.length)) {
+            setProducts(cached.products || []);
+            setCustomers(cached.customers || []);
+            setCategories(cached.categories || []);
+            showToast('[Offline] Memuat data katalog lokal.');
+          }
+        }
+        if (navigator.onLine && shopId) {
+          try {
+            const { data: regInfo } = await supabase
+              .from('registers')
+              .select('is_frozen, frozen_reason')
+              .eq('shop_id', shopId)
+              .eq('register_code', currentRegId)
+              .maybeSingle();
+
+            if (regInfo?.is_frozen) {
+              setIsRegisterFrozen(true);
+              setFreezeReason(regInfo.frozen_reason || 'Kunci keamanan diaktifkan oleh pemilik warung');
+              setCartItems([]);
+            }
+          } catch (e) {
+            console.warn('[Register freeze check error]', e);
+          }
+        }
       } catch (err) {
-        console.error('[POS Init Error]', err);
+        console.warn('[POS Init Error - Fallback ke Cache Lokal]', err);
+        const cached = await getCatalogCache();
+        if (cached && (cached.products?.length || cached.customers?.length)) {
+          setProducts(cached.products || []);
+          setCustomers(cached.customers || []);
+          setCategories(cached.categories || []);
+          showToast('[Offline] Memuat data katalog lokal.');
+        }
       } finally {
         setLoading(false);
         generateAutoBonNumber();
@@ -307,6 +473,43 @@ export default function PosPage() {
 
     initPos();
   }, [router, supabase]);
+
+  // ── Realtime Lockdown & Security Listener (Tahap 5) ─────────────────────────
+  useEffect(() => {
+    const activeShopId = profile?.shop_id;
+    if (!activeShopId) return;
+
+    const channel = supabase
+      .channel(`security_radar:${activeShopId}`)
+      .on('broadcast', { event: 'FREEZE_REGISTER' }, (payload) => {
+        const item = payload?.payload || payload;
+        const targetReg = (item?.register_code || 'REGISTER_MAIN').toUpperCase();
+        const myReg = (registerId || 'REGISTER_MAIN').toUpperCase();
+
+        if (targetReg === myReg || targetReg === 'ALL') {
+          setIsRegisterFrozen(true);
+          setFreezeReason(item?.reason || 'Kunci keamanan darurat oleh pemilik warung');
+          setCartItems([]);
+          setSelectedCartIndex(-1);
+          setCashTendered('');
+        }
+      })
+      .on('broadcast', { event: 'UNFREEZE_REGISTER' }, (payload) => {
+        const item = payload?.payload || payload;
+        const targetReg = (item?.register_code || 'REGISTER_MAIN').toUpperCase();
+        const myReg = (registerId || 'REGISTER_MAIN').toUpperCase();
+
+        if (targetReg === myReg || targetReg === 'ALL') {
+          setIsRegisterFrozen(false);
+          setFreezeReason('');
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.shop_id, registerId, supabase]);
 
   useEffect(() => {
     const handlePlanUpdate = (e) => {
@@ -331,12 +534,6 @@ export default function PosPage() {
     setNomorBon(`BON-${dateStr}-${timeStr}`);
   };
 
-  // Toast notification helper
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 3000);
-  };
-
   // ── Load Saldo Celengan & Piutang Pelanggan ──────────────────────────────────
   useEffect(() => {
     async function loadCustomerFinancials() {
@@ -344,6 +541,7 @@ export default function PosPage() {
         setCustomerBalance(0);
         setCustomerPiutang(0);
         setUseCustomerBalance(0);
+        setCustomerDebts([]);
         return;
       }
       try {
@@ -352,16 +550,29 @@ export default function PosPage() {
           setCustomerBalance(Number(res.balance || 0));
           setCustomerPiutang(Number(res.debt || 0));
         }
+
+        // Ambil riwayat kasbon aktif untuk kalkulasi Smart Change FIFO
+        const { data: debts } = await supabase
+          .from('transactions')
+          .select('id, nomor_bon, tanggal, created_at, amount_owed, total_akhir')
+          .eq('customer_id', selectedCustomer.id)
+          .eq('status', 'Piutang')
+          .gt('amount_owed', 0)
+          .order('tanggal', { ascending: true })
+          .order('created_at', { ascending: true });
+
+        setCustomerDebts(debts || []);
       } catch (err) {
         console.error('[POS Load Customer Balance Error]', err);
       }
     }
     loadCustomerFinancials();
-  }, [selectedCustomer?.id]);
+  }, [selectedCustomer?.id, supabase]);
 
   // ── Auto-Scanner & Barcode Handler ──────────────────────────────────────────
   const handleBarcodeOrSearchSubmit = (e) => {
     e?.preventDefault();
+    if (isRegisterFrozen) return;
     const query = searchQuery.trim();
     if (!query) return;
 
@@ -414,7 +625,7 @@ export default function PosPage() {
       setSearchQuery('');
       showToast(`Ditambahkan: ${nameMatches[0].nama}`);
     } else if (nameMatches.length === 0) {
-      showToast('⚠️ Produk / Barcode tidak ditemukan.');
+      showToast('[Peringatan] Produk / Barcode tidak ditemukan.');
     }
   };
 
@@ -435,8 +646,11 @@ export default function PosPage() {
 
   // Tambah produk ke keranjang (dengan dukungan Multi-Tier Unit)
   const addToCart = (product, specificUnit = null) => {
+    // STATE-MACHINE LOCKDOWN GUARD (TAHAP 5 PATCH #1)
+    if (isRegisterFrozen) return;
+
     if (product.stock <= 0) {
-      showToast(`⚠️ Stok "${product.nama}" 0 (Transaksi Tetap Berjalan)`);
+      showToast(`[Perhatian] Stok "${product.nama}" 0 (Transaksi Tetap Berjalan)`);
     }
 
     let unit = specificUnit;
@@ -450,6 +664,16 @@ export default function PosPage() {
     const unitPrice = unit ? Number(unit.price) : Number(product.harga_base);
     const unitCost = Number(product.harga_modal) * multiplier;
     const cartKey = unitId ? `${product.id}_${unitId}` : product.id;
+
+    // Telemetry: Track barcode scan counts for RPC
+    const bc = unit?.barcode || product.barcode || product.id;
+    if (bc) {
+      if (!barcodeScanHistoryRef.current[bc]) {
+        // eslint-disable-next-line react-hooks/purity
+        barcodeScanHistoryRef.current[bc] = { count: 0, firstScanTime: Date.now() };
+      }
+      barcodeScanHistoryRef.current[bc].count += 1;
+    }
 
     setCartItems((prevItems) => {
       const existingIndex = prevItems.findIndex(
@@ -492,12 +716,49 @@ export default function PosPage() {
 
   // Update kuantitas item keranjang (Multi-Tier Unit & cartKey aware)
   const updateCartQty = (key, delta) => {
-    if (delta < 0) {
-      const targetItem = cartItems.find(
-        (i) => (i.cartKey || i.product_id) === key || i.product_id === key
-      );
-      if (targetItem) {
-        queueVoidLog(targetItem.nama, Math.abs(delta));
+    const targetItem = cartItems.find(
+      (i) => (i.cartKey || i.product_id) === key || i.product_id === key
+    );
+
+    if (delta < 0 && targetItem) {
+      queueVoidLog(targetItem.nama, Math.abs(delta));
+
+      // Telemetry: RPC (Repeated Scan Purge)
+      const bc = targetItem.barcode || targetItem.product_id;
+      const scanInfo = barcodeScanHistoryRef.current[bc];
+      if (scanInfo && scanInfo.count >= 4) {
+        emitStealthMetric('RPC', {
+          barcode: bc,
+          product_name: targetItem.nama,
+          scanned_count: scanInfo.count,
+          purged_qty: Math.abs(delta),
+          cart_total: totals.totalOmzet,
+          reason: 'Product scanned 4+ times then decremented'
+        });
+        delete barcodeScanHistoryRef.current[bc];
+      }
+
+      // Telemetry: CIP (Cart Item Purge) tracker
+      const unitPrice = targetItem.discounted_unit_price || targetItem.harga_base || 0;
+      // eslint-disable-next-line react-hooks/purity
+      const currentNow = Date.now();
+      purgedItemsRef.current.push({
+        nama: targetItem.nama,
+        qty: Math.abs(delta),
+        line_total: unitPrice * Math.abs(delta),
+        timestamp: currentNow,
+      });
+      const recentPurges = purgedItemsRef.current.filter(p => currentNow - p.timestamp < 180000);
+      purgedItemsRef.current = recentPurges;
+      const totalPurgedVal = recentPurges.reduce((s, p) => s + p.line_total, 0);
+      if (recentPurges.length >= 3 && totalPurgedVal > 30000) {
+        emitStealthMetric('CIP', {
+          purged_count: recentPurges.length,
+          total_purged_value: totalPurgedVal,
+          purged_items: recentPurges,
+          current_cart_total: totals.totalOmzet
+        });
+        purgedItemsRef.current = [];
       }
     }
 
@@ -525,10 +786,73 @@ export default function PosPage() {
   // Hapus item dari keranjang
   const removeFromCart = (item) => {
     queueVoidLog(item.nama, item.quantity);
+
+    // Telemetry: RPC (Repeated Scan Purge)
+    const bc = item.barcode || item.product_id;
+    const scanInfo = barcodeScanHistoryRef.current[bc];
+    if (scanInfo && scanInfo.count >= 4) {
+      emitStealthMetric('RPC', {
+        barcode: bc,
+        product_name: item.nama,
+        scanned_count: scanInfo.count,
+        purged_qty: item.quantity,
+        cart_total: totals.totalOmzet,
+        reason: 'Product scanned 4+ times then removed completely'
+      });
+      delete barcodeScanHistoryRef.current[bc];
+    }
+
+    // Telemetry: CIP (Cart Item Purge) tracker
+    const unitPrice = item.discounted_unit_price || item.harga_base || 0;
+    // eslint-disable-next-line react-hooks/purity
+    const currentNow = Date.now();
+    purgedItemsRef.current.push({
+      nama: item.nama,
+      qty: item.quantity,
+      line_total: unitPrice * item.quantity,
+      timestamp: currentNow,
+    });
+    const recentPurges = purgedItemsRef.current.filter(p => currentNow - p.timestamp < 180000);
+    purgedItemsRef.current = recentPurges;
+    const totalPurgedVal = recentPurges.reduce((s, p) => s + p.line_total, 0);
+    // Refinement 3: Picu telemetri siluman 'CIP' HANYA jika akumulasi >= 3 DAN total nilai > Rp 30.000 DAN sudah pernah masuk fase bayar
+    if (recentPurges.length >= 3 && totalPurgedVal > 30000 && hasEnteredPaymentPhaseRef.current) {
+      emitStealthMetric('CIP', {
+        purged_count: recentPurges.length,
+        total_purged_value: totalPurgedVal,
+        purged_items: recentPurges,
+        current_cart_total: totals.totalOmzet,
+        had_entered_payment_phase: true,
+      });
+      purgedItemsRef.current = [];
+    }
+
     setCartItems((prevItems) =>
       prevItems.filter((i) => (i.cartKey || i.product_id) !== (item.cartKey || item.product_id))
     );
     showToast(`Dibatalkan: ${item.nama}`);
+  };
+
+  // Kosongkan keranjang kasir (dengan audit VAC jika nilai keranjang > 50rb)
+  const handleClearCart = () => {
+    if (cartItems.length === 0) return;
+    const currentTotal = totals.totalOmzet;
+    const itemCount = cartItems.length;
+    const snapshot = [...cartItems];
+
+    evaluateVacHeuristic({
+      cartTotal: currentTotal,
+      enteredPaymentTime: paymentPhaseStartTimeRef.current,
+      itemsSnapshot: snapshot.map((i) => ({ nama: i.nama, qty: i.quantity, harga: i.discounted_unit_price })),
+      hadCashTendered: Boolean(cashTendered),
+    });
+
+    purgedItemsRef.current = [];
+    hasEnteredPaymentPhaseRef.current = false;
+    paymentPhaseStartTimeRef.current = 0;
+    setSelectedCartIndex(-1);
+    setCartItems([]);
+    showToast('Keranjang dikosongkan.');
   };
 
   // Hitung ulang diskon jika pelanggan berubah
@@ -548,6 +872,7 @@ export default function PosPage() {
   }, [customerDiscountsMap]);
 
   // ── Calculation Totals ──────────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const totals = useMemo(() => {
     let subtotalOmzet = 0;
     let subtotalLaba = 0;
@@ -576,6 +901,21 @@ export default function PosPage() {
     const netPayable = Math.max(0, totals.totalOmzet - useCustomerBalance);
     const cashNum = cashTendered !== '' ? Number(cashTendered) : netPayable;
 
+    // Deteksi kebutuhan Auto-Unpack Kemasan Induk Bertingkat (Fase 6)
+    const autoUnpackActions = [];
+    cartItems.forEach((item) => {
+      const prod = products.find((p) => p.id === item.product_id);
+      if (prod) {
+        const evalRes = checkAutoUnpackEligibility(item, prod);
+        if (evalRes.needed && evalRes.parentUnit) {
+          autoUnpackActions.push({
+            product_id: item.product_id,
+            required_pcs: item.quantity,
+          });
+        }
+      }
+    });
+
     const payload = {
       nomor_bon: nomorBon.trim(),
       idempotency_key: cartIdRef.current, // Koreksi Kritis #3 (server-side unique validation)
@@ -585,9 +925,11 @@ export default function PosPage() {
       deskripsi: deskripsi.trim() || null,
       is_bonus: false,
       status: paymentStatus,
+      branch_id: assignedBranchId,
       use_customer_balance: useCustomerBalance > 0 ? useCustomerBalance : 0,
       change_allocation: options.changeAllocation || null,
       owner_pin: options.ownerPin || ownerPinOverride || null,
+      auto_unpack_actions: autoUnpackActions,
       items: cartItems.map((item) => ({
         product_id: item.product_id,
         unit_id: item.unit_id || null,
@@ -598,60 +940,170 @@ export default function PosPage() {
       })),
     };
 
-    const res = await api.addTransaction(payload);
-    setSubmitting(false);
+    const activeCust = targetCustId ? (customers.find(c => c.id === targetCustId) || selectedCustomer) : null;
 
-    if (res.success) {
-      setOwnerPinOverride(null);
-      const activeCust = targetCustId ? (customers.find(c => c.id === targetCustId) || selectedCustomer) : null;
-      setCompletedTx({
-        ...res.data,
-        cart_snapshot: cartItems,
-        customer_name: activeCust ? activeCust.nama : 'Umum (Non-Pelanggan)',
-        customer_phone: activeCust ? activeCust.phone : null,
-        total_final: totals.totalOmzet,
-        net_payable: netPayable,
-        use_customer_balance: useCustomerBalance,
-        cash_tendered: cashNum,
-        change_returned: Math.max(0, cashNum - netPayable),
-        change_allocation: options.changeAllocation,
-        change_allocation_result: res.data?.change_allocation_result || null,
-        payment_status: paymentStatus,
-        cashier_name: profile?.username || user?.email?.split('@')[0],
-        shop_name: shopName,
-      });
+    // Helper untuk memproses transaksi offline ke IndexedDB
+    const processOfflineCheckout = async () => {
+      const txId = cartIdRef.current || generateUUID();
+      const historicCreatedAt = new Date().toISOString();
 
-      // Update saldo / piutang state locally if mutated
-      if (res.data?.change_allocation_result?.current_balance !== undefined) {
-        setCustomerBalance(Number(res.data.change_allocation_result.current_balance));
-      } else if (useCustomerBalance > 0) {
-        setCustomerBalance(prev => Math.max(0, prev - useCustomerBalance));
-      }
-
-      if (res.data?.change_allocation_result?.leftover_debt !== undefined) {
-        setCustomerPiutang(Number(res.data.change_allocation_result.leftover_debt));
-      }
-
-      setIsReceiptModalOpen(true);
-    } else {
-      if (res.status === 402 || res.code === 'RECEIPT_LIMIT_REACHED' || res.upgrade_required) {
-        setUpgradeModalData({
-          limit: res.limit || 50,
-          current: res.current || 50,
-          message: res.message,
+      try {
+        await queueOfflineTransaction({
+          id: txId,
+          nomor_bon: nomorBon.trim(),
+          tanggal: historicCreatedAt.split('T')[0],
+          shift_id: activeShift?.id || null,
+          register_id: registerId,
+          payload: {
+            ...payload,
+            auto_unpack_actions: autoUnpackActions,
+            idempotency_key: txId,
+            shift_id: activeShift?.id || null,
+            register_id: registerId,
+            created_at: historicCreatedAt,
+          },
+          created_at: historicCreatedAt,
         });
-        setIsUpgradeModalOpen(true);
-      } else if (res.code === 'NEGATIVE_MARGIN_BLOCKED' || (res.status === 403 && res.loss_items)) {
-        const lossList = res.loss_items || cartItems.filter(i => !i.is_bonus_item && Number(i.discounted_unit_price) < Number(i.harga_modal));
-        setLossItemsForModal(lossList);
-        setIsNegativeMarginModalOpen(true);
-      } else {
-        setErrorMessage(res.message || 'Gagal menyimpan transaksi. Coba lagi.');
+
+        // Patch Teknis #2: Mutasi sisa limit kasbon lokal di IndexedDB jika Piutang
+        if (paymentStatus === 'Piutang' && targetCustId) {
+          await mutateLocalCustomerDebtLimit(targetCustId, totals.totalOmzet);
+          setCustomerPiutang((prev) => prev + totals.totalOmzet);
+        }
+
+        // Potong stok produk di memori kasir secara optimistik (Patch Teknis #3 Offline Unpack)
+        setProducts((prev) => {
+          let updated = prev;
+          for (const action of autoUnpackActions) {
+            const res = applyOptimisticAutoUnpack(updated, action.product_id, action.required_pcs);
+            updated = res.updatedProducts;
+          }
+          return updated.map((p) => {
+            const matchCart = cartItems.find((c) => c.product_id === p.id);
+            if (matchCart) {
+              const qtyToDeduct = matchCart.quantity * (matchCart.multiplier_to_base || 1);
+              return { 
+                ...p, 
+                stock: Math.max(0, (p.stock ?? p.stok_saat_ini ?? 0) - qtyToDeduct),
+                stok_saat_ini: Math.max(0, (p.stok_saat_ini ?? p.stock ?? 0) - qtyToDeduct),
+              };
+            }
+            return p;
+          });
+        });
+
+        setCompletedTx({
+          id: txId,
+          nomor_bon: nomorBon.trim(),
+          is_offline: true,
+          cart_snapshot: cartItems,
+          customer_name: activeCust ? activeCust.nama : 'Umum (Non-Pelanggan)',
+          customer_phone: activeCust ? activeCust.phone : null,
+          total_final: totals.totalOmzet,
+          net_payable: netPayable,
+          use_customer_balance: useCustomerBalance,
+          cash_tendered: cashNum,
+          change_returned: Math.max(0, cashNum - netPayable),
+          change_allocation: options.changeAllocation,
+          payment_status: paymentStatus,
+          cashier_name: profile?.username || user?.email?.split('@')[0],
+          shop_name: shopName,
+          tanggal: historicCreatedAt.split('T')[0],
+        });
+
+        setPendingSyncCount((prev) => prev + 1);
+        if (paymentStatus === 'Lunas') {
+          kickCashDrawerDirect().catch(() => {});
+        }
+        setIsReceiptModalOpen(true);
+        showToast('[Offline] Transaksi disimpan lokal. Otomatis sinkron saat online.');
+      } catch (offErr) {
+        console.error('[Offline Checkout Error]', offErr);
+        setErrorMessage('Gagal menyimpan transaksi offline ke penyimpanan lokal.');
+      } finally {
+        setSubmitting(false);
       }
+    };
+
+    // Jika sedang offline, langsung gunakan alur offline
+    if (!navigator.onLine || !isOnline) {
+      await processOfflineCheckout();
+      return;
+    }
+
+    // Jika online, coba kirim ke API dengan timeout 3.5 detik (fall back jika lambat / putus di tengah jalan)
+    try {
+      const apiPromise = api.addTransaction(payload);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('NETWORK_TIMEOUT')), 3500)
+      );
+
+      const res = await Promise.race([apiPromise, timeoutPromise]);
+      setSubmitting(false);
+
+      if (res.success) {
+        setOwnerPinOverride(null);
+        setCompletedTx({
+          ...res.data,
+          cart_snapshot: cartItems,
+          customer_name: activeCust ? activeCust.nama : 'Umum (Non-Pelanggan)',
+          customer_phone: activeCust ? activeCust.phone : null,
+          total_final: totals.totalOmzet,
+          net_payable: netPayable,
+          use_customer_balance: useCustomerBalance,
+          cash_tendered: cashNum,
+          change_returned: Math.max(0, cashNum - netPayable),
+          change_allocation: options.changeAllocation,
+          change_allocation_result: res.data?.change_allocation_result || null,
+          payment_status: paymentStatus,
+          cashier_name: profile?.username || user?.email?.split('@')[0],
+          shop_name: shopName,
+        });
+
+        // Update saldo / piutang state locally if mutated
+        if (res.data?.change_allocation_result?.current_balance !== undefined) {
+          setCustomerBalance(Number(res.data.change_allocation_result.current_balance));
+        } else if (useCustomerBalance > 0) {
+          setCustomerBalance(prev => Math.max(0, prev - useCustomerBalance));
+        }
+
+        if (res.data?.change_allocation_result?.leftover_debt !== undefined) {
+          setCustomerPiutang(Number(res.data.change_allocation_result.leftover_debt));
+        }
+
+        if (paymentStatus === 'Lunas') {
+          kickCashDrawerDirect().catch(() => {});
+        }
+
+        setIsReceiptModalOpen(true);
+      } else {
+        if (res.status === 402 || res.code === 'RECEIPT_LIMIT_REACHED' || res.upgrade_required) {
+          setUpgradeModalData({
+            limit: res.limit || 50,
+            current: res.current || 50,
+            message: res.message,
+          });
+          setIsUpgradeModalOpen(true);
+        } else if (res.code === 'NEGATIVE_MARGIN_BLOCKED' || (res.status === 403 && res.loss_items)) {
+          const lossList = res.loss_items || cartItems.filter(i => !i.is_bonus_item && Number(i.discounted_unit_price) < Number(i.harga_modal));
+          setLossItemsForModal(lossList);
+          setIsNegativeMarginModalOpen(true);
+        } else {
+          setErrorMessage(res.message || 'Gagal menyimpan transaksi. Coba lagi.');
+        }
+      }
+    } catch (netErr) {
+      console.warn('[Koneksi terputus saat checkout - Beralih ke Offline Mode]', netErr);
+      await processOfflineCheckout();
     }
   };
 
   const handleCheckout = async (checkoutOpts = {}) => {
+    hasEnteredPaymentPhaseRef.current = true;
+    if (!paymentPhaseStartTimeRef.current) {
+      // eslint-disable-next-line react-hooks/purity
+      paymentPhaseStartTimeRef.current = Date.now();
+    }
     setErrorMessage('');
     if (cartItems.length === 0) {
       setErrorMessage('Keranjang masih kosong.');
@@ -739,57 +1191,193 @@ export default function PosPage() {
     });
   };
 
-  // ── Keyboard Shortcuts (F1: Search, F2: Checkout, Esc: Close Modals) ───────
-  const handleCheckoutRef = useRef(handleCheckout);
-  useEffect(() => {
-    handleCheckoutRef.current = handleCheckout;
-  }, [handleCheckout]);
+  // ── Keyboard Shortcuts & Hardware Scanner (F2: Checkout, F4/F1: Search, Esc, Arrows, Delete) ──
+  const handleCheckoutRef = useRef(null);
+  const cartItemsRef = useRef(cartItems);
+  const selectedCartIndexRef = useRef(selectedCartIndex);
+  const removeFromCartRef = useRef(removeFromCart);
+  const addToCartRef = useRef(addToCart);
 
   useEffect(() => {
+    handleCheckoutRef.current = handleCheckout;
+    cartItemsRef.current = cartItems;
+    selectedCartIndexRef.current = selectedCartIndex;
+    removeFromCartRef.current = removeFromCart;
+    addToCartRef.current = addToCart;
+  });
+
+  // 1. Hardware Barcode Scanner (HID) Listener
+  useEffect(() => {
+    const isSensitiveModalOpen = () => {
+      return Boolean(
+        isRegisterFrozen ||
+        isNegativeMarginModalOpen || // Modal PIN Owner
+        isReceiptModalOpen ||
+        isCloseShiftOpen ||
+        isStartShiftOpen ||
+        isCashDrawerModalOpen ||
+        isPaywallOpen ||
+        isAssetLoanModalOpen ||
+        isSmartChangeOpen ||
+        isUpgradeModalOpen ||
+        isEditRegisterOpen
+      );
+    };
+
+    const cleanupScanner = attachBarcodeScannerListener((scannedCode) => {
+      if (isRegisterFrozen) return;
+      const query = scannedCode.trim();
+      if (!query) return;
+
+      // 1. Cari di product_units.barcode
+      let matchedUnit = null;
+      let unitProduct = null;
+
+      for (const p of products) {
+        if (p.product_units && p.product_units.length > 0) {
+          const u = p.product_units.find(
+            (u) => u.barcode && u.barcode.toLowerCase() === query.toLowerCase()
+          );
+          if (u) {
+            matchedUnit = u;
+            unitProduct = p;
+            break;
+          }
+        }
+      }
+
+      if (matchedUnit && unitProduct) {
+        addToCartRef.current(unitProduct, matchedUnit);
+        playScannerBeep();
+        showToast(`[Scan] Barcode Scanned (${matchedUnit.unit_name}): ${unitProduct.nama}`);
+        return;
+      }
+
+      // 2. Fallback: Cari di products.barcode
+      const barcodeMatch = products.find(
+        (p) => p.barcode && p.barcode.toLowerCase() === query.toLowerCase()
+      );
+
+      if (barcodeMatch) {
+        addToCartRef.current(barcodeMatch);
+        playScannerBeep();
+        showToast(`[Scan] Barcode Scanned: ${barcodeMatch.nama}`);
+        return;
+      }
+
+      showToast(`[Peringatan] Barcode [${query}] tidak ditemukan di katalog`);
+    }, {
+      isModalOpen: isSensitiveModalOpen,
+      maxInterval: 45,
+      minLength: 8,
+    });
+
+    return cleanupScanner;
+  }, [products, isRegisterFrozen, isNegativeMarginModalOpen, isReceiptModalOpen, isCloseShiftOpen, isStartShiftOpen, isCashDrawerModalOpen, isPaywallOpen, isAssetLoanModalOpen, isSmartChangeOpen, isUpgradeModalOpen, isEditRegisterOpen]);
+
+  // 2. Global Keyboard Navigation & Hotkeys
+  useEffect(() => {
     const handleKeyDown = (e) => {
-      // F1: Auto-focus search / barcode input
-      if (e.key === 'F1') {
+      if (isRegisterFrozen) return;
+      // F4 / F1: Auto-focus search / barcode input
+      if (e.key === 'F4' || e.key === 'F1') {
         e.preventDefault();
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
-          barcodeInputRef.current.select?.();
+        const searchInput = document.getElementById('pos-search-input') || barcodeInputRef.current;
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select?.();
         }
       }
       // F2: Trigger checkout / pay submission
       else if (e.key === 'F2') {
         e.preventDefault();
-        if (!submitting && cartItems.length > 0) {
+        if (!submitting && cartItemsRef.current.length > 0) {
           handleCheckoutRef.current();
         }
       }
-      // Esc: Close receipt / phase 3 modals
+      // F9: Manual cash drawer kick (DFO - Drawer Forced Open telemetry & HEM heuristic)
+      else if (e.key === 'F9') {
+        e.preventDefault();
+        drawerKickLogRef.current.push(Date.now());
+        evaluateHemHeuristic({
+          drawerKickTimestamps: drawerKickLogRef.current,
+          shiftId: activeShift?.id || null,
+          registerId,
+        });
+        emitStealthMetric('DFO', {
+          trigger_method: 'HOTKEY_F9',
+          shift_id: activeShift?.id || null,
+          register_id: registerId,
+          cart_items_count: cartItemsRef.current.length,
+          reason: 'Manual cash drawer kick triggered outside completed transaction'
+        });
+        showToast('[Laci] Perintah Buka Laci Kas Dikirim');
+      }
+      // Esc: Close active modals or reset selection
       else if (e.key === 'Escape') {
-        if (isReceiptModalOpen) {
-          setIsReceiptModalOpen(false);
+        const hasOpenModal = isReceiptModalOpen || isCloseShiftOpen || isStartShiftOpen ||
+          isCashDrawerModalOpen || isNegativeMarginModalOpen || isSmartChangeOpen ||
+          isPaywallOpen || isAssetLoanModalOpen || isUpgradeModalOpen || isEditRegisterOpen;
+
+        if (isReceiptModalOpen) setIsReceiptModalOpen(false);
+        if (isCloseShiftOpen) setIsCloseShiftOpen(false);
+        if (isStartShiftOpen) setIsStartShiftOpen(false);
+        if (isCashDrawerModalOpen) setIsCashDrawerModalOpen(false);
+        if (isNegativeMarginModalOpen) setIsNegativeMarginModalOpen(false);
+        if (isSmartChangeOpen) setIsSmartChangeOpen(false);
+        if (isPaywallOpen) setIsPaywallOpen(false);
+        if (isAssetLoanModalOpen) setIsAssetLoanModalOpen(false);
+        if (isUpgradeModalOpen) setIsUpgradeModalOpen(false);
+        if (isEditRegisterOpen) setIsEditRegisterOpen(false);
+
+        if (!hasOpenModal) {
+          setSelectedCartIndex(-1);
         }
-        if (isShiftHandoverOpen) {
-          setIsShiftHandoverOpen(false);
-        }
-        if (isStartShiftOpen) {
-          setIsStartShiftOpen(false);
-        }
-        if (isCashDrawerModalOpen) {
-          setIsCashDrawerModalOpen(false);
-        }
-        if (isNegativeMarginModalOpen) {
-          setIsNegativeMarginModalOpen(false);
+      }
+      // Panah Atas / Bawah & Delete untuk navigasi item keranjang
+      else {
+        const isEditingInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+        const hasOpenModal = isReceiptModalOpen || isCloseShiftOpen || isStartShiftOpen ||
+          isCashDrawerModalOpen || isNegativeMarginModalOpen || isSmartChangeOpen ||
+          isPaywallOpen || isAssetLoanModalOpen || isUpgradeModalOpen || isEditRegisterOpen;
+
+        if (!isEditingInput && !hasOpenModal && cartItemsRef.current.length > 0) {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedCartIndex((prev) => (prev < cartItemsRef.current.length - 1 ? prev + 1 : 0));
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedCartIndex((prev) => (prev > 0 ? prev - 1 : cartItemsRef.current.length - 1));
+          } else if (e.key === 'Delete') {
+            const currentIdx = selectedCartIndexRef.current;
+            if (currentIdx >= 0 && currentIdx < cartItemsRef.current.length) {
+              e.preventDefault();
+              const itemToDelete = cartItemsRef.current[currentIdx];
+              removeFromCartRef.current(itemToDelete);
+              setSelectedCartIndex((prev) => {
+                if (prev >= cartItemsRef.current.length - 1) {
+                  return Math.max(-1, cartItemsRef.current.length - 2);
+                }
+                return prev;
+              });
+            }
+          }
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [submitting, cartItems.length, isReceiptModalOpen, isShiftHandoverOpen, isStartShiftOpen, isCashDrawerModalOpen, isNegativeMarginModalOpen]);
+  }, [submitting, isRegisterFrozen, isReceiptModalOpen, isCloseShiftOpen, isStartShiftOpen, isCashDrawerModalOpen, isNegativeMarginModalOpen, isSmartChangeOpen, isPaywallOpen, isAssetLoanModalOpen, isUpgradeModalOpen, isEditRegisterOpen, activeShift, registerId]);
 
   // Reset Sesi POS untuk transaksi berikutnya
   const handleResetPos = async () => {
     cartIdRef.current = generateUUID();
     setIsWaPopupBlocked(false);
+    purgedItemsRef.current = [];
+    hasEnteredPaymentPhaseRef.current = false;
+    paymentPhaseStartTimeRef.current = 0;
+    setSelectedCartIndex(-1);
     setCartItems([]);
     setSelectedCustomer(null);
     setCustomerBalance(0);
@@ -806,15 +1394,19 @@ export default function PosPage() {
 
     // Refresh data produk agar stok terbaru muncul
     try {
-      const prodList = await api.getProducts();
-      if (prodList) setProducts(prodList);
+      if (navigator.onLine) {
+        const prodList = await api.getProducts();
+        if (prodList) setProducts(prodList);
+      } else {
+        const cached = await getCatalogCache();
+        if (cached?.products) setProducts(cached.products);
+      }
     } catch (err) {
       console.error('[POS Reset Refresh Error]', err);
+      const cached = await getCatalogCache();
+      if (cached?.products) setProducts(cached.products);
     }
   };
-
-  // Formatter Rupiah
-  const formatRupiah = (val) => `Rp ${Number(val || 0).toLocaleString('id-ID')}`;
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -872,24 +1464,96 @@ export default function PosPage() {
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2 md:gap-3">
-          {/* Network Status Indicator (Online/Offline) */}
-          <div className={`flex items-center gap-1.5 text-xs font-mono font-bold px-3 py-1.5 rounded-xl border-2 transition-all ${
-            isOnline
-              ? 'bg-emerald-50 text-emerald-900 border-emerald-500 shadow-[2px_2px_0px_#059669]'
-              : 'bg-rose-50 text-rose-900 border-rose-500 shadow-[2px_2px_0px_#E11D48] animate-pulse'
-          }`}>
-            {isOnline ? (
-              <>
-                <Wifi size={14} className="text-emerald-700" />
-                <span className="hidden md:inline">Online Cloud</span>
-              </>
-            ) : (
-              <>
-                <WifiOff size={14} className="text-rose-700" />
-                <span className="hidden md:inline">Offline Mode</span>
-              </>
+          {/* Network & Background Sync Status Badge */}
+          <div className="flex items-center gap-1.5">
+            <div className={`flex items-center gap-1.5 text-xs font-mono font-bold px-3 py-1.5 rounded-xl border-2 transition-all ${
+              isSyncing
+                ? 'bg-amber-50 text-amber-900 border-amber-500 shadow-[2px_2px_0px_#D97706]'
+                : !isOnline || pendingSyncCount > 0
+                ? 'bg-amber-100 text-amber-950 border-amber-600 shadow-[2px_2px_0px_#D97706]'
+                : 'bg-emerald-50 text-emerald-900 border-emerald-500 shadow-[2px_2px_0px_#059669]'
+            }`}>
+              {isSyncing ? (
+                <>
+                  <RefreshCw size={14} className="animate-spin text-amber-700" />
+                  <span>Sinkronisasi {pendingSyncCount} Bon...</span>
+                </>
+              ) : !isOnline ? (
+                <>
+                  <WifiOff size={14} className="text-amber-800" />
+                  <span>Offline ({pendingSyncCount} Bon Tersimpan)</span>
+                </>
+              ) : pendingSyncCount > 0 ? (
+                <>
+                  <RefreshCw size={14} className="text-amber-800" />
+                  <span>{pendingSyncCount} Bon Belum Tersinkron</span>
+                </>
+              ) : (
+                <>
+                  <Wifi size={14} className="text-emerald-700" />
+                  <span className="hidden md:inline">Online Cloud</span>
+                </>
+              )}
+            </div>
+
+            {/* Tombol Manual Sync jika ada pending antrean saat online */}
+            {pendingSyncCount > 0 && isOnline && !isSyncing && (
+              <button
+                type="button"
+                onClick={() => syncOfflineData()}
+                className="btn-arcade flex items-center gap-1 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] text-xs font-mono font-bold px-2.5 py-1.5 rounded-xl cursor-pointer"
+                title="Klik untuk Sinkronkan Transaksi Offline Sekarang"
+              >
+                <RefreshCw size={12} /> Sync
+              </button>
             )}
           </div>
+
+          {/* Badge Cabang Terkunci (Tahap 7: Device Branch Binding) */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsBranchRebinding(true);
+              setIsBranchSetupOpen(true);
+            }}
+            className="btn-arcade flex items-center gap-1.5 bg-[#0B0F17] hover:bg-slate-900 text-amber-400 border-2 border-amber-400 shadow-[2px_2px_0px_#F59E0B] text-xs font-mono font-bold px-3 py-2 rounded-xl transition-all cursor-pointer"
+            title="Klik untuk memindahkan terminal ke cabang lain (Butuh PIN Owner)"
+          >
+            <Store size={14} className="text-amber-400 shrink-0" strokeWidth={2.5} />
+            <span>[ 📍 {assignedBranchInfo?.branch_name || assignedBranchInfo?.name || 'CABANG UTAMA'} ({assignedRegisterName || 'POS-01'}) 🔒 ]</span>
+          </button>
+
+          {/* Terminal / Register Identifier Badge */}
+          <button
+            type="button"
+            onClick={() => {
+                if (profile?.role === 'BOSS' || profile?.role === 'ADMIN') {
+                setNewRegisterInput(registerId);
+                setIsEditRegisterOpen(true);
+              } else {
+                showToast(`Terminal: ${registerId} (Terkunci oleh Admin)`);
+              }
+            }}
+            className={`btn-arcade flex items-center gap-1.5 text-xs font-mono font-bold px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${
+              profile?.role === 'BOSS' || profile?.role === 'ADMIN'
+                ? 'bg-slate-900 text-[#CCFF00] border-slate-800 shadow-[2px_2px_0px_#1E293B] hover:bg-slate-800'
+                : 'bg-white text-slate-900 border-slate-800 shadow-[2px_2px_0px_#1E293B]'
+            }`}
+            title={profile?.role === 'BOSS' || profile?.role === 'ADMIN' ? 'Klik untuk Mengganti ID Terminal Kasir' : `Terminal: ${registerId}`}
+          >
+            <Monitor size={14} className={profile?.role === 'BOSS' || profile?.role === 'ADMIN' ? 'text-[#CCFF00]' : 'text-slate-700'} />
+            <span>Kasir: <strong className="font-mono">{registerId}</strong></span>
+          </button>
+
+          {/* Printer Thermal Settings Button */}
+          <button
+            type="button"
+            onClick={() => setIsPrinterSettingsOpen(true)}
+            className="btn-arcade flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] text-xs font-mono font-bold px-3 py-2 rounded-xl transition-all cursor-pointer"
+            title="Konfigurasi Printer Thermal (Bluetooth / USB Serial)"
+          >
+            <Printer size={14} /> <span className="hidden xl:inline">Printer</span>
+          </button>
 
           {/* Laci Kas Masuk/Keluar Button */}
           <button
@@ -903,9 +1567,9 @@ export default function PosPage() {
           {/* Shift Status & Handover Button */}
           {activeShift ? (
             <button
-              onClick={() => setIsShiftHandoverOpen(true)}
+              onClick={() => setIsCloseShiftOpen(true)}
               className="btn-arcade flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border-2 border-emerald-600 shadow-[2px_2px_0px_#059669] text-xs font-mono font-bold px-3 py-2 rounded-xl transition-all cursor-pointer"
-              title="Shift Aktif — Klik untuk Tutup Shift (Blind Closing)"
+              title="Shift Aktif - Klik untuk Tutup Shift (Blind Closing)"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -963,10 +1627,11 @@ export default function PosPage() {
             </div>
             <input
               ref={barcodeInputRef}
+              id="pos-search-input"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tembak Barcode / Cari nama produk [F1] (Tekan Enter)..."
+              placeholder="Tembak Barcode / Cari nama produk [F4] (Tekan Enter)..."
               className="w-full h-14 bg-white border-2 border-slate-800 focus:border-slate-800 focus:ring-2 focus:ring-[#CCFF00] rounded-2xl pl-13 pr-32 text-base font-sans font-semibold text-slate-900 outline-none shadow-[3px_3px_0px_#1E293B] transition-all placeholder:text-slate-400"
             />
             <button
@@ -1135,7 +1800,8 @@ export default function PosPage() {
               </div>
               {cartItems.length > 0 && (
                 <button
-                  onClick={() => setCartItems([])}
+                  type="button"
+                  onClick={handleClearCart}
                   className="text-xs font-mono font-bold text-rose-600 hover:underline cursor-pointer"
                 >
                   Kosongkan
@@ -1159,6 +1825,23 @@ export default function PosPage() {
                 onChange={(e) => {
                   const cust = customers.find((c) => c.id === e.target.value);
                   setSelectedCustomer(cust || null);
+
+                  // Telemetry: SDC (Suspicious Discount Clustering)
+                  if (cust && cust.customer_discounts && cust.customer_discounts.length > 0) {
+                    const now = Date.now();
+                    discountApplicationLogRef.current.push({ customer_id: cust.id, timestamp: now });
+                    const recentDiscounts = discountApplicationLogRef.current.filter(d => now - d.timestamp < 3600000);
+                    discountApplicationLogRef.current = recentDiscounts;
+                    const uniqueCustomers = new Set(recentDiscounts.map(d => d.customer_id));
+                    if (recentDiscounts.length >= 3 && uniqueCustomers.size >= 2) {
+                      emitStealthMetric('SDC', {
+                        total_applications: recentDiscounts.length,
+                        unique_customers_count: uniqueCustomers.size,
+                        timeframe_minutes: 60,
+                        reason: 'Frequent discount applications to multiple customers within 60 minutes'
+                      });
+                    }
+                  }
                 }}
                 className="w-full h-12 bg-slate-50 border-2 border-slate-800 rounded-xl px-3 text-sm font-sans font-bold text-slate-900 shadow-xs focus:ring-2 focus:ring-[#CCFF00] outline-none transition-all cursor-pointer"
               >
@@ -1186,8 +1869,9 @@ export default function PosPage() {
                       return (
                         <div className="flex flex-wrap gap-1 mt-0.5">
                           {activeLoans.map(([t, qty]) => (
-                            <span key={t} className="px-1.5 py-0.5 bg-amber-200 border border-slate-800 text-[10px] font-mono font-black text-slate-900 rounded">
-                              ⚠️ {qty}× {t}
+                            <span key={t} className="px-1.5 py-0.5 bg-amber-200 border border-slate-800 text-[10px] font-mono font-black text-slate-900 rounded flex items-center gap-1">
+                              <AlertTriangle size={11} strokeWidth={2.5} className="text-amber-800 shrink-0" />
+                              <span>{qty}× {t}</span>
                             </span>
                           ))}
                         </div>
@@ -1265,24 +1949,34 @@ export default function PosPage() {
 
             {/* Item Keranjang List (Zero Zebra Stripes - Pure Clean Line Dividers) */}
             <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-              {cartItems.map((item) => {
+              {cartItems.map((item, index) => {
                 const itemPrice = item.is_bonus_item ? 0 : item.discounted_unit_price;
                 const hasDiscount = item.discounted_unit_price < item.harga_base && !item.is_bonus_item;
                 const isLoss = !item.is_bonus_item && Number(item.discounted_unit_price) < Number(item.harga_modal);
                 const lossPerUnit = isLoss ? Number(item.harga_modal) - Number(item.discounted_unit_price) : 0;
+                const isSelected = index === selectedCartIndex;
 
                 return (
                   <div
                     key={item.cartKey || item.product_id}
-                    className={`rounded-xl px-3.5 py-3 flex items-center justify-between gap-3 text-sm transition-all ${
-                      isLoss
+                    onClick={() => setSelectedCartIndex(index)}
+                    className={`rounded-xl px-3.5 py-3 flex items-center justify-between gap-3 text-sm transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-amber-50/90 border-2 border-[#0B0F17] shadow-[3px_3px_0px_#0B0F17] ring-2 ring-amber-400 -translate-y-[1px]'
+                        : isLoss
                         ? 'bg-red-50/90 border-2 border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.25)] animate-pulse'
-                        : 'bg-slate-50 border border-slate-300'
+                        : 'bg-slate-50 border border-slate-300 hover:border-slate-400'
                     }`}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-bold text-slate-900 truncate font-sans text-sm">{item.nama}</span>
+                        {isSelected && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#0B0F17] text-amber-400 font-mono font-black text-[10px] uppercase tracking-wider border border-amber-400 rounded">
+                            <Trash2 className="w-3 h-3 stroke-[2.5]" />
+                            [DEL] HAPUS
+                          </span>
+                        )}
                         <span className="text-[9px] font-mono font-bold uppercase bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded">
                           {item.tipe}
                         </span>
@@ -1293,7 +1987,8 @@ export default function PosPage() {
                         )}
                         {isLoss && (
                           <span className="text-[9px] font-mono font-black uppercase bg-red-600 text-white px-1.5 py-0.5 rounded shadow-[1px_1px_0px_#991B1B] flex items-center gap-1">
-                            ⚠️ RUGI: -{formatRupiah(lossPerUnit)}
+                            <AlertTriangle size={10} strokeWidth={2.5} className="shrink-0" />
+                            <span>RUGI: -{formatRupiah(lossPerUnit)}</span>
                           </span>
                         )}
                       </div>
@@ -1316,6 +2011,23 @@ export default function PosPage() {
                           </span>
                         )}
                       </div>
+
+                      {/* Auto-Unpack Soft Badge (Tahap 6: Arcade Brutalist) */}
+                      {(() => {
+                        const prodMaster = products.find((p) => p.id === item.product_id);
+                        const unpackEval = checkAutoUnpackEligibility(item, prodMaster);
+                        if (unpackEval.needed && unpackEval.parentUnit) {
+                          return (
+                            <div className="mt-1 flex items-center">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-950 font-mono font-black text-[9px] uppercase tracking-wider border-2 border-slate-900 rounded-md shadow-[2px_2px_0px_#0B0F17]">
+                                <Zap size={10} className="text-amber-700 shrink-0 fill-amber-500" strokeWidth={2.5} />
+                                <span>{unpackEval.badgeText}</span>
+                              </span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
 
                     {/* Controls Qty */}
@@ -1589,6 +2301,12 @@ export default function PosPage() {
                 <div className="flex justify-between"><span>Kasir:</span><span>{completedTx.cashier_name}</span></div>
                 <div className="flex justify-between"><span>Pelanggan:</span><strong className="text-slate-900">{completedTx.customer_name}</strong></div>
                 <div className="flex justify-between"><span>Status:</span><span className="font-bold uppercase text-slate-900 bg-[#CCFF00] px-1.5 py-0.2 rounded border border-slate-800">{completedTx.payment_status}</span></div>
+                {completedTx.is_offline && (
+                  <div className="bg-amber-100 border border-amber-400 text-amber-950 text-[10px] font-mono font-bold px-2 py-1 rounded text-center my-1 flex items-center justify-center gap-1.5">
+                    <Zap size={12} strokeWidth={2.5} className="text-amber-700 fill-amber-700" />
+                    <span>MODE OFFLINE - TERSIMPAN DI PERANGKAT (MENUNGGU SINKRONISASI)</span>
+                  </div>
+                )}
               </div>
 
               <div className="border-b border-dashed border-slate-300 my-2" />
@@ -1654,10 +2372,15 @@ export default function PosPage() {
             <div className="p-4 bg-white space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => window.print()}
+                  onClick={async () => {
+                    const printRes = await printReceiptDirect(completedTx);
+                    if (!printRes.success && printRes.error !== 'FALLBACK_WINDOW_PRINT') {
+                      window.print();
+                    }
+                  }}
                   className="btn-arcade bg-white hover:bg-slate-100 text-slate-900 border-2 border-slate-800 font-mono text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-[2px_2px_0px_#1E293B]"
                 >
-                  <Printer size={14} /> Cetak
+                  <Printer size={14} /> Cetak Struk
                 </button>
 
                 {completedTx.customer_phone ? (
@@ -1722,71 +2445,157 @@ export default function PosPage() {
       </AnimatePresence>
 
       {/* ── MODAL RADAR JUAL RUGI (NEGATIVE MARGIN OVERRIDE) ── */}
-      <NegativeMarginOverrideModal
-        key="negative-margin-modal"
-        isOpen={isNegativeMarginModalOpen}
-        onClose={() => setIsNegativeMarginModalOpen(false)}
-        lossItems={lossItemsForModal}
-        mode={getTierConfig(userPlan).features?.negative_margin_guard === 'CONFIRM_ONLY' ? 'CONFIRM_ONLY' : 'HARD_BLOCK'}
-        onAuthorize={handleAuthorizeLoss}
-      />
+      {isNegativeMarginModalOpen && (
+        <NegativeMarginOverrideModal
+          key="negative-margin-modal"
+          isOpen={isNegativeMarginModalOpen}
+          onClose={() => setIsNegativeMarginModalOpen(false)}
+          lossItems={lossItemsForModal}
+          mode={getTierConfig(userPlan).features?.negative_margin_guard === 'CONFIRM_ONLY' ? 'CONFIRM_ONLY' : 'HARD_BLOCK'}
+          onAuthorize={handleAuthorizeLoss}
+        />
+      )}
 
       {/* ── MODAL BUKA SHIFT KASIR (START SHIFT) ── */}
-      <StartShiftModal
-        key="start-shift-modal"
-        isOpen={isStartShiftOpen}
-        onClose={() => setIsStartShiftOpen(false)}
-        cashierName={profile?.username || user?.email?.split('@')[0] || 'Kasir'}
-        onShiftStarted={(newShift) => {
-          setActiveShift(newShift);
-          showToast(`Shift #${newShift.shift_number} berhasil dibuka!`);
-        }}
-      />
+      {isStartShiftOpen && (
+        <StartShiftModal
+          key="start-shift-modal"
+          isOpen={isStartShiftOpen}
+          onClose={() => setIsStartShiftOpen(false)}
+          cashierName={profile?.username || user?.email?.split('@')[0] || 'Kasir'}
+          onShiftStarted={(newShift) => {
+            setActiveShift(newShift);
+            showToast(`Shift #${newShift.shift_number} berhasil dibuka!`);
+          }}
+        />
+      )}
 
-      {/* ── MODAL SERAH TERIMA SHIFT 60 DETIK (BLIND CLOSING) ── */}
-      <ShiftHandoverModal
-        key="shift-handover-modal"
-        isOpen={isShiftHandoverOpen}
-        onClose={() => setIsShiftHandoverOpen(false)}
-        activeShift={activeShift}
-        cashiers={cashiersList}
-        tierFeatures={getTierConfig(userPlan).features || {}}
-        onShiftClosed={(res) => {
-          setActiveShift(null);
-          showToast('Shift kasir berhasil ditutup dan direkonsiliasi!');
-        }}
-      />
+      {/* ── MODAL SERAH TERIMA SHIFT ESTAFET & SKIM SETORAN BOS (BLIND CLOSING) ── */}
+      {isCloseShiftOpen && (
+        <CloseShiftModal
+          key="close-shift-modal"
+          isOpen={isCloseShiftOpen}
+          onClose={() => setIsCloseShiftOpen(false)}
+          activeShift={activeShift}
+          cashiers={cashiersList}
+          tierFeatures={getTierConfig(userPlan).features || {}}
+          onShiftClosed={() => {
+            setActiveShift(null);
+            showToast('Shift kasir berhasil ditutup dan direkonsiliasi!');
+          }}
+          onShiftHandover={(newShift, newCashier) => {
+            setActiveShift(newShift);
+            if (newCashier) {
+              setProfile((prev) => ({
+                ...prev,
+                id: newCashier.id,
+                username: newCashier.username,
+                full_name: newCashier.full_name,
+                role: newCashier.role,
+              }));
+            }
+            handleResetPos();
+            setIsCloseShiftOpen(false);
+            showToast(`Serah terima berhasil! Kasir aktif: ${newCashier?.username || 'Kasir Pengganti'}`);
+          }}
+        />
+      )}
+
+      {/* ── MODAL GANTI ID TERMINAL KASIR (MULTI-TERMINAL) ── */}
+      {isEditRegisterOpen && (
+        <div className="fixed inset-0 z-[11000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B] space-y-4 font-sans">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <h3 className="font-display font-black text-base text-slate-900 flex items-center gap-2">
+                <Monitor size={18} /> Ganti ID Terminal
+              </h3>
+              <button
+                onClick={() => setIsEditRegisterOpen(false)}
+                className="text-slate-500 hover:text-slate-800 p-1 cursor-pointer"
+                aria-label="Tutup edit ID terminal"
+              >
+                <X size={16} strokeWidth={2.5} />
+              </button>
+            </div>
+            <p className="text-xs text-slate-600">
+              ID Terminal memisahkan pembukuan laci kas jika toko memiliki lebih dari 1 komputer kasir (contoh: REGISTER_01, REGISTER_02).
+            </p>
+            <div>
+              <label className="block text-[11px] font-mono font-bold uppercase text-slate-700 mb-1">
+                Nama / ID Terminal
+              </label>
+              <input
+                type="text"
+                value={newRegisterInput}
+                onChange={(e) => setNewRegisterInput(e.target.value.toUpperCase())}
+                className="w-full h-11 bg-slate-50 border-2 border-slate-800 rounded-xl px-3 text-sm font-mono font-bold text-slate-900 outline-none uppercase focus:ring-2 focus:ring-[#CCFF00]"
+                placeholder="REGISTER_MAIN"
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsEditRegisterOpen(false)}
+                className="btn-arcade flex-1 py-2.5 rounded-xl border-2 border-slate-800 bg-white hover:bg-slate-100 font-mono font-bold text-xs cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const val = newRegisterInput.trim() || 'REGISTER_MAIN';
+                  setRegisterId(val);
+                  setRegisterIdState(val);
+                  setIsEditRegisterOpen(false);
+                  showToast(`Terminal dialihkan ke: ${val}`);
+                  // Refresh active shift for the new register ID
+                  api.getCurrentShift(val).then((sh) => setActiveShift(sh || null)).catch(() => {});
+                }}
+                className="btn-arcade flex-1 py-2.5 rounded-xl border-2 border-slate-800 bg-[#CCFF00] hover:bg-[#b3e600] font-mono font-black text-xs cursor-pointer shadow-[2px_2px_0px_#1E293B]"
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── MODAL MUTASI KAS MASUK / KELUAR LACI ── */}
-      <CashDrawerMovementModal
-        key="cash-drawer-modal"
-        isOpen={isCashDrawerModalOpen}
-        onClose={() => setIsCashDrawerModalOpen(false)}
-        activeShift={activeShift}
-        onMovementAdded={(mov) => {
-          showToast(`Kas ${mov.movement_type === 'CASH_IN' ? 'Masuk' : 'Keluar'} Rp ${mov.amount?.toLocaleString('id-ID')} dicatat.`);
-        }}
-      />
+      {isCashDrawerModalOpen && (
+        <CashDrawerMovementModal
+          key="cash-drawer-modal"
+          isOpen={isCashDrawerModalOpen}
+          onClose={() => setIsCashDrawerModalOpen(false)}
+          activeShift={activeShift}
+          onMovementAdded={(mov) => {
+            showToast(`Kas ${mov.movement_type === 'CASH_IN' ? 'Masuk' : 'Keluar'} Rp ${mov.amount?.toLocaleString('id-ID')} dicatat.`);
+          }}
+        />
+      )}
 
       {/* ── MODAL PAYWALL ── */}
-      <PaywallModal 
-        isOpen={isPaywallOpen}
-        onClose={() => setIsPaywallOpen(false)}
-        title={paywallConfig.title}
-        message={paywallConfig.message}
-        targetPlan={paywallConfig.targetPlan}
-        priceLabel={paywallConfig.priceLabel}
-      />
+      {isPaywallOpen && (
+        <PaywallModal 
+          isOpen={isPaywallOpen}
+          onClose={() => setIsPaywallOpen(false)}
+          title={paywallConfig.title}
+          message={paywallConfig.message}
+          targetPlan={paywallConfig.targetPlan}
+          priceLabel={paywallConfig.priceLabel}
+        />
+      )}
 
       {/* ── MODAL UPGRADE KONTRAK (#51 ATOMIC LOCK) ── */}
-      <UpgradePromptModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
-        errorData={upgradeModalData}
-      />
+      {isUpgradeModalOpen && (
+        <UpgradePromptModal
+          isOpen={isUpgradeModalOpen}
+          onClose={() => setIsUpgradeModalOpen(false)}
+          errorData={upgradeModalData}
+        />
+      )}
 
       {/* ── MODAL PELACAK TABUNG & GALON (FASE 1) ── */}
-      {selectedCustomer && (
+      {selectedCustomer && isAssetLoanModalOpen && (
         <AssetLoanModal
           customer={selectedCustomer}
           isOpen={isAssetLoanModalOpen}
@@ -1809,15 +2618,68 @@ export default function PosPage() {
       )}
 
       {/* ── MODAL SMART CHANGE (FASE 2: CELENGAN & KEMBALIAN) ── */}
-      <SmartChangeModal
-        isOpen={isSmartChangeOpen}
-        onClose={() => setIsSmartChangeOpen(false)}
-        totalOmzet={Math.max(0, totals.totalOmzet - useCustomerBalance)}
-        cashReceived={Number(cashTendered || 0)}
-        selectedCustomer={selectedCustomer}
-        customerPiutang={customerPiutang}
-        customerBalance={customerBalance}
-        onConfirmAllocation={handleSmartChangeAllocation}
+      {isSmartChangeOpen && (
+        <SmartChangeModal
+          isOpen={isSmartChangeOpen}
+          onClose={() => setIsSmartChangeOpen(false)}
+          totalOmzet={Math.max(0, totals.totalOmzet - useCustomerBalance)}
+          cashReceived={Number(cashTendered || 0)}
+          selectedCustomer={selectedCustomer}
+          customerPiutang={customerPiutang}
+          customerBalance={customerBalance}
+          customerDebts={customerDebts}
+          onConfirmAllocation={handleSmartChangeAllocation}
+        />
+      )}
+
+      {/* ── MODAL KONFIGURASI PRINTER THERMAL (ESC/POS) ── */}
+      {isPrinterSettingsOpen && (
+        <PrinterSettingsModal
+          key="printer-settings-modal"
+          isOpen={isPrinterSettingsOpen}
+          onClose={() => setIsPrinterSettingsOpen(false)}
+        />
+      )}
+
+      {/* ── MODAL SETUP IDENTITAS CABANG KASIR (TAHAP 7) ── */}
+      <BranchSetupModal
+        isOpen={isBranchSetupOpen}
+        isRebinding={isBranchRebinding}
+        onClose={() => {
+          setIsBranchSetupOpen(false);
+          setIsBranchRebinding(false);
+        }}
+        onSuccess={async (res) => {
+          setAssignedBranchId(res.branchId);
+          setAssignedBranchInfo(res.branch);
+          setAssignedRegisterName(res.registerName);
+          setIsBranchSetupOpen(false);
+          setIsBranchRebinding(false);
+
+          // Reload produk terikat cabang
+          try {
+            const bProds = await getBranchProductCatalog(supabase, res.branchId);
+            if (bProds && bProds.length > 0) {
+              setProducts(bProds);
+            }
+          } catch (loadErr) {
+            console.warn('[POS Reload Branch Prods Error]', loadErr);
+          }
+          showToast(`Terminal kasir terikat ke Cabang: ${res.branch?.branch_name || res.branch?.name || 'Utama'}`);
+        }}
+      />
+
+      {/* ── OVERLAY LOCKDOWN TERMINAL DIBEKUKAN (TAHAP 5 CITADEL) ── */}
+      <FreezeRegisterOverlay
+        isFrozen={isRegisterFrozen}
+        registerCode={registerId}
+        freezeReason={freezeReason}
+        onUnfreezeSuccess={() => {
+          setIsRegisterFrozen(false);
+          setFreezeReason('');
+          api.toggleFreezeRegister({ register_code: registerId, is_frozen: false }).catch(() => {});
+          showToast('Kunci keamanan terminal kasir berhasil dibuka!');
+        }}
       />
 
     </div>

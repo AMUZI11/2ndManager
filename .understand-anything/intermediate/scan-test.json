@@ -1,0 +1,3950 @@
+{
+  "scriptCompleted": true,
+  "files": [
+    {
+      "path": ".agents/skills/brandkit/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 798,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/design-taste-frontend-v1/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 226,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/design-taste-frontend/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 1206,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/emil-design-eng/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 679,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/full-output-enforcement/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 49,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/gpt-taste/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 74,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/high-end-visual-design/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 98,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/image-to-code/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 1228,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/imagegen-frontend-mobile/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 1465,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/imagegen-frontend-web/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 987,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/agents/impeccable_asset_producer.toml",
+      "language": "toml",
+      "sizeLines": 92,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".agents/skills/impeccable/agents/impeccable_manual_edit_applier.toml",
+      "language": "toml",
+      "sizeLines": 95,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".agents/skills/impeccable/agents/openai.yaml",
+      "language": "yaml",
+      "sizeLines": 3,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/adapt.md",
+      "language": "markdown",
+      "sizeLines": 311,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/animate.md",
+      "language": "markdown",
+      "sizeLines": 201,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/audit.md",
+      "language": "markdown",
+      "sizeLines": 133,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/bolder.md",
+      "language": "markdown",
+      "sizeLines": 113,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/brand.md",
+      "language": "markdown",
+      "sizeLines": 108,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/clarify.md",
+      "language": "markdown",
+      "sizeLines": 288,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/codex.md",
+      "language": "markdown",
+      "sizeLines": 105,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/colorize.md",
+      "language": "markdown",
+      "sizeLines": 257,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/craft.md",
+      "language": "markdown",
+      "sizeLines": 123,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/critique.md",
+      "language": "markdown",
+      "sizeLines": 790,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/delight.md",
+      "language": "markdown",
+      "sizeLines": 302,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/distill.md",
+      "language": "markdown",
+      "sizeLines": 111,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/document.md",
+      "language": "markdown",
+      "sizeLines": 429,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/extract.md",
+      "language": "markdown",
+      "sizeLines": 69,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/harden.md",
+      "language": "markdown",
+      "sizeLines": 347,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/hooks.md",
+      "language": "markdown",
+      "sizeLines": 90,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/init.md",
+      "language": "markdown",
+      "sizeLines": 172,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/interaction-design.md",
+      "language": "markdown",
+      "sizeLines": 189,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/layout.md",
+      "language": "markdown",
+      "sizeLines": 161,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/live.md",
+      "language": "markdown",
+      "sizeLines": 720,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/onboard.md",
+      "language": "markdown",
+      "sizeLines": 234,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/optimize.md",
+      "language": "markdown",
+      "sizeLines": 258,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/overdrive.md",
+      "language": "markdown",
+      "sizeLines": 130,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/polish.md",
+      "language": "markdown",
+      "sizeLines": 241,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/product.md",
+      "language": "markdown",
+      "sizeLines": 60,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/quieter.md",
+      "language": "markdown",
+      "sizeLines": 99,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/shape.md",
+      "language": "markdown",
+      "sizeLines": 165,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/reference/typeset.md",
+      "language": "markdown",
+      "sizeLines": 279,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/command-metadata.json",
+      "language": "json",
+      "sizeLines": 94,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/context-signals.mjs",
+      "language": "javascript",
+      "sizeLines": 225,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/context.mjs",
+      "language": "javascript",
+      "sizeLines": 280,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/critique-storage.mjs",
+      "language": "javascript",
+      "sizeLines": 242,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detect-csp.mjs",
+      "language": "javascript",
+      "sizeLines": 198,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detect.mjs",
+      "language": "javascript",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/browser/injected/index.mjs",
+      "language": "javascript",
+      "sizeLines": 1937,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/cli/main.mjs",
+      "language": "javascript",
+      "sizeLines": 268,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/design-system.mjs",
+      "language": "javascript",
+      "sizeLines": 750,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/detect-antipatterns-browser.js",
+      "language": "javascript",
+      "sizeLines": 5138,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/detect-antipatterns.mjs",
+      "language": "javascript",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/engines/browser/detect-url.mjs",
+      "language": "javascript",
+      "sizeLines": 277,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/engines/regex/detect-text.mjs",
+      "language": "javascript",
+      "sizeLines": 564,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/engines/static-html/css-cascade.mjs",
+      "language": "javascript",
+      "sizeLines": 1015,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/engines/static-html/detect-html.mjs",
+      "language": "javascript",
+      "sizeLines": 229,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/engines/visual/screenshot-contrast.mjs",
+      "language": "javascript",
+      "sizeLines": 189,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/findings.mjs",
+      "language": "javascript",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/node/file-system.mjs",
+      "language": "javascript",
+      "sizeLines": 198,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/profile/profiler.mjs",
+      "language": "javascript",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/registry/antipatterns.mjs",
+      "language": "javascript",
+      "sizeLines": 448,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/rules/checks.mjs",
+      "language": "javascript",
+      "sizeLines": 2671,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/shared/color.mjs",
+      "language": "javascript",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/shared/constants.mjs",
+      "language": "javascript",
+      "sizeLines": 101,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/detector/shared/page.mjs",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/hook-admin.mjs",
+      "language": "javascript",
+      "sizeLines": 636,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/hook-before-edit.mjs",
+      "language": "javascript",
+      "sizeLines": 476,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/hook-lib.mjs",
+      "language": "javascript",
+      "sizeLines": 1526,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/hook.mjs",
+      "language": "javascript",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/lib/design-parser.mjs",
+      "language": "javascript",
+      "sizeLines": 842,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/lib/impeccable-config.mjs",
+      "language": "javascript",
+      "sizeLines": 638,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/lib/impeccable-paths.mjs",
+      "language": "javascript",
+      "sizeLines": 126,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/lib/is-generated.mjs",
+      "language": "javascript",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-accept.mjs",
+      "language": "javascript",
+      "sizeLines": 812,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-browser-dom.js",
+      "language": "javascript",
+      "sizeLines": 146,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-browser-session.js",
+      "language": "javascript",
+      "sizeLines": 123,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-browser.js",
+      "language": "javascript",
+      "sizeLines": 11161,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-commit-manual-edits.mjs",
+      "language": "javascript",
+      "sizeLines": 1241,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-complete.mjs",
+      "language": "javascript",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-copy-edit-agent.mjs",
+      "language": "javascript",
+      "sizeLines": 683,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-discard-manual-edits.mjs",
+      "language": "javascript",
+      "sizeLines": 51,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-inject.mjs",
+      "language": "javascript",
+      "sizeLines": 583,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-insert.mjs",
+      "language": "javascript",
+      "sizeLines": 272,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-manual-edit-evidence.mjs",
+      "language": "javascript",
+      "sizeLines": 363,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-poll.mjs",
+      "language": "javascript",
+      "sizeLines": 379,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-resume.mjs",
+      "language": "javascript",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-server.mjs",
+      "language": "javascript",
+      "sizeLines": 1134,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-status.mjs",
+      "language": "javascript",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live-wrap.mjs",
+      "language": "javascript",
+      "sizeLines": 894,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live.mjs",
+      "language": "javascript",
+      "sizeLines": 246,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/browser-script-parts.mjs",
+      "language": "javascript",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/completion.mjs",
+      "language": "javascript",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/event-validation.mjs",
+      "language": "javascript",
+      "sizeLines": 137,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/insert-ui.mjs",
+      "language": "javascript",
+      "sizeLines": 458,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/manual-apply.mjs",
+      "language": "javascript",
+      "sizeLines": 939,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/manual-edit-routes.mjs",
+      "language": "javascript",
+      "sizeLines": 357,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/manual-edits-buffer.mjs",
+      "language": "javascript",
+      "sizeLines": 152,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/session-store.mjs",
+      "language": "javascript",
+      "sizeLines": 289,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/svelte-component.mjs",
+      "language": "javascript",
+      "sizeLines": 826,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/sveltekit-adapter.mjs",
+      "language": "javascript",
+      "sizeLines": 274,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/ui-core.mjs",
+      "language": "javascript",
+      "sizeLines": 180,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/live/vocabulary.mjs",
+      "language": "javascript",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/modern-screenshot.umd.js",
+      "language": "javascript",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/palette.mjs",
+      "language": "javascript",
+      "sizeLines": 633,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/scripts/pin.mjs",
+      "language": "javascript",
+      "sizeLines": 214,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/impeccable/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 173,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/industrial-brutalist-ui/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 92,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/minimalist-ui/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 85,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/redesign-existing-projects/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 178,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/stitch-design-taste/DESIGN.md",
+      "language": "markdown",
+      "sizeLines": 121,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/stitch-design-taste/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 184,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".superpowers/brainstorm/1/content/concierge-options.html",
+      "language": "html",
+      "sizeLines": 26,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".superpowers/brainstorm/1/content/hero-options.html",
+      "language": "html",
+      "sizeLines": 26,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".superpowers/brainstorm/1/content/waiting.html",
+      "language": "html",
+      "sizeLines": 3,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".superpowers/brainstorm/1/state/server-stopped",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".superpowers/brainstorm/session-1/content/design-presentation.html",
+      "language": "html",
+      "sizeLines": 57,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".superpowers/brainstorm/session-1/content/layout-approaches.html",
+      "language": "html",
+      "sizeLines": 45,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".superpowers/brainstorm/session-1/content/login-concept.html",
+      "language": "html",
+      "sizeLines": 346,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".superpowers/brainstorm/session-1/content/optimizations-scope.html",
+      "language": "html",
+      "sizeLines": 41,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".superpowers/brainstorm/session-1/content/waiting-2.html",
+      "language": "html",
+      "sizeLines": 4,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".superpowers/brainstorm/session-1/content/waiting.html",
+      "language": "html",
+      "sizeLines": 4,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".superpowers/brainstorm/session-1/state/server-stopped",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "sizeLines": 72,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/brandkit/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 798,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/design-taste-frontend-v1/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 226,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/design-taste-frontend/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 1206,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/emil-design-eng/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 679,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/full-output-enforcement/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 49,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/gpt-taste/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 74,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/high-end-visual-design/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 98,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/image-to-code/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 1228,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/imagegen-frontend-mobile/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 1465,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/imagegen-frontend-web/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 987,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/agents/impeccable_asset_producer.toml",
+      "language": "toml",
+      "sizeLines": 92,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/agents/impeccable_manual_edit_applier.toml",
+      "language": "toml",
+      "sizeLines": 95,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/agents/openai.yaml",
+      "language": "yaml",
+      "sizeLines": 3,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/adapt.md",
+      "language": "markdown",
+      "sizeLines": 311,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/animate.md",
+      "language": "markdown",
+      "sizeLines": 201,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/audit.md",
+      "language": "markdown",
+      "sizeLines": 133,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/bolder.md",
+      "language": "markdown",
+      "sizeLines": 113,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/brand.md",
+      "language": "markdown",
+      "sizeLines": 108,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/clarify.md",
+      "language": "markdown",
+      "sizeLines": 288,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/codex.md",
+      "language": "markdown",
+      "sizeLines": 105,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/colorize.md",
+      "language": "markdown",
+      "sizeLines": 257,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/craft.md",
+      "language": "markdown",
+      "sizeLines": 123,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/critique.md",
+      "language": "markdown",
+      "sizeLines": 790,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/delight.md",
+      "language": "markdown",
+      "sizeLines": 302,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/distill.md",
+      "language": "markdown",
+      "sizeLines": 111,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/document.md",
+      "language": "markdown",
+      "sizeLines": 429,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/extract.md",
+      "language": "markdown",
+      "sizeLines": 69,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/harden.md",
+      "language": "markdown",
+      "sizeLines": 347,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/hooks.md",
+      "language": "markdown",
+      "sizeLines": 90,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/init.md",
+      "language": "markdown",
+      "sizeLines": 172,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/interaction-design.md",
+      "language": "markdown",
+      "sizeLines": 189,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/layout.md",
+      "language": "markdown",
+      "sizeLines": 161,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/live.md",
+      "language": "markdown",
+      "sizeLines": 720,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/onboard.md",
+      "language": "markdown",
+      "sizeLines": 234,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/optimize.md",
+      "language": "markdown",
+      "sizeLines": 258,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/overdrive.md",
+      "language": "markdown",
+      "sizeLines": 130,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/polish.md",
+      "language": "markdown",
+      "sizeLines": 241,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/product.md",
+      "language": "markdown",
+      "sizeLines": 60,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/quieter.md",
+      "language": "markdown",
+      "sizeLines": 99,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/shape.md",
+      "language": "markdown",
+      "sizeLines": 165,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/reference/typeset.md",
+      "language": "markdown",
+      "sizeLines": 279,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/command-metadata.json",
+      "language": "json",
+      "sizeLines": 94,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/context-signals.mjs",
+      "language": "javascript",
+      "sizeLines": 225,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/context.mjs",
+      "language": "javascript",
+      "sizeLines": 280,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/critique-storage.mjs",
+      "language": "javascript",
+      "sizeLines": 242,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detect-csp.mjs",
+      "language": "javascript",
+      "sizeLines": 198,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detect.mjs",
+      "language": "javascript",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/browser/injected/index.mjs",
+      "language": "javascript",
+      "sizeLines": 1937,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/cli/main.mjs",
+      "language": "javascript",
+      "sizeLines": 268,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/design-system.mjs",
+      "language": "javascript",
+      "sizeLines": 750,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/detect-antipatterns-browser.js",
+      "language": "javascript",
+      "sizeLines": 5138,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/detect-antipatterns.mjs",
+      "language": "javascript",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/engines/browser/detect-url.mjs",
+      "language": "javascript",
+      "sizeLines": 277,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/engines/regex/detect-text.mjs",
+      "language": "javascript",
+      "sizeLines": 564,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/engines/static-html/css-cascade.mjs",
+      "language": "javascript",
+      "sizeLines": 1015,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/engines/static-html/detect-html.mjs",
+      "language": "javascript",
+      "sizeLines": 229,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/engines/visual/screenshot-contrast.mjs",
+      "language": "javascript",
+      "sizeLines": 189,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/findings.mjs",
+      "language": "javascript",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/node/file-system.mjs",
+      "language": "javascript",
+      "sizeLines": 198,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/profile/profiler.mjs",
+      "language": "javascript",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/registry/antipatterns.mjs",
+      "language": "javascript",
+      "sizeLines": 448,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/rules/checks.mjs",
+      "language": "javascript",
+      "sizeLines": 2671,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/shared/color.mjs",
+      "language": "javascript",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/shared/constants.mjs",
+      "language": "javascript",
+      "sizeLines": 101,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/detector/shared/page.mjs",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/hook-admin.mjs",
+      "language": "javascript",
+      "sizeLines": 636,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/hook-before-edit.mjs",
+      "language": "javascript",
+      "sizeLines": 476,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/hook-lib.mjs",
+      "language": "javascript",
+      "sizeLines": 1526,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/hook.mjs",
+      "language": "javascript",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/lib/design-parser.mjs",
+      "language": "javascript",
+      "sizeLines": 842,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/lib/impeccable-config.mjs",
+      "language": "javascript",
+      "sizeLines": 638,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/lib/impeccable-paths.mjs",
+      "language": "javascript",
+      "sizeLines": 126,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/lib/is-generated.mjs",
+      "language": "javascript",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-accept.mjs",
+      "language": "javascript",
+      "sizeLines": 812,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-browser-dom.js",
+      "language": "javascript",
+      "sizeLines": 146,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-browser-session.js",
+      "language": "javascript",
+      "sizeLines": 123,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-browser.js",
+      "language": "javascript",
+      "sizeLines": 11161,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-commit-manual-edits.mjs",
+      "language": "javascript",
+      "sizeLines": 1241,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-complete.mjs",
+      "language": "javascript",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-copy-edit-agent.mjs",
+      "language": "javascript",
+      "sizeLines": 683,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-discard-manual-edits.mjs",
+      "language": "javascript",
+      "sizeLines": 51,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-inject.mjs",
+      "language": "javascript",
+      "sizeLines": 583,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-insert.mjs",
+      "language": "javascript",
+      "sizeLines": 272,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-manual-edit-evidence.mjs",
+      "language": "javascript",
+      "sizeLines": 363,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-poll.mjs",
+      "language": "javascript",
+      "sizeLines": 379,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-resume.mjs",
+      "language": "javascript",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-server.mjs",
+      "language": "javascript",
+      "sizeLines": 1134,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-status.mjs",
+      "language": "javascript",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live-wrap.mjs",
+      "language": "javascript",
+      "sizeLines": 894,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live.mjs",
+      "language": "javascript",
+      "sizeLines": 246,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/browser-script-parts.mjs",
+      "language": "javascript",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/completion.mjs",
+      "language": "javascript",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/event-validation.mjs",
+      "language": "javascript",
+      "sizeLines": 137,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/insert-ui.mjs",
+      "language": "javascript",
+      "sizeLines": 458,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/manual-apply.mjs",
+      "language": "javascript",
+      "sizeLines": 939,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/manual-edit-routes.mjs",
+      "language": "javascript",
+      "sizeLines": 357,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/manual-edits-buffer.mjs",
+      "language": "javascript",
+      "sizeLines": 152,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/session-store.mjs",
+      "language": "javascript",
+      "sizeLines": 289,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/svelte-component.mjs",
+      "language": "javascript",
+      "sizeLines": 826,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/sveltekit-adapter.mjs",
+      "language": "javascript",
+      "sizeLines": 274,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/ui-core.mjs",
+      "language": "javascript",
+      "sizeLines": 180,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/live/vocabulary.mjs",
+      "language": "javascript",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/modern-screenshot.umd.js",
+      "language": "javascript",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/palette.mjs",
+      "language": "javascript",
+      "sizeLines": 633,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/scripts/pin.mjs",
+      "language": "javascript",
+      "sizeLines": 214,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/impeccable/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 173,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/industrial-brutalist-ui/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 92,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/minimalist-ui/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 85,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/redesign-existing-projects/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 178,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/stitch-design-taste/DESIGN.md",
+      "language": "markdown",
+      "sizeLines": 121,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.agents/skills/stitch-design-taste/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 184,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/.env.example",
+      "language": "config",
+      "sizeLines": 16,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".worktrees/remediation/.superpowers/brainstorm/session-1/content/design-presentation.html",
+      "language": "html",
+      "sizeLines": 57,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".worktrees/remediation/.superpowers/brainstorm/session-1/content/layout-approaches.html",
+      "language": "html",
+      "sizeLines": 45,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".worktrees/remediation/.superpowers/brainstorm/session-1/content/login-concept.html",
+      "language": "html",
+      "sizeLines": 346,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".worktrees/remediation/.superpowers/brainstorm/session-1/content/optimizations-scope.html",
+      "language": "html",
+      "sizeLines": 41,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".worktrees/remediation/.superpowers/brainstorm/session-1/content/waiting-2.html",
+      "language": "html",
+      "sizeLines": 4,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".worktrees/remediation/.superpowers/brainstorm/session-1/content/waiting.html",
+      "language": "html",
+      "sizeLines": 4,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".worktrees/remediation/.superpowers/brainstorm/session-1/state/server-stopped",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/.superpowers/brainstorm/session1/content/stok-opname-flow.html",
+      "language": "html",
+      "sizeLines": 19,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".worktrees/remediation/.superpowers/brainstorm/session1/content/stok-opname-input.html",
+      "language": "html",
+      "sizeLines": 26,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".worktrees/remediation/.superpowers/brainstorm/session1/content/waiting.html",
+      "language": "html",
+      "sizeLines": 3,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".worktrees/remediation/.superpowers/brainstorm/session1/state/server-info",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/design-system/hl-manager-pro/MASTER.md",
+      "language": "markdown",
+      "sizeLines": 203,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/DESIGN.md",
+      "language": "markdown",
+      "sizeLines": 55,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/docs/supabase-migration.sql",
+      "language": "sql",
+      "sizeLines": 511,
+      "fileCategory": "data"
+    },
+    {
+      "path": ".worktrees/remediation/docs/supabase-rpc-decrement-stock.sql",
+      "language": "sql",
+      "sizeLines": 14,
+      "fileCategory": "data"
+    },
+    {
+      "path": ".worktrees/remediation/docs/superpowers/plans/2026-06-18-frontend-routing-and-polish-plan.md",
+      "language": "markdown",
+      "sizeLines": 892,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/docs/superpowers/plans/2026-06-19-tutorial-refinement.md",
+      "language": "markdown",
+      "sizeLines": 294,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/docs/superpowers/specs/2026-06-18-frontend-routing-and-polish-design.md",
+      "language": "markdown",
+      "sizeLines": 86,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/docs/superpowers/specs/2026-06-19-backend-refinement-design.md",
+      "language": "markdown",
+      "sizeLines": 50,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/docs/superpowers/specs/2026-06-19-frontend-redesign-and-navigation-design.md",
+      "language": "markdown",
+      "sizeLines": 86,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/docs/superpowers/specs/2026-06-19-setup-wizard-and-reset-design.md",
+      "language": "markdown",
+      "sizeLines": 71,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/docs/superpowers/specs/2026-06-19-terrakota-ledger-design.md",
+      "language": "markdown",
+      "sizeLines": 93,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/docs/superpowers/specs/2026-06-19-tutorial-refinement-design.md",
+      "language": "markdown",
+      "sizeLines": 71,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/docs/superpowers/specs/2026-08-11-inventory-management-design.md",
+      "language": "markdown",
+      "sizeLines": 42,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/docs/superpowers/specs/plans/2026-06-19-backend-refinement.md",
+      "language": "markdown",
+      "sizeLines": 494,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/docs/superpowers/specs/plans/2026-06-19-terrakota-ledger.md",
+      "language": "markdown",
+      "sizeLines": 284,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/eslint.config.mjs",
+      "language": "javascript",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/fix.js",
+      "language": "javascript",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/jsconfig.json",
+      "language": "json",
+      "sizeLines": 7,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".worktrees/remediation/next.config.mjs",
+      "language": "javascript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/package.json",
+      "language": "json",
+      "sizeLines": 39,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".worktrees/remediation/petunjuk.md",
+      "language": "markdown",
+      "sizeLines": 2681,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/postcss.config.mjs",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/prisma.config.ts",
+      "language": "typescript",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/PRODUCT.md",
+      "language": "markdown",
+      "sizeLines": 31,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/README.md",
+      "language": "markdown",
+      "sizeLines": 36,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".worktrees/remediation/skills-lock.json",
+      "language": "json",
+      "sizeLines": 95,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/customers/[id]/page.js",
+      "language": "javascript",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/customers/page.js",
+      "language": "javascript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/dashboard/page.js",
+      "language": "javascript",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/help/page.js",
+      "language": "javascript",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/layout.js",
+      "language": "javascript",
+      "sizeLines": 322,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/products/page.js",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/reporting/page.js",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/settings/page.js",
+      "language": "javascript",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/stok-opname/page.js",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/transactions/[id]/edit/page.js",
+      "language": "javascript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/transactions/[id]/page.js",
+      "language": "javascript",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/transactions/new/page.js",
+      "language": "javascript",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/(authenticated)/whatsapp/page.js",
+      "language": "javascript",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/admin/backup/route.js",
+      "language": "javascript",
+      "sizeLines": 51,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/admin/reset/route.js",
+      "language": "javascript",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/admin/restore/route.js",
+      "language": "javascript",
+      "sizeLines": 164,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/auth/change-password/route.js",
+      "language": "javascript",
+      "sizeLines": 45,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/auth/change-username/route.js",
+      "language": "javascript",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/auth/login/route.js",
+      "language": "javascript",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/auth/me/route.js",
+      "language": "javascript",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/categories/[code]/route.js",
+      "language": "javascript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/categories/route.js",
+      "language": "javascript",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/customers/[id]/bonus-status/route.js",
+      "language": "javascript",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/customers/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 117,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/customers/[id]/settle-month/route.js",
+      "language": "javascript",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/customers/[id]/transactions/route.js",
+      "language": "javascript",
+      "sizeLines": 56,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/customers/bonus-alerts/route.js",
+      "language": "javascript",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/customers/route.js",
+      "language": "javascript",
+      "sizeLines": 86,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/export/csv/route.js",
+      "language": "javascript",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/logs/route.js",
+      "language": "javascript",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/products/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/products/route.js",
+      "language": "javascript",
+      "sizeLines": 62,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/reports/customer/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 96,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/reports/overall/route.js",
+      "language": "javascript",
+      "sizeLines": 125,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/stok-opname/approve/route.js",
+      "language": "javascript",
+      "sizeLines": 64,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/stok-opname/draft/route.js",
+      "language": "javascript",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/transactions/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 153,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/transactions/[id]/settle/route.js",
+      "language": "javascript",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/transactions/route.js",
+      "language": "javascript",
+      "sizeLines": 177,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/tutorial/progress/route.js",
+      "language": "javascript",
+      "sizeLines": 72,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/tutorial/reset-onboarding/route.js",
+      "language": "javascript",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/api/v1/whatsapp/daily-digest/route.js",
+      "language": "javascript",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/globals.css",
+      "language": "css",
+      "sizeLines": 346,
+      "fileCategory": "markup"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/layout.js",
+      "language": "javascript",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/login/page.js",
+      "language": "javascript",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/app/page.js",
+      "language": "javascript",
+      "sizeLines": 5,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/components/AnalyticsCharts.jsx",
+      "language": "javascript",
+      "sizeLines": 285,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/components/ConfirmModal.jsx",
+      "language": "javascript",
+      "sizeLines": 37,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/components/EmptyState.jsx",
+      "language": "javascript",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/components/ErrorBoundary.jsx",
+      "language": "javascript",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/components/SetupWizard.jsx",
+      "language": "javascript",
+      "sizeLines": 448,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/components/SkeletonLoader.jsx",
+      "language": "javascript",
+      "sizeLines": 86,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/components/TutorialEngine.jsx",
+      "language": "javascript",
+      "sizeLines": 1194,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/components/WelcomeSplash.jsx",
+      "language": "javascript",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/lib/audit.js",
+      "language": "javascript",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/lib/auth-helpers.js",
+      "language": "javascript",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/lib/calculations.js",
+      "language": "javascript",
+      "sizeLines": 264,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/lib/rate-limit.js",
+      "language": "javascript",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/lib/supabase.js",
+      "language": "javascript",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/lib/validation.js",
+      "language": "javascript",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/middleware.js",
+      "language": "javascript",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/utils/api.js",
+      "language": "javascript",
+      "sizeLines": 514,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/utils/export.js",
+      "language": "javascript",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/utils/format.js",
+      "language": "javascript",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/CustomerDetail.jsx",
+      "language": "javascript",
+      "sizeLines": 573,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/CustomerManagement.jsx",
+      "language": "javascript",
+      "sizeLines": 475,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/Dashboard.jsx",
+      "language": "javascript",
+      "sizeLines": 334,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/HelpCenter.jsx",
+      "language": "javascript",
+      "sizeLines": 242,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/Login.jsx",
+      "language": "javascript",
+      "sizeLines": 138,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/ProductManagement.jsx",
+      "language": "javascript",
+      "sizeLines": 567,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/Reporting.jsx",
+      "language": "javascript",
+      "sizeLines": 503,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/Settings.jsx",
+      "language": "javascript",
+      "sizeLines": 609,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/StokOpname.jsx",
+      "language": "javascript",
+      "sizeLines": 163,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/TransactionDetail.jsx",
+      "language": "javascript",
+      "sizeLines": 325,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/TransactionForm.jsx",
+      "language": "javascript",
+      "sizeLines": 643,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/src/views/WhatsAppSettings.jsx",
+      "language": "javascript",
+      "sizeLines": 245,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".worktrees/remediation/supabase/migrations/20260811000000_sprint3_schema.sql",
+      "language": "sql",
+      "sizeLines": 35,
+      "fileCategory": "data"
+    },
+    {
+      "path": "design-system/hl-manager-pro/MASTER.md",
+      "language": "markdown",
+      "sizeLines": 203,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "DESIGN.md",
+      "language": "markdown",
+      "sizeLines": 86,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/MASTER_CONSOLIDATED_WARUNG_MIGRATIONS.sql",
+      "language": "sql",
+      "sizeLines": 263,
+      "fileCategory": "data"
+    },
+    {
+      "path": "docs/supabase-migration.sql",
+      "language": "sql",
+      "sizeLines": 623,
+      "fileCategory": "data"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-06-18-frontend-routing-and-polish-plan.md",
+      "language": "markdown",
+      "sizeLines": 892,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-06-19-tutorial-refinement.md",
+      "language": "markdown",
+      "sizeLines": 294,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-07-27-4-tier-saas-psychology-gating.md",
+      "language": "markdown",
+      "sizeLines": 150,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-07-27-multi-branch-cashier-lockout.md",
+      "language": "markdown",
+      "sizeLines": 400,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-07-27-tier-feature-gating.md",
+      "language": "markdown",
+      "sizeLines": 85,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-18-frontend-routing-and-polish-design.md",
+      "language": "markdown",
+      "sizeLines": 86,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-19-backend-refinement-design.md",
+      "language": "markdown",
+      "sizeLines": 50,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-19-frontend-redesign-and-navigation-design.md",
+      "language": "markdown",
+      "sizeLines": 86,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-19-setup-wizard-and-reset-design.md",
+      "language": "markdown",
+      "sizeLines": 71,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-19-terrakota-ledger-design.md",
+      "language": "markdown",
+      "sizeLines": 93,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-19-tutorial-refinement-design.md",
+      "language": "markdown",
+      "sizeLines": 71,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-07-27-4-tier-saas-psychology-gating-design.md",
+      "language": "markdown",
+      "sizeLines": 57,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-07-27-multi-branch-cashier-lockout-design.md",
+      "language": "markdown",
+      "sizeLines": 97,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-07-27-tier-feature-gating-design.md",
+      "language": "markdown",
+      "sizeLines": 85,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-09-02-help-center-redesign.md",
+      "language": "markdown",
+      "sizeLines": 94,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-09-03-landing-and-mobile-dock-responsive-spec.md",
+      "language": "markdown",
+      "sizeLines": 65,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-09-03-responsive-dual-archetype-design.md",
+      "language": "markdown",
+      "sizeLines": 113,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-09-07-stealth-telemetry-estafet-design.md",
+      "language": "markdown",
+      "sizeLines": 242,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/plans/2026-06-19-backend-refinement.md",
+      "language": "markdown",
+      "sizeLines": 494,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/superpowers/specs/plans/2026-06-19-terrakota-ledger.md",
+      "language": "markdown",
+      "sizeLines": 284,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "eslint.config.mjs",
+      "language": "javascript",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "fat_ui_refactor.js",
+      "language": "javascript",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": "fix.js",
+      "language": "javascript",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "graphify-out/.graphify_analysis.json",
+      "language": "json",
+      "sizeLines": 1514,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/.graphify_ast.json",
+      "language": "json",
+      "sizeLines": 5473,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/.graphify_detect.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/.graphify_extract.json",
+      "language": "json",
+      "sizeLines": 6226,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/.graphify_python",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "graphify-out/.graphify_root",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "graphify-out/.graphify_semantic.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/cache/stat-index.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/check_ast.py",
+      "language": "python",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "graphify-out/diag.py",
+      "language": "python",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "graphify-out/GRAPH_REPORT.md",
+      "language": "markdown",
+      "sizeLines": 423,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "graphify-out/graph.html",
+      "language": "html",
+      "sizeLines": 306,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "graphify-out/graph.json",
+      "language": "json",
+      "sizeLines": 7411,
+      "fileCategory": "config"
+    },
+    {
+      "path": "graphify-out/inspect_edges.py",
+      "language": "python",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "graphify-out/run_ast.py",
+      "language": "python",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "graphify-out/run_build.py",
+      "language": "python",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "graphify-out/run_complete_build.py",
+      "language": "python",
+      "sizeLines": 72,
+      "fileCategory": "code"
+    },
+    {
+      "path": "graphify-out/run_detect.py",
+      "language": "python",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "graphify-out/see_extract.py",
+      "language": "python",
+      "sizeLines": 3,
+      "fileCategory": "code"
+    },
+    {
+      "path": "implementation_plan.md",
+      "language": "markdown",
+      "sizeLines": 113,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "jsconfig.json",
+      "language": "json",
+      "sizeLines": 7,
+      "fileCategory": "config"
+    },
+    {
+      "path": "locales/en.json",
+      "language": "json",
+      "sizeLines": 17,
+      "fileCategory": "config"
+    },
+    {
+      "path": "locales/id.json",
+      "language": "json",
+      "sizeLines": 17,
+      "fileCategory": "config"
+    },
+    {
+      "path": "next.config.mjs",
+      "language": "javascript",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "package.json",
+      "language": "json",
+      "sizeLines": 41,
+      "fileCategory": "config"
+    },
+    {
+      "path": "petunjuk.md",
+      "language": "markdown",
+      "sizeLines": 2681,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "postcss.config.mjs",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "PRODUCT.md",
+      "language": "markdown",
+      "sizeLines": 31,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "project-specs/2ndmanager-setup.md",
+      "language": "markdown",
+      "sizeLines": 57,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "project-specs/klola-os-landing-page.md",
+      "language": "markdown",
+      "sizeLines": 94,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "project-specs/klola-os-setup.md",
+      "language": "markdown",
+      "sizeLines": 60,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "project-tasks/2ndmanager-tasklist.md",
+      "language": "markdown",
+      "sizeLines": 41,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "project-tasks/klola-os-tasklist.md",
+      "language": "markdown",
+      "sizeLines": 114,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 36,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "runner.cjs",
+      "language": "javascript",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/backfill_units.cjs",
+      "language": "javascript",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/init-tables.js",
+      "language": "javascript",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/inspect_db_schema.cjs",
+      "language": "javascript",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/inspect_products_table.cjs",
+      "language": "javascript",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/inspect_transactions_table.cjs",
+      "language": "javascript",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/phase1_migration.cjs",
+      "language": "javascript",
+      "sizeLines": 274,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/phase2_migration.sql",
+      "language": "sql",
+      "sizeLines": 238,
+      "fileCategory": "data"
+    },
+    {
+      "path": "scratch/run_ddl_pg.cjs",
+      "language": "javascript",
+      "sizeLines": 228,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/run_phase2_migration.cjs",
+      "language": "javascript",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/run_stealth_ddl.cjs",
+      "language": "javascript",
+      "sizeLines": 63,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/stealth_security_ddl.sql",
+      "language": "sql",
+      "sizeLines": 215,
+      "fileCategory": "data"
+    },
+    {
+      "path": "scratch/test_metrics_sync.cjs",
+      "language": "javascript",
+      "sizeLines": 90,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/test-db.js",
+      "language": "javascript",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/test-db2.js",
+      "language": "javascript",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/test-db3.js",
+      "language": "javascript",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/test-login-api.js",
+      "language": "javascript",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/test-supabase.js",
+      "language": "javascript",
+      "sizeLines": 37,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/verify_chokepoints.cjs",
+      "language": "javascript",
+      "sizeLines": 210,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/verify_final_stealth.cjs",
+      "language": "javascript",
+      "sizeLines": 236,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/verify_phase1.cjs",
+      "language": "javascript",
+      "sizeLines": 204,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scratch/verify_phase2.cjs",
+      "language": "javascript",
+      "sizeLines": 179,
+      "fileCategory": "code"
+    },
+    {
+      "path": "skills-lock.json",
+      "language": "json",
+      "sizeLines": 95,
+      "fileCategory": "config"
+    },
+    {
+      "path": "src/app/(admin)/admin/audit-logs/page.js",
+      "language": "javascript",
+      "sizeLines": 155,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(admin)/admin/categories-master/page.js",
+      "language": "javascript",
+      "sizeLines": 150,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(admin)/admin/dashboard/page.js",
+      "language": "javascript",
+      "sizeLines": 281,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(admin)/admin/fraud-radar/page.js",
+      "language": "javascript",
+      "sizeLines": 112,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(admin)/admin/page.js",
+      "language": "javascript",
+      "sizeLines": 5,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(admin)/admin/panic-dispatch/page.js",
+      "language": "javascript",
+      "sizeLines": 256,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(admin)/admin/payment-proofs/page.js",
+      "language": "javascript",
+      "sizeLines": 362,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(admin)/admin/tenants/[id]/page.js",
+      "language": "javascript",
+      "sizeLines": 409,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(admin)/admin/tenants/page.js",
+      "language": "javascript",
+      "sizeLines": 273,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(admin)/error.js",
+      "language": "javascript",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(admin)/layout.js",
+      "language": "javascript",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(admin)/loading.js",
+      "language": "javascript",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/billing/page.js",
+      "language": "javascript",
+      "sizeLines": 426,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/consignments/page.js",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/customers/[id]/page.js",
+      "language": "javascript",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/customers/page.js",
+      "language": "javascript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/dashboard/page.js",
+      "language": "javascript",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/help/page.js",
+      "language": "javascript",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/layout.js",
+      "language": "javascript",
+      "sizeLines": 1012,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/products/page.js",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/reorder/page.js",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/reporting/page.js",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/settings/page.js",
+      "language": "javascript",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/transactions/[id]/edit/page.js",
+      "language": "javascript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/transactions/[id]/page.js",
+      "language": "javascript",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/transactions/new/page.js",
+      "language": "javascript",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/(authenticated)/transactions/page.js",
+      "language": "javascript",
+      "sizeLines": 371,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/audit-logs/route.js",
+      "language": "javascript",
+      "sizeLines": 41,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/categories/route.js",
+      "language": "javascript",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/categories/seed/route.js",
+      "language": "javascript",
+      "sizeLines": 76,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/fraud-radar/route.js",
+      "language": "javascript",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/panic-dispatch/[id]/resolve/route.js",
+      "language": "javascript",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/panic-dispatch/route.js",
+      "language": "javascript",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/payment-proofs/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 196,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/payment-proofs/route.js",
+      "language": "javascript",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/telemetry/route.js",
+      "language": "javascript",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/tenants/[id]/chokehold/route.js",
+      "language": "javascript",
+      "sizeLines": 112,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/tenants/[id]/impersonate/route.js",
+      "language": "javascript",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/tenants/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 196,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/admin/tenants/route.js",
+      "language": "javascript",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/asset-loans/route.js",
+      "language": "javascript",
+      "sizeLines": 241,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/billing/route.js",
+      "language": "javascript",
+      "sizeLines": 184,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/branches/route.js",
+      "language": "javascript",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/cashiers/route.js",
+      "language": "javascript",
+      "sizeLines": 131,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/categories/[code]/route.js",
+      "language": "javascript",
+      "sizeLines": 43,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/categories/route.js",
+      "language": "javascript",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/categories/seed-defaults/route.js",
+      "language": "javascript",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/consignments/batches/[id]/settle/route.js",
+      "language": "javascript",
+      "sizeLines": 171,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/consignments/batches/route.js",
+      "language": "javascript",
+      "sizeLines": 196,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/consignments/vendors/route.js",
+      "language": "javascript",
+      "sizeLines": 107,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/customers/[id]/balance/route.js",
+      "language": "javascript",
+      "sizeLines": 99,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/customers/[id]/bonus-status/route.js",
+      "language": "javascript",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/customers/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 121,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/customers/[id]/settle-month/route.js",
+      "language": "javascript",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/customers/[id]/transactions/route.js",
+      "language": "javascript",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/customers/bonus-alerts/route.js",
+      "language": "javascript",
+      "sizeLines": 82,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/customers/route.js",
+      "language": "javascript",
+      "sizeLines": 96,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/inventory/reorder-suggestions/route.js",
+      "language": "javascript",
+      "sizeLines": 212,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/logs/route.js",
+      "language": "javascript",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/metrics/sync/route.js",
+      "language": "javascript",
+      "sizeLines": 105,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/products/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 101,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/products/[id]/units/route.js",
+      "language": "javascript",
+      "sizeLines": 274,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/products/route.js",
+      "language": "javascript",
+      "sizeLines": 121,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/purchase-orders/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/purchase-orders/route.js",
+      "language": "javascript",
+      "sizeLines": 88,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/reports/customer/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/reports/overall/route.js",
+      "language": "javascript",
+      "sizeLines": 144,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/security/anomalies/route.js",
+      "language": "javascript",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/shifts/close/route.js",
+      "language": "javascript",
+      "sizeLines": 373,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/shifts/current/route.js",
+      "language": "javascript",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/shifts/movements/route.js",
+      "language": "javascript",
+      "sizeLines": 129,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/shifts/start/route.js",
+      "language": "javascript",
+      "sizeLines": 104,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/shops/pin/route.js",
+      "language": "javascript",
+      "sizeLines": 192,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/shops/profile/route.js",
+      "language": "javascript",
+      "sizeLines": 151,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/stock-in/route.js",
+      "language": "javascript",
+      "sizeLines": 219,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/suppliers/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 101,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/suppliers/route.js",
+      "language": "javascript",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/support/panic-ticket/route.js",
+      "language": "javascript",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/transactions/[id]/route.js",
+      "language": "javascript",
+      "sizeLines": 147,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/transactions/[id]/settle/route.js",
+      "language": "javascript",
+      "sizeLines": 54,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/transactions/route.js",
+      "language": "javascript",
+      "sizeLines": 409,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/tutorial/progress/route.js",
+      "language": "javascript",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/api/v1/void-logs/route.js",
+      "language": "javascript",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/globals.css",
+      "language": "css",
+      "sizeLines": 225,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "src/app/layout.js",
+      "language": "javascript",
+      "sizeLines": 119,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/login/page.js",
+      "language": "javascript",
+      "sizeLines": 445,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/page.js",
+      "language": "javascript",
+      "sizeLines": 983,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/pos/page.js",
+      "language": "javascript",
+      "sizeLines": 2054,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/app/superadmin/page.js",
+      "language": "javascript",
+      "sizeLines": 388,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/admin/AdminNotificationToast.jsx",
+      "language": "javascript",
+      "sizeLines": 154,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/admin/AdminSidebar.jsx",
+      "language": "javascript",
+      "sizeLines": 192,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/admin/ChokeholdModal.jsx",
+      "language": "javascript",
+      "sizeLines": 228,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/admin/CommandPalette.jsx",
+      "language": "javascript",
+      "sizeLines": 179,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/admin/CommandPaletteTrigger.jsx",
+      "language": "javascript",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/AnalyticsCharts.jsx",
+      "language": "javascript",
+      "sizeLines": 306,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/BranchSwitcher.jsx",
+      "language": "javascript",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/CashierSandbox.jsx",
+      "language": "javascript",
+      "sizeLines": 640,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ConfirmModal.jsx",
+      "language": "javascript",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/consignments/ConsignmentDropInModal.jsx",
+      "language": "javascript",
+      "sizeLines": 350,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/consignments/ConsignmentSettleModal.jsx",
+      "language": "javascript",
+      "sizeLines": 327,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/customers/AssetLoanModal.jsx",
+      "language": "javascript",
+      "sizeLines": 343,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/EmptyState.jsx",
+      "language": "javascript",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ErrorBoundary.jsx",
+      "language": "javascript",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/FomoPaywallCard.jsx",
+      "language": "javascript",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/ConciergeTimeline.jsx",
+      "language": "javascript",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/FaqAccordion.jsx",
+      "language": "javascript",
+      "sizeLines": 76,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/FeaturesBento.jsx",
+      "language": "javascript",
+      "sizeLines": 78,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/FinalCTA.jsx",
+      "language": "javascript",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/FloatingWhatsApp.jsx",
+      "language": "javascript",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/HeroVaultReveal.jsx",
+      "language": "javascript",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/LeakCalculator.jsx",
+      "language": "javascript",
+      "sizeLines": 141,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/PricingVault.jsx",
+      "language": "javascript",
+      "sizeLines": 100,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/ProblemAgitation.jsx",
+      "language": "javascript",
+      "sizeLines": 95,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/SocialProofCarousel.jsx",
+      "language": "javascript",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/VaultFooter.jsx",
+      "language": "javascript",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing-v2/VaultNavbar.jsx",
+      "language": "javascript",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/CashDrawerBento.jsx",
+      "language": "javascript",
+      "sizeLines": 114,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/CitizenCalculator.jsx",
+      "language": "javascript",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/ComparisonSection.jsx",
+      "language": "javascript",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/ConciergeWorkflow.jsx",
+      "language": "javascript",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/FaqSection.jsx",
+      "language": "javascript",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/FeaturePinning.jsx",
+      "language": "javascript",
+      "sizeLines": 95,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/FeaturesSection.jsx",
+      "language": "javascript",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/Footer.jsx",
+      "language": "javascript",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/GlassCard.jsx",
+      "language": "javascript",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/Hero.jsx",
+      "language": "javascript",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/HeroSection.jsx",
+      "language": "javascript",
+      "sizeLines": 54,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/InteractivePosPreview.jsx",
+      "language": "javascript",
+      "sizeLines": 310,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/KasbonPaywall.jsx",
+      "language": "javascript",
+      "sizeLines": 72,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/LandingFooter.jsx",
+      "language": "javascript",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/LandingHero.jsx",
+      "language": "javascript",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/LandingNavbar.jsx",
+      "language": "javascript",
+      "sizeLines": 163,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/LeakCalculator.jsx",
+      "language": "javascript",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/ParanoiaCalculator.jsx",
+      "language": "javascript",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/ParanoiaCCTV.jsx",
+      "language": "javascript",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/PremiumButton.jsx",
+      "language": "javascript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/PricingSection.jsx",
+      "language": "javascript",
+      "sizeLines": 108,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/ProblemAgitation.jsx",
+      "language": "javascript",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/ProblemSolutionBento.jsx",
+      "language": "javascript",
+      "sizeLines": 130,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/RoiCalculator.jsx",
+      "language": "javascript",
+      "sizeLines": 154,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/SocialProofSection.jsx",
+      "language": "javascript",
+      "sizeLines": 56,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/landing/TestimonialsSection.jsx",
+      "language": "javascript",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/magicui/shiny-button.jsx",
+      "language": "javascript",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ModalAntiBencana.jsx",
+      "language": "javascript",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/owner/SecurityForensicDrawer.jsx",
+      "language": "javascript",
+      "sizeLines": 369,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/owner/SecurityRadarAlert.jsx",
+      "language": "javascript",
+      "sizeLines": 186,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/PanicHelpModal.jsx",
+      "language": "javascript",
+      "sizeLines": 155,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ParanoiaMarketingAlert.jsx",
+      "language": "javascript",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/pos/CashDrawerMovementModal.jsx",
+      "language": "javascript",
+      "sizeLines": 258,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/pos/CloseShiftModal.jsx",
+      "language": "javascript",
+      "sizeLines": 530,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/pos/NegativeMarginOverrideModal.jsx",
+      "language": "javascript",
+      "sizeLines": 301,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/pos/SmartChangeModal.jsx",
+      "language": "javascript",
+      "sizeLines": 356,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/pos/StartShiftModal.jsx",
+      "language": "javascript",
+      "sizeLines": 332,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/pos/UpgradePromptModal.jsx",
+      "language": "javascript",
+      "sizeLines": 114,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/products/StockInModal.jsx",
+      "language": "javascript",
+      "sizeLines": 472,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/products/UnitConversionModal.jsx",
+      "language": "javascript",
+      "sizeLines": 374,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/sections/AgitationSection.jsx",
+      "language": "javascript",
+      "sizeLines": 118,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/sections/ArsenalSection.jsx",
+      "language": "javascript",
+      "sizeLines": 157,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/sections/ConciergeSection.jsx",
+      "language": "javascript",
+      "sizeLines": 111,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/sections/HeroSection.jsx",
+      "language": "javascript",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/sections/PricingSection.jsx",
+      "language": "javascript",
+      "sizeLines": 92,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/SetupWizard.jsx",
+      "language": "javascript",
+      "sizeLines": 466,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/SkeletonLoader.jsx",
+      "language": "javascript",
+      "sizeLines": 86,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ThemeProvider.jsx",
+      "language": "javascript",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ThemeToggle.jsx",
+      "language": "javascript",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/TutorialEngine.jsx",
+      "language": "javascript",
+      "sizeLines": 1214,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/aurora-background.jsx",
+      "language": "javascript",
+      "sizeLines": 45,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/AuroraEmber.jsx",
+      "language": "javascript",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/bento-grid.jsx",
+      "language": "javascript",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/Button.jsx",
+      "language": "javascript",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/DoubleBezelCard.jsx",
+      "language": "javascript",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/GlassCard.jsx",
+      "language": "javascript",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/Input.jsx",
+      "language": "javascript",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/LedgerCard.jsx",
+      "language": "javascript",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/ModalAntiBencana.jsx",
+      "language": "javascript",
+      "sizeLines": 95,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/PaywallModal.jsx",
+      "language": "javascript",
+      "sizeLines": 54,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/SmokedGlassPlate.jsx",
+      "language": "javascript",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/StempelBadge.jsx",
+      "language": "javascript",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/VaultButton.jsx",
+      "language": "javascript",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/VaultGlass.jsx",
+      "language": "javascript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/ui/WaxSealBadge.jsx",
+      "language": "javascript",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/components/WelcomeSplash.jsx",
+      "language": "javascript",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/config/tiers.js",
+      "language": "javascript",
+      "sizeLines": 240,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/admin-auth.js",
+      "language": "javascript",
+      "sizeLines": 109,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/audit.js",
+      "language": "javascript",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/auth-helpers.js",
+      "language": "javascript",
+      "sizeLines": 240,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/auth.js",
+      "language": "javascript",
+      "sizeLines": 95,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/calculations.js",
+      "language": "javascript",
+      "sizeLines": 264,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/phone.js",
+      "language": "javascript",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/prisma.js",
+      "language": "javascript",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/security.js",
+      "language": "javascript",
+      "sizeLines": 87,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/subscription.js",
+      "language": "javascript",
+      "sizeLines": 376,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/supabase/admin.js",
+      "language": "javascript",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/supabase/client.js",
+      "language": "javascript",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/supabase/middleware-client.js",
+      "language": "javascript",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/supabase/server.js",
+      "language": "javascript",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/utils.js",
+      "language": "javascript",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/lib/validation.js",
+      "language": "javascript",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/providers/LocaleProvider.jsx",
+      "language": "javascript",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/proxy.js",
+      "language": "javascript",
+      "sizeLines": 137,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/utils/api.js",
+      "language": "javascript",
+      "sizeLines": 961,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/utils/export.js",
+      "language": "javascript",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/utils/soundAlerts.js",
+      "language": "javascript",
+      "sizeLines": 103,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/utils/stealthTelemetry.js",
+      "language": "javascript",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/utils/terminalConfig.js",
+      "language": "javascript",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/ConsignmentManagement.jsx",
+      "language": "javascript",
+      "sizeLines": 323,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/CustomerDetail.jsx",
+      "language": "javascript",
+      "sizeLines": 767,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/CustomerManagement.jsx",
+      "language": "javascript",
+      "sizeLines": 723,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/Dashboard.jsx",
+      "language": "javascript",
+      "sizeLines": 756,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/HelpCenter.jsx",
+      "language": "javascript",
+      "sizeLines": 447,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/Login.jsx",
+      "language": "javascript",
+      "sizeLines": 152,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/ProductManagement.jsx",
+      "language": "javascript",
+      "sizeLines": 910,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/ReorderManagement.jsx",
+      "language": "javascript",
+      "sizeLines": 1201,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/Reporting.jsx",
+      "language": "javascript",
+      "sizeLines": 886,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/Settings.jsx",
+      "language": "javascript",
+      "sizeLines": 1323,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/TransactionDetail.jsx",
+      "language": "javascript",
+      "sizeLines": 334,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/views/TransactionForm.jsx",
+      "language": "javascript",
+      "sizeLines": 682,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tailwind.config.mjs",
+      "language": "javascript",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": "theme_refactor_v2.js",
+      "language": "javascript",
+      "sizeLines": 56,
+      "fileCategory": "code"
+    },
+    {
+      "path": "theme_refactor.js",
+      "language": "javascript",
+      "sizeLines": 85,
+      "fileCategory": "code"
+    }
+  ],
+  "totalFiles": 653,
+  "filteredByIgnore": 0,
+  "estimatedComplexity": "very-large",
+  "stats": {
+    "filesScanned": 653,
+    "byCategory": {
+      "docs": 136,
+      "config": 24,
+      "code": 465,
+      "markup": 21,
+      "data": 7
+    },
+    "byLanguage": {
+      "markdown": 136,
+      "toml": 4,
+      "yaml": 2,
+      "json": 17,
+      "javascript": 449,
+      "html": 19,
+      "unknown": 7,
+      "config": 1,
+      "sql": 7,
+      "typescript": 1,
+      "css": 2,
+      "python": 8
+    }
+  }
+}

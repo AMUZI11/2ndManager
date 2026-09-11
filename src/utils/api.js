@@ -53,13 +53,32 @@ function getSandboxTransactions() {
   } catch { return []; }
 }
 
+export function getActiveBranchId() {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('hl_active_branch') || null;
+}
+
+export function setActiveBranchId(shopId) {
+  if (typeof window !== 'undefined') {
+    if (shopId) {
+      localStorage.setItem('hl_active_branch', shopId);
+      document.cookie = `hl_active_branch=${shopId}; path=/; max-age=31536000; SameSite=Lax`;
+    } else {
+      localStorage.removeItem('hl_active_branch');
+      document.cookie = `hl_active_branch=; path=/; max-age=0; SameSite=Lax`;
+    }
+  }
+}
+
 // ─── HTTP HELPERS ────────────────────────────────────────────────────────────
 
 async function fetchAPI(path, options = {}) {
   const token = getToken();
+  const activeBranch = options.shopId || getActiveBranchId();
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(activeBranch ? { 'x-shop-id': activeBranch } : {}),
     ...(options.headers || {}),
   };
 
@@ -107,6 +126,10 @@ export function calculateCascadingDiscount(basePrice, discountSteps) {
 // ─── API CLIENT OBJECT ───────────────────────────────────────────────────────
 
 export const api = {
+  // ── BRANCH SELECTION ──────────────────────────────────────────────────────
+  getActiveBranchId,
+  setActiveBranchId,
+
   // ── AUTH ──────────────────────────────────────────────────────────────────
 
   login: async (username, password) => {
@@ -672,6 +695,24 @@ export const api = {
     return res?.data?.data || { asset_summary: {}, total_active_loans: 0, customers_with_loans: [] };
   },
 
+  returnAssetLoan: async (returnData) => {
+    const res = await fetchAPI('/asset-loans/return', {
+      method: 'POST',
+      body: JSON.stringify(returnData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal mengembalikan aset');
+  },
+
+  unpackProductUnit: async (unpackData) => {
+    const res = await fetchAPI('/products/unpack', {
+      method: 'POST',
+      body: JSON.stringify(unpackData),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal memecah satuan kemasan');
+  },
+
   // ── FASE 2: BUKU KONSINYASI TITIP JUAL ─────────────────────────────────────
 
   getConsignmentVendors: async () => {
@@ -873,16 +914,89 @@ export const api = {
     throw new Error(res?.data?.message || res?.data?.error || 'Gagal memperbarui Purchase Order');
   },
 
-  triggerMorningBriefing: async (data = {}) => {
-    const res = await fetchAPI('/reports/morning-briefing', {
+  // ── CASHIER SHIFTS & ESTAFET MOVEMENTS ─────────────────────────────────────
+  getCurrentShift: async (registerId) => {
+    const query = registerId ? `?register_id=${encodeURIComponent(registerId)}` : '';
+    const res = await fetchAPI(`/shifts/current${query}`);
+    return res?.data?.data?.active_shift || null;
+  },
+
+  startShift: async (payload) => {
+    const res = await fetchAPI('/shifts/start', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
-    if (res?.ok) return res.data;
-    const err = new Error(res?.data?.error || res?.data?.message || 'Gagal menyusun briefing pagi');
-    err.status = res?.status;
-    err.code = res?.data?.code;
-    throw err;
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal membuka shift kasir');
+  },
+
+  closeShift: async (payload) => {
+    const res = await fetchAPI('/shifts/close', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal menutup shift kasir');
+  },
+
+  addCashDrawerMovement: async (payload) => {
+    const res = await fetchAPI('/shifts/movements', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal mencatat mutasi kas');
+  },
+
+  getCashiers: async () => {
+    const res = await fetchAPI('/cashiers');
+    return res?.data?.data || [];
+  },
+
+  // ── FORENSIC SECURITY ANOMALIES ───────────────────────────────────────────
+  getSecurityAnomalies: async (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.severity) q.set('severity', params.severity);
+    if (params.eventType) q.set('eventType', params.eventType);
+    if (params.unreadOnly) q.set('unreadOnly', 'true');
+    if (params.limit) q.set('limit', params.limit);
+    const queryString = q.toString() ? `?${q.toString()}` : '';
+    const res = await fetchAPI(`/security/anomalies${queryString}`);
+    return res?.data?.data || [];
+  },
+
+  markSecurityAnomalyRead: async (anomalyId, readStatus = true) => {
+    const res = await fetchAPI('/security/anomalies', {
+      method: 'PATCH',
+      body: JSON.stringify({ anomaly_id: anomalyId, is_read: readStatus }),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || 'Gagal memperbarui status anomali');
+  },
+
+  // ── TAHAP 5: THE ANTI-THEFT CITADEL API METHODS ─────────────────────────────
+  handoverShift: async (payload) => {
+    const res = await fetchAPI('/shifts/handover', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal serah terima shift');
+  },
+
+  getRadarOverview: async () => {
+    const res = await fetchAPI('/radar/overview');
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal memuat radar keamanan');
+  },
+
+  toggleFreezeRegister: async (payload) => {
+    const res = await fetchAPI('/radar/freeze', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (res?.ok) return res.data.data;
+    throw new Error(res?.data?.message || res?.data?.error || 'Gagal mengubah status register');
   },
 };
 

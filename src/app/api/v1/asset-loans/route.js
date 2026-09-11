@@ -92,7 +92,17 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
 export const POST = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
   try {
     const body = await request.json();
-    const { customer_id, asset_type, mutation_type, quantity, transaction_id, notes } = body;
+    const { 
+      customer_id, 
+      asset_type, 
+      mutation_type, 
+      quantity, 
+      transaction_id, 
+      product_id,
+      deposit_amount_per_unit = 0,
+      is_deposit_waived = false,
+      notes 
+    } = body;
 
     if (!customer_id) return errorResponse('ID pelanggan wajib diisi.', 'VALIDATION_ERROR', 422);
     if (!asset_type?.trim()) return errorResponse('Tipe aset (Gas/Galon) wajib diisi.', 'VALIDATION_ERROR', 422);
@@ -106,6 +116,10 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     if (isNaN(qty) || qty <= 0) {
       return errorResponse('Jumlah unit harus berupa angka bulat lebih dari 0.', 'VALIDATION_ERROR', 422);
     }
+
+    const depositPerUnit = Math.max(0, Number(deposit_amount_per_unit) || 0);
+    const isWaived = Boolean(is_deposit_waived);
+    const totalDeposit = isWaived ? 0 : depositPerUnit * qty;
 
     let shopId = profile.shop_id;
     if (!shopId && profile.role === 'BOSS') {
@@ -207,9 +221,13 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
         shop_id: shopId,
         customer_id: customer_id,
         transaction_id: transaction_id || null,
+        product_id: product_id || null,
         asset_type: asset_type,
         mutation_type: typeUpper,
         quantity: qty,
+        deposit_amount_per_unit: depositPerUnit,
+        is_deposit_waived: isWaived,
+        status: typeUpper === 'LOAN' ? 'BORROWED' : 'RETURNED',
         notes: notes?.trim() || null,
         created_by: user.id,
       })
@@ -221,16 +239,38 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
       throw loanErr;
     }
 
+    // Catat ke pos penampungan customer_asset_deposits jika ada dana jaminan
+    let depositRecord = null;
+    if (typeUpper === 'LOAN' && !isWaived && totalDeposit > 0) {
+      const { data: depData, error: depErr } = await supabase
+        .from('customer_asset_deposits')
+        .insert({
+          shop_id: shopId,
+          customer_id: customer_id,
+          loan_id: loanRecord.id,
+          transaction_id: transaction_id || null,
+          deposit_amount: totalDeposit,
+          status: 'HELD',
+          notes: `Titipan jaminan ${qty} unit ${asset_type} @ Rp ${depositPerUnit.toLocaleString('id-ID')}`,
+        })
+        .select()
+        .single();
+
+      if (depErr) console.warn('[POST /asset-loans] customer_asset_deposits insert warning:', depErr);
+      else depositRecord = depData;
+    }
+
     await logActivity(
       supabase,
       shopId,
       profile.username || user.email,
       typeUpper === 'LOAN' ? 'Pinjam Aset Fisik' : 'Kembali Aset Fisik',
-      `${typeUpper === 'LOAN' ? 'Meminjamkan' : 'Menerima kembali'} ${qty} ${asset_type} untuk pelanggan "${customer.nama}"`
+      `${typeUpper === 'LOAN' ? 'Meminjamkan' : 'Menerima kembali'} ${qty} ${asset_type} untuk pelanggan "${customer.nama}"${totalDeposit > 0 ? ` (Jaminan Rp ${totalDeposit.toLocaleString('id-ID')})` : ''}`
     );
 
     return successResponse({
       loan: loanRecord,
+      deposit: depositRecord,
       updated_loaned_assets: updatedAssets,
       customer_id: customer_id,
     }, 201);

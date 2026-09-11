@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "cta": "Open Vault"
+  },
+  "hero": {
+    "title": "How Many Millions in Profit Evaporated Today?",
+    "subtitle": "Building a business takes blood and sweat. We know you never truly take a day off thinking about this store. It's time to securely lock the invisible leaks.",
+    "cta": "Reveal My Leaks"
+  },
+  "calculator": {
+    "title": "Leak Simulator",
+    "daily_revenue": "Average Daily Revenue",
+    "lost_profit": "Total Saved Leaks (Estimated per year)",
+    "roi": "Potential Net Profit",
+    "cta": "Lock Leaks Now"
+  }
+}

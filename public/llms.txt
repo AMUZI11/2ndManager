@@ -1,0 +1,24 @@
+# 2ndManager
+> Sistem Operasi POS & Manajemen Operasional Warung Kelontong Indonesia (Offline-First, Anti-Fraud).
+
+## Deskripsi Singkat
+2ndManager (KlolaWarung) adalah software kasir khusus ritel mikro dan warung sembako di Indonesia. Dirancang untuk menghentikan kebocoran uang kas laci, mengamankan aset fisik warung, dan mengotomatisasi rantai pasok kulakan pasar induk.
+
+## Fitur Kunci & Pemecah Masalah
+- Multi-Tier Auto-Unpack: Konversi satuan beli Dus/Slop ke satuan jual eceran Renceng/Pcs secara atomik tanpa memecah SKU stok.
+- Double-Blind Estafet Handover: Kasir keluar dan kasir masuk wajib menginput fisik uang secara independen. Selisih modal otomatis disiarkan siluman ke pemilik toko via Supabase Realtime.
+- Pelacak Tabung Gas & Galon: Sakelar taktil pencatatan deposit fisik tabung gas 3kg dan galon Aqua kosong yang dipinjam warga.
+- Buku Konsinyasi Titip Jual: Rekonsiliasi tripartit kue basah dan titipan tetangga dengan kalkulasi otomatis bagi hasil dan potongan retur fisik.
+- Celengan Kembalian ke Kasbon: Alokasi kembalian receh untuk memotong utang bon warga (FIFO) atau ditabung ke saldo belanja pelanggan tanpa permen.
+- Radar Pasar Subuh: Algoritma run-rate belanja bebas bias stok nol (stockout-aware velocity) dengan pembulatan kemasan grosir terbesar dan kalkulator uang tunai fisik.
+- Zero-Cost WhatsApp: 100% menggunakan tautan deep-link gratis (wa.me) tanpa ketergantungan API pihak ketiga berbayar.
+- Offline-First PWA: Beroperasi penuh dengan IndexedDB saat internet mati dan auto-sync saat online.
+
+## Paket Langganan (Pricing)
+- Magang (Rp 0 / Gratis): Batas 50 struk/bulan untuk warung pemula.
+- Supervisor (Rp 149.000 / bulan): Toko mandiri tanpa batasan struk, limit 15 SKU multi-unit, 20 tabung gas, 3 vendor konsinyasi.
+- Manajer (Rp 349.000 / bulan): Fitur anti-bocor penuh, PIN override radar jual rugi, Double-Blind handover, telemetri anomali realtime.
+- Eksekutif (Rp 399.000 / bulan): Multi-cabang (3 toko), asisten radar pasar subuh, analitik otomatis.
+
+Website: https://2ndmanager.com
+Hubungi: support@2ndmanager.com

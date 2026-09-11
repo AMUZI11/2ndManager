@@ -7,7 +7,7 @@ import { getTierConfig, getWIBStartOfMonth } from '@/config/tiers';
 import { logActivity } from '@/lib/audit';
 import { verifyPin } from '@/lib/security';
 
-export const GET = withAuthSupabase(async (request, context, { user, profile, shopId, supabase }) => {
+export const GET = withAuthSupabase(async (request, context, { user, profile, shopId, shopIds, isAllShops, supabase }) => {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -16,7 +16,7 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, sh
     const year = searchParams.get('year');
     const is_bonus = searchParams.get('is_bonus');
 
-    if (!shopId) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
+    if (!shopId && !isAllShops) return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
 
     let query = supabase
       .from('transactions')
@@ -25,9 +25,14 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, sh
         transaction_items (*, products (id, nama, tipe, barcode)),
         customers (id, nama, phone)
       `)
-      .eq('shop_id', shopId)
       .order('tanggal', { ascending: false })
       .order('created_at', { ascending: false });
+
+    if (isAllShops && shopIds && shopIds.length > 0) {
+      query = query.in('shop_id', shopIds);
+    } else {
+      query = query.eq('shop_id', shopId);
+    }
 
     if (status) query = query.eq('status', status);
     if (customer_id) query = query.eq('customer_id', customer_id);
@@ -302,8 +307,35 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     const { error: itemsErr } = await supabase.from('transaction_items').insert(itemsToInsert);
     if (itemsErr) throw itemsErr;
 
+    // Eksekusi Auto-Unpack Kemasan Induk Bertingkat (Fase 6: Atomic Multi-Tier Unpack)
+    if (Array.isArray(body.auto_unpack_actions) && body.auto_unpack_actions.length > 0) {
+      for (const action of body.auto_unpack_actions) {
+        if (action.product_id && action.required_pcs) {
+          try {
+            await supabase.rpc('execute_atomic_unit_unpack', {
+              p_product_id: action.product_id,
+              p_required_pcs: parseInt(action.required_pcs, 10),
+            });
+          } catch (unpackErr) {
+            console.warn('[POST /transactions] Auto-unpack warning:', unpackErr);
+          }
+        }
+      }
+    }
+
+    // Tahap 7: Resolusi Branch ID untuk pemotongan inventaris fisik cabang
+    let targetBranchId = body.branch_id || null;
+    if (!targetBranchId && shopId) {
+      const { data: brRow } = await supabase
+        .from('branches')
+        .select('id')
+        .eq('shop_id', shopId)
+        .maybeSingle();
+      if (brRow?.id) targetBranchId = brRow.id;
+    }
+
     // Potong stok produk di database secara ATOMIK via RPC mutate_product_stock
-    // dan catat mutasi stok di tabel stock_mutations
+    // dan catat mutasi stok di tabel stock_mutations serta branch_product_stocks
     for (const item of items_with_calcs) {
       if (item.product_id) {
         const qtyToDeduct = item.quantity * (item.multiplier_to_base || 1);
@@ -312,6 +344,15 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
             p_product_id: item.product_id,
             p_qty: -qtyToDeduct
           });
+
+          // Tahap 7: Potong stok fisik cabang secara terisolasi
+          if (targetBranchId) {
+            await supabase.rpc('mutate_branch_product_stock', {
+              p_branch_id: targetBranchId,
+              p_product_id: item.product_id,
+              p_qty: -qtyToDeduct
+            });
+          }
 
           await supabase.from('stock_mutations').insert({
             shop_id: shopId,
@@ -326,6 +367,60 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
           });
         } catch (stockErr) {
           console.error('[POST /transactions] Atomic stock mutation failed:', stockErr);
+        }
+      }
+    }
+
+    // Titipan Jaminan Wadah Aset Fisik (Fase 6: Container Escrow Non-Revenue)
+    if (Array.isArray(body.escrow_deposits) && body.escrow_deposits.length > 0) {
+      for (const esc of body.escrow_deposits) {
+        if (esc.asset_type && customer_id) {
+          const escQty = parseInt(esc.quantity || 1, 10);
+          const depPerUnit = Math.max(0, Number(esc.deposit_amount_per_unit || esc.deposit_amount || 0));
+          const isWaived = Boolean(esc.is_deposit_waived);
+          const totalDep = isWaived ? 0 : depPerUnit * escQty;
+
+          // Catat pinjaman wadah
+          const { data: loanRec } = await supabase
+            .from('customer_asset_loans')
+            .insert({
+              shop_id: shopId,
+              customer_id: customer_id,
+              transaction_id: transaction.id,
+              product_id: esc.product_id || null,
+              asset_type: esc.asset_type,
+              mutation_type: 'LOAN',
+              quantity: escQty,
+              deposit_amount_per_unit: depPerUnit,
+              is_deposit_waived: isWaived,
+              status: 'BORROWED',
+              notes: esc.notes || `Pinjaman wadah pada Bon #${transaction.nomor_bon}`,
+              created_by: user.id,
+            })
+            .select()
+            .single();
+
+          // Mutasi customer loaned_assets count
+          await supabase.rpc('mutate_customer_loaned_assets', {
+            p_customer_id: customer_id,
+            p_asset_type: esc.asset_type,
+            p_delta: escQty,
+          });
+
+          // Catat escrow deposit jika tidak waived
+          if (!isWaived && totalDep > 0 && loanRec) {
+            await supabase
+              .from('customer_asset_deposits')
+              .insert({
+                shop_id: shopId,
+                customer_id: customer_id,
+                loan_id: loanRec.id,
+                transaction_id: transaction.id,
+                deposit_amount: totalDep,
+                status: 'HELD',
+                notes: `Uang jaminan ${escQty} unit ${esc.asset_type} Bon #${transaction.nomor_bon}`,
+              });
+          }
         }
       }
     }

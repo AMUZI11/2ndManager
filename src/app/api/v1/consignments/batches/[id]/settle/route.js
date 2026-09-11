@@ -1,6 +1,7 @@
 // POST /api/v1/consignments/batches/[id]/settle — Rekonsiliasi Tripartit & Settlement Konsinyasi
 import { withAuthSupabase, errorResponse, successResponse } from '@/lib/auth-helpers';
 import { logActivity } from '@/lib/audit';
+import { calculateTripartiteSettlement } from '@/utils/consignmentEngine';
 
 export const POST = withAuthSupabase(async (request, { params }, { user, profile, shopId, supabase }) => {
   try {
@@ -11,7 +12,8 @@ export const POST = withAuthSupabase(async (request, { params }, { user, profile
     const {
       returned_qty = 0,
       damaged_qty = 0,
-      loss_borne_by = 'STORE', // 'STORE' | 'VENDOR'
+      loss_borne_by = 'VENDOR', // Legacy fallback
+      stale_policy = null,     // 'VENDOR_BORNE' | 'STORE_BORNE' | 'SHARED_50_50'
       payment_method = 'TUNAI', // 'TUNAI' | 'TRANSFER'
       notes = ''
     } = body;
@@ -54,29 +56,30 @@ export const POST = withAuthSupabase(async (request, { params }, { user, profile
     // Batasi Q_pos tidak melebihi Q_masuk
     const qPos = Math.min(qMasuk, qPosRaw);
 
-    // 3. Rekonsiliasi Tripartit: Q_masuk vs Q_pos vs Q_retur & Q_rusak
-    // Selisih hilang/tak tercatat
-    const unaccountedLoss = Math.max(0, qMasuk - qPos - returnedCount - damagedCount);
-    const totalPhysicalLoss = damagedCount + unaccountedLoss;
+    // 3. Tentukan kebijakan penanganan basi aktif (Prioritas: body.stale_policy -> batch.stale_policy -> vendor -> loss_borne_by)
+    const activeStalePolicy = stale_policy 
+      || batch.stale_policy 
+      || batch.consignment_vendors?.stale_policy 
+      || (loss_borne_by === 'STORE' ? 'STORE_BORNE' : (loss_borne_by === 'SHARED_50_50' ? 'SHARED_50_50' : 'VENDOR_BORNE'));
 
-    // Tentukan unit yang dibayarkan ke vendor berdasarkan opsi tanggungan
-    let vendorQtyPaid = 0;
-    if (loss_borne_by === 'STORE') {
-      // Toko menanggung barang hilang/rusak -> vendor tetap dibayar untuk barang laku + hilang/rusak
-      vendorQtyPaid = Math.max(0, qMasuk - returnedCount);
-    } else {
-      // Vendor menanggung barang hilang/rusak -> warung hanya membayar apa yang tercatat laku di POS
-      vendorQtyPaid = qPos;
-    }
+    // Rekonsiliasi Tripartit via consignmentEngine
+    const calcResult = calculateTripartiteSettlement({
+      qReceived: qMasuk,
+      qSoldPos: qPos,
+      qReturnedGood: returnedCount,
+      qReturnedStale: damagedCount,
+      vendorPrice: Number(batch.vendor_price_per_unit || 0),
+      sellingPrice: Number(batch.selling_price_per_unit || 0),
+      stalePolicy: activeStalePolicy,
+    });
 
-    const totalPayout = vendorQtyPaid * Number(batch.vendor_price_per_unit);
-    const totalRevenuePos = qPos * Number(batch.selling_price_per_unit);
-    const totalProfit = totalRevenuePos - totalPayout;
+    const totalPayout = calcResult.vendorPayout;
+    const totalProfit = calcResult.storeNetMargin;
+    const totalPhysicalLoss = damagedCount + calcResult.unaccountedLoss;
 
     // 4. Sinkronisasi Stok Toko:
-    // Karena Q_pos sudah otomatis dipotong saat checkout kasir POS,
-    // yang masih tertinggal di stok sistem dari batch ini adalah sisa fisik yang harus ditarik/dibuang:
-    const remainingToDeduct = Math.max(0, returnedCount + damagedCount + unaccountedLoss);
+    // Sisa fisik yang tidak terjual di POS ditarik dari stok toko
+    const remainingToDeduct = Math.max(0, returnedCount + damagedCount + calcResult.unaccountedLoss);
 
     if (remainingToDeduct > 0) {
       await supabase.rpc('mutate_product_stock', {
@@ -89,7 +92,7 @@ export const POST = withAuthSupabase(async (request, { params }, { user, profile
         product_id: batch.product_id,
         mutation_type: 'RETURN',
         quantity_delta: -remainingToDeduct,
-        notes: `Settlement Konsinyasi batch #${batch.id.slice(0, 8)}: Retur fisik ${returnedCount} pcs, Rusak/Hilang ${totalPhysicalLoss} pcs`,
+        notes: `Settlement Konsinyasi batch #${batch.id.slice(0, 8)}: Retur baik ${returnedCount} pcs, Rusak/Basi ${damagedCount} pcs, Kebijakan ${activeStalePolicy}`,
       });
     }
 
@@ -100,9 +103,14 @@ export const POST = withAuthSupabase(async (request, { params }, { user, profile
         returned_qty: returnedCount,
         sold_qty: qPos,
         lost_qty: totalPhysicalLoss,
+        total_items_returned_good: returnedCount,
+        total_items_returned_stale: damagedCount,
+        vendor_payout_amount: totalPayout,
+        store_margin_amount: totalProfit,
         total_payout: totalPayout,
         total_profit: totalProfit,
-        loss_borne_by: loss_borne_by,
+        loss_borne_by: activeStalePolicy,
+        stale_policy: activeStalePolicy,
         status: 'SETTLED',
         settled_at: new Date().toISOString(),
         settled_by: profile.id || null,

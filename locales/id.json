@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "cta": "Buka Brankas"
+  },
+  "hero": {
+    "title": "Berapa Juta Keuntungan Anda Menguap Hari Ini?",
+    "subtitle": "Membangun bisnis butuh darah dan keringat. Kami tahu, Bapak/Ibu tidak pernah benar-benar libur memikirkan warung ini. Saatnya mengunci rapat kebocoran yang tak terlihat.",
+    "cta": "Lihat Kebocoran Saya"
+  },
+  "calculator": {
+    "title": "Simulator Kebocoran",
+    "daily_revenue": "Rata-rata Omzet Harian",
+    "lost_profit": "Total Kebocoran Terselamatkan (Estimasi per tahun)",
+    "roi": "Potensi Keuntungan Bersih",
+    "cta": "Kunci Kebocoran Sekarang"
+  }
+}
