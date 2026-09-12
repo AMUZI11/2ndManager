@@ -1,45 +1,12 @@
-import { withAuth, errorResponse, successResponse } from '@/lib/auth-helpers';
+import { withAuth, errorResponse, successResponse, resolveOrganization } from '@/lib/auth-helpers';
 import { evaluatePP55Compliance } from '@/utils/taxEngine';
 
-async function resolveOrganization(supabase, user) {
-  let { data: org } = await supabase
-    .from('organizations')
-    .select('id, name, tier_id, owner_id')
-    .eq('owner_id', user.id)
-    .maybeSingle();
-
-  if (!org) {
-    // Cek toko milik user untuk fallback
-    const { data: shop } = await supabase
-      .from('shops')
-      .select('id, name')
-      .eq('owner_id', user.id)
-      .maybeSingle();
-
-    if (shop) {
-      // Lazy create organization jika belum ada
-      const { data: newOrg } = await supabase
-        .from('organizations')
-        .insert({
-          owner_id: user.id,
-          name: shop.name || 'Organisasi Utama',
-          tier_id: 'EKSEKUTIF'
-        })
-        .select()
-        .single();
-      org = newOrg;
-    }
-  }
-
-  return org;
-}
-
-export const GET = withAuth(async (request, context, { user, supabase }) => {
+export const GET = withAuth(async (request, context, { user, profile, supabase }) => {
   try {
     const { searchParams } = new URL(request.url);
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString(), 10);
 
-    const org = await resolveOrganization(supabase, user);
+    const org = await resolveOrganization(supabase, user, profile);
     if (!org) {
       return errorResponse('Organisasi tidak ditemukan untuk pengguna ini', 'ORG_NOT_FOUND', 404);
     }
@@ -114,7 +81,7 @@ export const GET = withAuth(async (request, context, { user, supabase }) => {
   }
 });
 
-export const POST = withAuth(async (request, context, { user, supabase }) => {
+export const POST = withAuth(async (request, context, { user, profile, supabase }) => {
   try {
     const body = await request.json();
     const {
@@ -125,7 +92,7 @@ export const POST = withAuth(async (request, context, { user, supabase }) => {
       initial_capital = 10000000
     } = body;
 
-    const org = await resolveOrganization(supabase, user);
+    const org = await resolveOrganization(supabase, user, profile);
     if (!org) {
       return errorResponse('Organisasi tidak ditemukan', 'ORG_NOT_FOUND', 404);
     }

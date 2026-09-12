@@ -1,8 +1,8 @@
-import { withAuth, errorResponse, successResponse } from '@/lib/auth-helpers';
+import { withAuth, errorResponse, successResponse, resolveOrganization } from '@/lib/auth-helpers';
 import { generateDocumentSealHash, buildVerificationUrl } from '@/utils/sealSecurity';
 import { calculateBankRatios } from '@/utils/emkmEngine';
 
-export const POST = withAuth(async (request, context, { user, supabase }) => {
+export const POST = withAuth(async (request, context, { user, profile, supabase }) => {
   try {
     const body = await request.json();
     const now = new Date();
@@ -11,11 +11,7 @@ export const POST = withAuth(async (request, context, { user, supabase }) => {
     const branchId = body.branch_id || null;
 
     // Ambil organisasi
-    let { data: org } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('owner_id', user.id)
-      .maybeSingle();
+    const org = await resolveOrganization(supabase, user, profile, branchId);
 
     if (!org) {
       return errorResponse('Organisasi tidak ditemukan', 'ORG_NOT_FOUND', 404);
@@ -52,12 +48,12 @@ export const POST = withAuth(async (request, context, { user, supabase }) => {
       branchInfo = br;
     }
 
-    // Ambil data user profile untuk nama pemilik
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('name, email, phone')
-      .eq('id', user.id)
-      .maybeSingle();
+    // Ambil data profil pemilik tanpa mengakses tabel users yang tidak ada
+    const userProfile = {
+      name: user?.user_metadata?.name || user?.user_metadata?.full_name || profile?.username || taxProfile?.npwp_name || 'Juragan Pemilik Toko',
+      email: user?.email || '',
+      phone: user?.user_metadata?.phone || user?.phone || ''
+    };
 
     // Susun ringkasan integritas untuk stempel digital
     const bs = emkmData.balance_sheet || {};

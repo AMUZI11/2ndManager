@@ -2,13 +2,39 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
-function isAllowedOrigin(origin) {
+function isAllowedOrigin(origin, request = null) {
   if (!origin) return true;
   try {
     const url = new URL(origin);
     const host = url.hostname.toLowerCase();
-    if (host === 'localhost' || host === '127.0.0.1') return true;
+
+    // 1. Same-origin request check (mencegah blokir request internal dari domain sendiri)
+    if (request) {
+      const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl?.host;
+      if (reqHost) {
+        const cleanReqHost = reqHost.split(':')[0].toLowerCase();
+        if (host === cleanReqHost) return true;
+      }
+    }
+
+    // 2. Localhost & Loopback
+    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1') return true;
+
+    // 3. Jaringan Lokal / LAN (akses perangkat kasir ponsel di jaringan toko)
+    if (/^192\.168\./.test(host) || /^10\./.test(host) || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)) return true;
+
+    // 4. Domain Resmi Produksi & Staging
     if (host === '2ndmanager.com' || host.endsWith('.2ndmanager.com')) return true;
+
+    // 5. Vercel Preview & Production Deployments
+    if (host === 'vercel.app' || host.endsWith('.vercel.app')) return true;
+
+    // 6. Environment VERCEL_URL
+    if (process.env.VERCEL_URL) {
+      const vHost = process.env.VERCEL_URL.toLowerCase();
+      if (host === vHost || host.endsWith(vHost)) return true;
+    }
+
     return false;
   } catch {
     return false;
@@ -27,7 +53,8 @@ export async function proxy(request) {
   // CORS guard for API routes
   if (pathname.startsWith('/api/')) {
     const origin = request.headers.get('origin');
-    if (origin && !isAllowedOrigin(origin)) {
+    const allowed = isAllowedOrigin(origin, request);
+    if (origin && !allowed) {
       return NextResponse.json(
         { error: true, code: 'CORS_FORBIDDEN', message: 'Akses API ditolak: Domain origin tidak sah.' },
         { status: 403 }
@@ -38,7 +65,7 @@ export async function proxy(request) {
       return new NextResponse(null, {
         status: 204,
         headers: {
-          'Access-Control-Allow-Origin': origin && isAllowedOrigin(origin) ? origin : 'https://2ndmanager.com',
+          'Access-Control-Allow-Origin': origin && allowed ? origin : 'https://2ndmanager.com',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
           'Access-Control-Allow-Credentials': 'true',
@@ -47,7 +74,7 @@ export async function proxy(request) {
       });
     }
 
-    if (origin && isAllowedOrigin(origin)) {
+    if (origin && allowed) {
       response.headers.set('Access-Control-Allow-Origin', origin);
       response.headers.set('Access-Control-Allow-Credentials', 'true');
     }

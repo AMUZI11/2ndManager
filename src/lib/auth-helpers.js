@@ -88,6 +88,101 @@ export async function resolveShopId(supabase, user, profile, requestedShopId = n
 }
 
 /**
+ * Resolusi organisasi aktif yang tangguh untuk multi-cabang, multi-organisasi, dan akun kasir/staff.
+ * Mencegah error PGRST116 (multiple rows) dan mendukung lookup via branch_id, profile.shop_id, atau owned shops.
+ */
+export async function resolveOrganization(supabase, user, profile = null, explicitBranchId = null) {
+  if (!user && !profile) return null;
+
+  // 1. Jika ada explicitBranchId, cari dari tabel branches
+  if (explicitBranchId && explicitBranchId !== 'ALL') {
+    const { data: branch } = await supabase
+      .from('branches')
+      .select('organization_id, organizations(*)')
+      .eq('id', explicitBranchId)
+      .maybeSingle();
+    if (branch?.organizations) return branch.organizations;
+  }
+
+  // 2. Cari dari shop_id aktif (dari profile.shop_id)
+  const targetShopId = profile?.shop_id;
+  if (targetShopId) {
+    const { data: branch } = await supabase
+      .from('branches')
+      .select('organization_id, organizations(*)')
+      .eq('shop_id', targetShopId)
+      .maybeSingle();
+    if (branch?.organizations) return branch.organizations;
+  }
+
+  // 3. Jika user adalah owner toko, cari cabang dari toko yang dimiliki user
+  if (user?.id) {
+    const { data: ownedShops } = await supabase
+      .from('shops')
+      .select('id')
+      .eq('owner_id', user.id);
+
+    if (ownedShops && ownedShops.length > 0) {
+      const shopIds = ownedShops.map((s) => s.id);
+      const { data: branchList } = await supabase
+        .from('branches')
+        .select('organization_id, organizations(*)')
+        .in('shop_id', shopIds)
+        .limit(1);
+      if (branchList && branchList.length > 0 && branchList[0].organizations) {
+        return branchList[0].organizations;
+      }
+    }
+
+    // 4. Cari langsung di tabel organizations berdasarkan owner_id
+    // Gunakan .limit(1) untuk mencegah crash PGRST116 jika ada multiple organisasi
+    const { data: orgList } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (orgList && orgList.length > 0) {
+      return orgList[0];
+    }
+
+    // 5. Fallback auto-provisioning: jika toko ada tapi belum ada org / branch, buat organisasi otomatis
+    if (ownedShops && ownedShops.length > 0) {
+      const mainShopId = ownedShops[0].id;
+      const { data: shopInfo } = await supabase
+        .from('shops')
+        .select('name')
+        .eq('id', mainShopId)
+        .maybeSingle();
+
+      const { data: newOrg } = await supabase
+        .from('organizations')
+        .insert({
+          owner_id: user.id,
+          name: shopInfo?.name || 'Organisasi Toko',
+          tier_id: 'EKSEKUTIF',
+        })
+        .select()
+        .single();
+
+      if (newOrg) {
+        await supabase.from('branches').insert({
+          organization_id: newOrg.id,
+          shop_id: mainShopId,
+          branch_name: shopInfo?.name || 'Cabang Utama',
+          branch_code: 'CBG-01',
+          is_main_branch: true,
+        });
+        return newOrg;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Higher-order function untuk proteksi API route dengan Supabase Auth session
  * Mengekstrak user dan profile (termasuk shopId, shopIds, & isAllShops) dari session & header aktif
  *

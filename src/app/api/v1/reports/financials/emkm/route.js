@@ -1,38 +1,7 @@
-import { withAuth, errorResponse, successResponse } from '@/lib/auth-helpers';
+import { withAuth, errorResponse, successResponse, resolveOrganization } from '@/lib/auth-helpers';
 import { calculateBankRatios, validateBalanceSheet } from '@/utils/emkmEngine';
 
-async function resolveOrganization(supabase, user) {
-  let { data: org } = await supabase
-    .from('organizations')
-    .select('id, name, tier_id, owner_id')
-    .eq('owner_id', user.id)
-    .maybeSingle();
-
-  if (!org) {
-    const { data: shop } = await supabase
-      .from('shops')
-      .select('id, name')
-      .eq('owner_id', user.id)
-      .maybeSingle();
-
-    if (shop) {
-      const { data: newOrg } = await supabase
-        .from('organizations')
-        .insert({
-          owner_id: user.id,
-          name: shop.name || 'Organisasi Utama',
-          tier_id: 'EKSEKUTIF'
-        })
-        .select()
-        .single();
-      org = newOrg;
-    }
-  }
-
-  return org;
-}
-
-export const GET = withAuth(async (request, context, { user, supabase }) => {
+export const GET = withAuth(async (request, context, { user, profile, supabase }) => {
   try {
     const { searchParams } = new URL(request.url);
     const now = new Date();
@@ -40,7 +9,7 @@ export const GET = withAuth(async (request, context, { user, supabase }) => {
     const month = parseInt(searchParams.get('month') || (now.getMonth() + 1).toString(), 10);
     const branchId = searchParams.get('branch_id') || null;
 
-    const org = await resolveOrganization(supabase, user);
+    const org = await resolveOrganization(supabase, user, profile, branchId);
     if (!org) {
       return errorResponse('Organisasi tidak ditemukan', 'ORG_NOT_FOUND', 404);
     }
