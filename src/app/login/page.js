@@ -54,7 +54,7 @@ function LoginContent() {
     let targetUrl = redirectTo;
     if (!targetUrl) {
       if (isSuperadmin) {
-        targetUrl = '/dashboard';
+        targetUrl = '/admin/dashboard';
       } else {
         try {
           const { data: profile } = await supabase

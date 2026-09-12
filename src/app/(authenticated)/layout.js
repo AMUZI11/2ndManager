@@ -423,18 +423,6 @@ function AuthenticatedLayoutInner({ children }) {
     router.push('/login');
   };
 
-  if (pathname?.startsWith('/admin')) {
-    if (isLoading || !session) {
-      return (
-        <div className="min-h-screen bg-[#080C14] text-white flex flex-col items-center justify-center font-mono">
-          <div className="w-8 h-8 border-4 border-[#CCFF00] border-t-transparent animate-spin mb-4" />
-          <span className="text-xs tracking-widest text-slate-400">[ MEMPERSIAPKAN MISSION CONTROL... ]</span>
-        </div>
-      );
-    }
-    return <>{children}</>;
-  }
-
   if (isLoading || !session) {
     return (
       <div className="min-h-screen bg-[#F8F9FA] text-slate-900 flex flex-col items-center justify-center text-lg font-semibold space-y-3 font-sans relative">

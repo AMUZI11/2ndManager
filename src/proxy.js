@@ -142,84 +142,47 @@ export async function proxy(request) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // RBAC: Verifikasi daftar email Superadmin dari process.env
+    // RBAC: Verifikasi daftar email Superadmin dari process.env.SUPERADMIN_EMAILS
     const superadminEmails = (process.env.SUPERADMIN_EMAILS || process.env.ADMIN_EMAIL || 'ahza201111@gmail.com')
       .split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean);
 
-    const isSuperadminEmail = superadminEmails.includes(user.email?.toLowerCase());
+    const isSuperadmin = superadminEmails.includes(user.email?.toLowerCase());
+    let isAuthorized = isSuperadmin;
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+    if (!isAuthorized) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
 
-    const role = profile?.role || 'CASHIER';
-    const isSuperadmin = isSuperadminEmail || role === 'SUPERADMIN';
-
-    // 1. CASHIER role: strictly blocked from ALL admin pages & admin APIs
-    if (role === 'CASHIER' && !isSuperadmin) {
-      if (isAdminApi) {
-        return NextResponse.json(
-          { error: true, code: 'FORBIDDEN_CASHIER', message: 'Kasir tidak memiliki akses ke Mission Control Admin.' },
-          { status: 403 }
-        );
+      const staffRoles = ['SUPERADMIN', 'SUPPORT_AGENT', 'BILLING_SPECIALIST'];
+      if (profile && staffRoles.includes(profile.role)) {
+        isAuthorized = true;
       }
-      const posUrl = request.nextUrl.clone();
-      posUrl.pathname = '/pos';
-      posUrl.searchParams.set('denied', 'unauthorized_admin_access');
-      return NextResponse.redirect(posUrl);
     }
 
-    // 2. Superadmin-only paths
-    const superadminOnlyRoutes = [
-      '/admin/vouchers',
-      '/admin/tenants',
-      '/admin/panic-dispatch',
-      '/admin/payment-proofs',
-      '/admin/categories-master',
-      '/admin/fraud-radar',
-      '/admin/audit-logs',
-    ];
-    const isSuperadminRoute = superadminOnlyRoutes.some(
-      (r) => pathname === r || pathname.startsWith(r + '/')
-    );
-
-    // Superadmin-only APIs (summary is accessible to all shop owners)
-    const isSuperadminApi = isAdminApi && !pathname.startsWith('/api/v1/admin/summary');
-
-    if ((isSuperadminRoute || isSuperadminApi) && !isSuperadmin) {
+    if (!isAuthorized) {
       if (isAdminApi) {
         return NextResponse.json(
           { error: true, code: 'FORBIDDEN', message: 'Akses ditolak. Memerlukan wewenang Platform Admin.' },
           { status: 403 }
         );
       }
-      const adminUrl = request.nextUrl.clone();
-      adminUrl.pathname = '/admin';
-      adminUrl.searchParams.set('error', 'superadmin_required');
-      return NextResponse.redirect(adminUrl);
-    }
-
-    // 3. Allowed owner/boss/manager/admin roles for general admin pages:
-    const ownerRoles = ['BOSS', 'OWNER', 'MANAGER', 'ADMIN', 'SUPERADMIN'];
-    const isAuthorizedOwner = isSuperadmin || ownerRoles.includes(role);
-
-    if (!isAuthorizedOwner) {
-      if (isAdminApi) {
-        return NextResponse.json(
-          { error: true, code: 'FORBIDDEN', message: 'Akses ditolak.' },
-          { status: 403 }
-        );
-      }
       const forbiddenUrl = request.nextUrl.clone();
-      forbiddenUrl.pathname = '/login';
-      forbiddenUrl.searchParams.set('error', 'unauthorized');
+      forbiddenUrl.pathname = '/dashboard';
+      forbiddenUrl.searchParams.set('error', 'forbidden_admin');
       return NextResponse.redirect(forbiddenUrl);
     }
 
+    return response;
+  }
+
+  // Public marketing & legal pages
+  const publicRoutes = ['/', '/login', '/pricing', '/features', '/privacy', '/terms', '/refund'];
+  if (publicRoutes.includes(pathname) || pathname.startsWith('/api/')) {
     return response;
   }
 
