@@ -1,5 +1,6 @@
 // src/utils/posSyncEngine.js
-// Client-side Background Sync Engine untuk Rekonsiliasi Transaksi & Telemetri Offline
+// Client-side Background & Foreground Sync Engine untuk Rekonsiliasi Transaksi Offline
+// Terintegrasi dengan Web Locks Mutex, Batch Chunking 25, dan Endpoint Kanonikal /api/v1/transactions/bulk-sync
 
 import {
   getPendingTransactions,
@@ -10,6 +11,13 @@ import {
   removeOfflineShiftHandovers,
   getQueueStats,
 } from '@/utils/posOfflineDb';
+import {
+  acquireSyncMutex,
+  chunkTransactions,
+  registerBackgroundSync,
+  sleepThrottle,
+  SYNC_BATCH_SIZE,
+} from '@/utils/backgroundSyncEngine';
 
 let isSyncing = false;
 let syncIntervalId = null;
@@ -26,6 +34,7 @@ function notifySyncStatus(status, extra = {}) {
 
 /**
  * Eksekusi Sinkronisasi Data Offline ke Server
+ * Dilindungi Web Locks Mutex 'pos_tx_sync_mutex'
  */
 export async function syncOfflineData() {
   if (typeof window === 'undefined') return { success: false, reason: 'SSR' };
@@ -33,148 +42,175 @@ export async function syncOfflineData() {
     notifySyncStatus('OFFLINE');
     return { success: false, reason: 'OFFLINE' };
   }
-  if (isSyncing) {
-    return { success: false, reason: 'ALREADY_SYNCING' };
-  }
 
-  isSyncing = true;
-  notifySyncStatus('SYNCING');
+  // Bungkus dalam Web Locks Mutex
+  const mutexExecution = await acquireSyncMutex(async () => {
+    isSyncing = true;
+    notifySyncStatus('SYNCING');
 
-  try {
-    // 1. REKONSILIASI TRANSAKSI OFFLINE
-    const pendingTxs = await getPendingTransactions();
+    try {
+      // 1. REKONSILIASI TRANSAKSI OFFLINE DENGAN BATCH CHUNKING (25 ITEM/REQ)
+      const pendingTxs = await getPendingTransactions();
 
-    if (pendingTxs.length > 0) {
-      const payloadTransactions = pendingTxs.map((t) => ({
-        offline_id: t.id,
-        nomor_bon: t.nomor_bon,
-        tanggal: t.tanggal,
-        shift_id: t.shift_id,
-        register_id: t.register_id,
-        created_at: t.created_at,
-        ...t.payload,
-      }));
+      if (pendingTxs.length > 0) {
+        const txBatches = chunkTransactions(pendingTxs, SYNC_BATCH_SIZE);
 
-      try {
-        const res = await fetch('/api/v1/pos/sync-offline', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-          },
-          body: JSON.stringify({ transactions: payloadTransactions }),
-        });
+        for (const batch of txBatches) {
+          const payloadTransactions = batch.map((t) => ({
+            clientTxUuid: t.id || t.payload?.idempotency_key,
+            nomorBon: t.nomor_bon,
+            tanggal: t.tanggal,
+            shiftId: t.shift_id,
+            registerId: t.register_id,
+            offlineCreatedAt: t.created_at,
+            items: t.payload?.items || [],
+            paymentMethod: t.payload?.payment_method || 'CASH',
+            grossAmount: t.payload?.total_bayar || t.payload?.subtotal || 0,
+            finalAmount: t.payload?.total_akhir || t.payload?.total_bayar || 0,
+            paymentStatus: t.payload?.status || 'Lunas',
+            customerId: t.payload?.customer_id || null,
+            payload: t.payload,
+          }));
 
-        if (res.ok) {
-          const json = await res.json();
-          const results = json.data?.results || [];
-
-          for (const item of results) {
-            if (item.success) {
-              await updateTransactionStatus(item.offline_id, 'SYNCED', {
-                serverId: item.server_id,
-              });
-            } else {
-              await updateTransactionStatus(item.offline_id, 'FAILED', {
-                errorMessage: item.error || 'Sinkronisasi gagal di server',
-              });
-            }
-          }
-        } else {
-          // Tandai status sementara
-          for (const t of pendingTxs) {
-            await updateTransactionStatus(t.id, 'FAILED', {
-              errorMessage: `HTTP Error ${res.status}`,
+          try {
+            const res = await fetch('/api/v1/transactions/bulk-sync', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Synced-Via': 'FOREGROUND_SYNC',
+              },
+              body: JSON.stringify({
+                syncedVia: 'FOREGROUND_SYNC',
+                transactions: payloadTransactions,
+              }),
             });
+
+            if (res.ok) {
+              const json = await res.json();
+              const processedUuids = new Set(json.processedUuids || []);
+
+              for (const item of batch) {
+                if (processedUuids.has(item.id)) {
+                  await updateTransactionStatus(item.id, 'SYNCED', {
+                    serverId: item.id,
+                  });
+                } else {
+                  await updateTransactionStatus(item.id, 'FAILED', {
+                    errorMessage: 'Ditolak atau duplikat di server',
+                  });
+                }
+              }
+            } else {
+              for (const t of batch) {
+                await updateTransactionStatus(t.id, 'FAILED', {
+                  errorMessage: `HTTP Error ${res.status}`,
+                });
+              }
+              break; // Hentikan batch berikutnya jika server merespons error
+            }
+          } catch (networkErr) {
+            console.warn('[posSyncEngine] Network error saat bulk-sync batch:', networkErr);
+            break;
           }
-        }
-      } catch (networkErr) {
-        console.warn('[posSyncEngine] Gagal menghubungi endpoint sync-offline:', networkErr);
-      }
-    }
 
-    // 2. FLUSH TELEMETRY OFFLINE BUFFER
-    const pendingTelemetry = await getPendingTelemetry();
-    if (pendingTelemetry.length > 0) {
-      const syncedTelemetryIds = [];
-
-      for (const telem of pendingTelemetry) {
-        try {
-          const tRes = await fetch('/api/v1/metrics/sync', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: JSON.stringify(telem.payload),
-            keepalive: true,
-          });
-          if (tRes.ok) {
-            syncedTelemetryIds.push(telem.id);
-          }
-        } catch {
-          // Abaikan per item, biarkan di buffer untuk retry berikutnya
-        }
-      }
-
-      if (syncedTelemetryIds.length > 0) {
-        await removeTelemetryItems(syncedTelemetryIds);
-      }
-    }
-
-    // 3. FLUSH OFFLINE SHIFT HANDOVERS (TAHAP 5 PATCH #2)
-    const pendingHandovers = await getPendingOfflineHandovers();
-    if (pendingHandovers.length > 0) {
-      const syncedHandoverIds = [];
-      for (const h of pendingHandovers) {
-        try {
-          const hRes = await fetch('/api/v1/shifts/handover', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: JSON.stringify({
-              shift_id: h.shift_id,
-              outgoing_cash_count: h.outgoing_cash_count,
-              incoming_cash_count: h.incoming_cash_count,
-              incoming_cashier_id: h.incoming_cashier_id,
-              incoming_pin: h.incoming_pin,
-              notes: h.notes,
-            }),
-          });
-          if (hRes.ok) {
-            syncedHandoverIds.push(h.id);
-          }
-        } catch {
-          // Biarkan di antrean untuk putaran sinkronisasi berikutnya
+          // Jeda napas 50ms antar-batch untuk melegakan thread ponsel low-end
+          await sleepThrottle(50);
         }
       }
-      if (syncedHandoverIds.length > 0) {
-        await removeOfflineShiftHandovers(syncedHandoverIds);
-      }
-    }
 
-    // 4. STATISTIK TERBARU
-    const stats = await getQueueStats();
-    notifySyncStatus('IDLE', stats);
-    return { success: true, stats };
-  } catch (err) {
-    console.error('[posSyncEngine] Error saat syncOfflineData:', err);
-    notifySyncStatus('ERROR', { error: err.message });
-    return { success: false, error: err.message };
-  } finally {
-    isSyncing = false;
+      // 2. FLUSH TELEMETRY OFFLINE BUFFER
+      const pendingTelemetry = await getPendingTelemetry();
+      if (pendingTelemetry.length > 0) {
+        const syncedTelemetryIds = [];
+
+        for (const telem of pendingTelemetry) {
+          try {
+            const tRes = await fetch('/api/v1/metrics/sync', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              body: JSON.stringify(telem.payload),
+              keepalive: true,
+            });
+            if (tRes.ok) {
+              syncedTelemetryIds.push(telem.id);
+            }
+          } catch {
+            // Abaikan per item, biarkan di buffer untuk retry berikutnya
+          }
+        }
+
+        if (syncedTelemetryIds.length > 0) {
+          await removeTelemetryItems(syncedTelemetryIds);
+        }
+      }
+
+      // 3. FLUSH OFFLINE SHIFT HANDOVERS
+      const pendingHandovers = await getPendingOfflineHandovers();
+      if (pendingHandovers.length > 0) {
+        const syncedHandoverIds = [];
+        for (const h of pendingHandovers) {
+          try {
+            const hRes = await fetch('/api/v1/shifts/handover', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              body: JSON.stringify({
+                shift_id: h.shift_id,
+                outgoing_cash_count: h.outgoing_cash_count,
+                incoming_cash_count: h.incoming_cash_count,
+                incoming_cashier_id: h.incoming_cashier_id,
+                incoming_pin: h.incoming_pin,
+                notes: h.notes,
+              }),
+            });
+            if (hRes.ok) {
+              syncedHandoverIds.push(h.id);
+            }
+          } catch {
+            // Biarkan di antrean untuk putaran berikutnya
+          }
+        }
+        if (syncedHandoverIds.length > 0) {
+          await removeOfflineShiftHandovers(syncedHandoverIds);
+        }
+      }
+
+      // 4. STATISTIK TERBARU
+      const stats = await getQueueStats();
+      notifySyncStatus('IDLE', stats);
+      return { success: true, stats };
+    } catch (err) {
+      console.error('[posSyncEngine] Error saat syncOfflineData:', err);
+      notifySyncStatus('ERROR', { error: err.message });
+      return { success: false, error: err.message };
+    } finally {
+      isSyncing = false;
+    }
+  });
+
+  if (!mutexExecution.executed) {
+    return { success: false, reason: mutexExecution.reason };
   }
+
+  return mutexExecution.result;
 }
 
 /**
- * Inisialisasi Listener Browser Online Event & Heartbeat Timer
+ * Inisialisasi Listener Browser Online Event, Background Sync Registration & Heartbeat Timer
  */
 export function initPosSyncListeners() {
   if (typeof window === 'undefined') return () => {};
 
   const handleOnline = () => {
+    // Daftarkan Service Worker background sync jika didukung
+    registerBackgroundSync();
+    // Jalankan sync langsung via foreground
     syncOfflineData();
   };
 
@@ -197,8 +233,9 @@ export function initPosSyncListeners() {
     }, 30000);
   }
 
-  // Jalankan sync perdana jika online & ada antrean
+  // Jalankan sync perdana jika online & daftarkan tag background sync
   if (navigator.onLine) {
+    registerBackgroundSync();
     syncOfflineData();
   }
 

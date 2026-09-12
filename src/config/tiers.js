@@ -75,6 +75,9 @@ export const TIER_CONFIG = {
       kur_bank_dossier_generator: false,
       qr_verification_seal: false,
       consolidated_multi_branch_reports: false,
+      lockscreen_push_alerts: false,
+      remote_kill_switch: false,
+      background_sync_engine: true,
     },
   },
   SUPERVISOR: {
@@ -137,6 +140,9 @@ export const TIER_CONFIG = {
       kur_bank_dossier_generator: false,
       qr_verification_seal: false,
       consolidated_multi_branch_reports: false,
+      lockscreen_push_alerts: true,
+      remote_kill_switch: false,
+      background_sync_engine: true,
     },
   },
   MANAJER: {
@@ -199,6 +205,9 @@ export const TIER_CONFIG = {
       kur_bank_dossier_generator: true,
       qr_verification_seal: true,
       consolidated_multi_branch_reports: false,
+      lockscreen_push_alerts: true,
+      remote_kill_switch: true,
+      background_sync_engine: true,
     },
   },
   EKSEKUTIF: {
@@ -261,6 +270,9 @@ export const TIER_CONFIG = {
       kur_bank_dossier_generator: true,
       qr_verification_seal: true,
       consolidated_multi_branch_reports: true,
+      lockscreen_push_alerts: true,
+      remote_kill_switch: true,
+      background_sync_engine: true,
     },
   },
 };

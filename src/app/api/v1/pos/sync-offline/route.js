@@ -180,6 +180,9 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
             omzet_total,
             laba_total,
             amount_owed,
+            client_tx_uuid: deduplicationKey,
+            synced_via: 'MANUAL_OFFLINE_SYNC',
+            offline_created_at: historicCreatedAt,
             created_by: user.id,
             created_at: historicCreatedAt,
           })

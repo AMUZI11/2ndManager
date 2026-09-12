@@ -139,36 +139,36 @@ export default function FreezeRegisterOverlay({
     <div
       id="hl-freeze-register-overlay-container"
       ref={containerRef}
-      className="fixed inset-0 z-[99999] bg-[#0B0F17] flex items-center justify-center p-4 font-sans select-none"
+      className="fixed inset-0 z-[99999] bg-[#050505] flex items-center justify-center p-4 font-mono select-none"
       role="dialog"
       aria-modal="true"
     >
       {/* Background Strobe Accent */}
-      <div className="absolute inset-0 bg-red-950/20 pointer-events-none" />
+      <div className="absolute inset-0 bg-red-950/30 animate-pulse pointer-events-none" />
 
-      <div className="relative w-full max-w-lg bg-[#0F172A] border-4 border-red-600 rounded-3xl p-6 md:p-8 shadow-[12px_12px_0px_#991B1B] text-center space-y-6">
+      <div className="relative w-full max-w-xl bg-[#090D16] border-4 border-red-600 rounded-3xl p-6 md:p-8 shadow-[12px_12px_0px_#991B1B] text-center space-y-6">
         {/* Top Warning Strip */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-600/20 border border-red-500 rounded-full text-red-400 text-xs font-mono font-bold tracking-widest uppercase">
-          <Radio size={14} className="animate-pulse" strokeWidth={2.5} />
-          <span>TERMINAL DIBEKUKAN</span>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-600/25 border-2 border-red-500 rounded-full text-red-400 text-xs font-mono font-black tracking-widest uppercase animate-pulse">
+          <Radio size={16} className="animate-spin" strokeWidth={2.5} />
+          <span>[ 🚨 PERINGATAN SISTEM: TERMINAL INI DIBEKUKAN ]</span>
         </div>
 
         {/* Big Icon */}
-        <div className="w-20 h-20 bg-red-600/10 border-2 border-red-500 rounded-2xl flex items-center justify-center mx-auto text-red-500 shadow-[4px_4px_0px_#7F1D1D]">
+        <div className="w-20 h-20 bg-red-600/20 border-2 border-red-500 rounded-2xl flex items-center justify-center mx-auto text-red-500 shadow-[4px_4px_0px_#7F1D1D] animate-bounce">
           <ShieldAlert size={44} strokeWidth={2.5} />
         </div>
 
-        {/* Titles */}
-        <div className="space-y-2">
-          <h2 className="font-heading font-black text-2xl md:text-3xl text-white tracking-tight uppercase">
-            Sistem Kasir Terkunci
-          </h2>
-          <p className="text-sm text-red-200/80 font-mono">
-            Terminal <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded">{registerCode}</span> dinonaktifkan sementara demi keamanan transaksi.
-          </p>
-          <div className="p-3 bg-red-950/40 border border-red-800/60 rounded-xl text-xs text-red-300 font-mono text-left">
-            <span className="font-bold text-red-400 block mb-0.5">Alasan Pembekuan:</span>
-            {freezeReason || 'Kunci keamanan diaktifkan oleh pemilik warung.'}
+        {/* Brutalist Warning Message Block */}
+        <div className="space-y-3 text-left bg-black/80 p-4 rounded-2xl border-2 border-red-700/80 font-mono text-xs">
+          <div className="text-red-500 font-black tracking-wider text-sm border-b border-red-900 pb-2 flex items-center justify-between">
+            <span>TERMINAL: {registerCode}</span>
+            <span className="text-[10px] text-red-400 font-normal">KUNCI JARAK JAUH</span>
+          </div>
+          <div className="space-y-1 text-slate-300">
+            <p className="font-bold text-red-400">DIBEKUKAN DARI JARAK JAUH OLEH PEMILIK USAHA.</p>
+            <p><span className="text-slate-400 font-bold">ALASAN:</span> <span className="text-white">{freezeReason || 'ANOMALI INTEGRITAS TRANSAKSI TERDETEKSI.'}</span></p>
+            <p><span className="text-slate-400 font-bold">WAKTU:</span> <span className="text-amber-400">{new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' })} WIB</span></p>
+            <p className="text-[#CCFF00] font-bold pt-1">HUBUNGI PEMILIK TOKO UNTUK MEMBUKA KEMBALI KASIR.</p>
           </div>
         </div>
 

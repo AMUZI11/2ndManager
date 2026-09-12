@@ -481,6 +481,25 @@ export default function PosPage() {
 
     const channel = supabase
       .channel(`security_radar:${activeShopId}`)
+      .on('broadcast', { event: 'REMOTE_FREEZE_TRIGGERED' }, (payload) => {
+        const item = payload?.payload || payload;
+        setIsRegisterFrozen(true);
+        setFreezeReason(item?.reason || 'Kunci darurat jarak jauh diaktifkan oleh pemilik usaha.');
+        // Tutup seluruh modal kasir seketika
+        setIsReceiptModalOpen(false);
+        setIsSmartChangeOpen(false);
+        setIsNegativeMarginModalOpen(false);
+        setIsAssetLoanModalOpen(false);
+        setIsCashDrawerModalOpen(false);
+        setIsStartShiftOpen(false);
+        setIsCloseShiftOpen(false);
+        setIsPrinterSettingsOpen(false);
+        setIsBranchSetupOpen(false);
+        // Putuskan keranjang transaksi
+        setCartItems([]);
+        setSelectedCartIndex(-1);
+        setCashTendered('');
+      })
       .on('broadcast', { event: 'FREEZE_REGISTER' }, (payload) => {
         const item = payload?.payload || payload;
         const targetReg = (item?.register_code || 'REGISTER_MAIN').toUpperCase();
@@ -489,6 +508,17 @@ export default function PosPage() {
         if (targetReg === myReg || targetReg === 'ALL') {
           setIsRegisterFrozen(true);
           setFreezeReason(item?.reason || 'Kunci keamanan darurat oleh pemilik warung');
+          // Tutup seluruh modal kasir
+          setIsReceiptModalOpen(false);
+          setIsSmartChangeOpen(false);
+          setIsNegativeMarginModalOpen(false);
+          setIsAssetLoanModalOpen(false);
+          setIsCashDrawerModalOpen(false);
+          setIsStartShiftOpen(false);
+          setIsCloseShiftOpen(false);
+          setIsPrinterSettingsOpen(false);
+          setIsBranchSetupOpen(false);
+          // Putuskan keranjang
           setCartItems([]);
           setSelectedCartIndex(-1);
           setCashTendered('');
@@ -1466,32 +1496,32 @@ export default function PosPage() {
         <div className="flex flex-wrap items-center justify-end gap-2 md:gap-3">
           {/* Network & Background Sync Status Badge */}
           <div className="flex items-center gap-1.5">
-            <div className={`flex items-center gap-1.5 text-xs font-mono font-bold px-3 py-1.5 rounded-xl border-2 transition-all ${
+            <div className={`flex items-center gap-1.5 text-xs font-mono font-black px-3 py-1.5 rounded-xl border-2 transition-all ${
               isSyncing
-                ? 'bg-amber-50 text-amber-900 border-amber-500 shadow-[2px_2px_0px_#D97706]'
+                ? 'bg-cyan-950 text-cyan-300 border-cyan-500 shadow-[2px_2px_0px_#0891B2]'
                 : !isOnline || pendingSyncCount > 0
-                ? 'bg-amber-100 text-amber-950 border-amber-600 shadow-[2px_2px_0px_#D97706]'
-                : 'bg-emerald-50 text-emerald-900 border-emerald-500 shadow-[2px_2px_0px_#059669]'
+                ? 'bg-[#0B0F17] text-amber-300 border-amber-500 shadow-[2px_2px_0px_#F59E0B]'
+                : 'bg-slate-900 text-[#CCFF00] border-slate-800 shadow-[2px_2px_0px_#1E293B]'
             }`}>
               {isSyncing ? (
                 <>
-                  <RefreshCw size={14} className="animate-spin text-amber-700" />
-                  <span>Sinkronisasi {pendingSyncCount} Bon...</span>
+                  <RefreshCw size={14} className="animate-spin text-cyan-400 shrink-0" strokeWidth={2.5} />
+                  <span>[ 🔄 AUTO-SYNCING VIA BACKGROUND SERVICE... ]</span>
                 </>
               ) : !isOnline ? (
                 <>
-                  <WifiOff size={14} className="text-amber-800" />
-                  <span>Offline ({pendingSyncCount} Bon Tersimpan)</span>
+                  <WifiOff size={14} className="text-amber-400 shrink-0" strokeWidth={2.5} />
+                  <span>[ 🟡 OFFLINE - {pendingSyncCount} TX TERSIMPAN DI KANTUNG ]</span>
                 </>
               ) : pendingSyncCount > 0 ? (
                 <>
-                  <RefreshCw size={14} className="text-amber-800" />
-                  <span>{pendingSyncCount} Bon Belum Tersinkron</span>
+                  <RefreshCw size={14} className="text-amber-400 animate-pulse shrink-0" strokeWidth={2.5} />
+                  <span>[ 🟡 OFFLINE - {pendingSyncCount} TX TERSIMPAN DI KANTUNG ]</span>
                 </>
               ) : (
                 <>
-                  <Wifi size={14} className="text-emerald-700" />
-                  <span className="hidden md:inline">Online Cloud</span>
+                  <Wifi size={14} className="text-[#CCFF00] shrink-0" strokeWidth={2.5} />
+                  <span>[ 🟢 ONLINE - SYNC READY ]</span>
                 </>
               )}
             </div>

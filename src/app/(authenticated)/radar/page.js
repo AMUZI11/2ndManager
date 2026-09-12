@@ -19,10 +19,12 @@ import {
   Flame,
   Info,
   CheckCircle2,
+  BellRing,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { api } from '@/utils/api';
 import { playSecuritySiren, stopSecuritySiren, isSirenMuted, setSirenMuted } from '@/utils/sirenAudio';
+import { checkPushSubscriptionStatus, subscribeUserToPush } from '@/utils/webPushManager';
 
 const SEVERITY_STYLES = {
   CRITICAL: 'bg-red-500/20 border-red-500 text-red-400',
@@ -52,9 +54,18 @@ export default function SecurityRadarPage() {
   const [expandedAnomalyId, setExpandedAnomalyId] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('CONNECTING');
   const [now, setNow] = useState(0);
+  const [pushSubscribed, setPushSubscribed] = useState(true);
+  const [subscribingPush, setSubscribingPush] = useState(false);
 
   const supabase = createClient();
   const audioUnlockedRef = useRef(false);
+
+  // Periksa status pendaftaran Web Push browser
+  useEffect(() => {
+    checkPushSubscriptionStatus().then((status) => {
+      setPushSubscribed(status.isSubscribed);
+    });
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -94,6 +105,27 @@ export default function SecurityRadarPage() {
       playSecuritySiren({ cycles: 1, volume: 0.15 });
     } else {
       stopSecuritySiren();
+    }
+  };
+
+  // Aktivasi Web Push Notification Layar Kunci (Tahap 9)
+  const handleActivatePush = async () => {
+    if (!shopId) return;
+    setSubscribingPush(true);
+    try {
+      const res = await subscribeUserToPush(shopId, 'Owner Mobile Terminal');
+      if (res.success) {
+        setPushSubscribed(true);
+        // Mainkan nada konfirmasi arcade
+        playSecuritySiren({ cycles: 1, volume: 0.15 });
+        alert('✅ Notifikasi Push Radar berhasil dihubungkan ke layar kunci HP!');
+      } else {
+        alert(res.error || 'Gagal mengaktifkan notifikasi push.');
+      }
+    } catch (err) {
+      alert(err.message || 'Terjadi kesalahan saat mengaktifkan push.');
+    } finally {
+      setSubscribingPush(false);
     }
   };
 
@@ -252,6 +284,31 @@ export default function SecurityRadarPage() {
           </button>
         </div>
       </div>
+
+      {/* ── BANNER NOTIFIKASI DARURAT RADAR ARCADE BRUTALIST (TAHAP 9) ── */}
+      {!pushSubscribed && (
+        <div className="bg-[#0B0F17] border-[3px] border-[#F59E0B] rounded-2xl p-4 md:p-5 shadow-[6px_6px_0px_#78350F] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-[#CCFF00] font-black text-xs md:text-sm tracking-wide">
+              <AlertTriangle size={18} className="text-[#F59E0B] animate-bounce shrink-0" strokeWidth={2.5} />
+              <span>⚠️ RADAR KEAMANAN BELUM TERHUBUNG KE HP PEMILIK TOKO!</span>
+            </div>
+            <p className="text-xs text-slate-300 font-mono leading-relaxed">
+              Aktifkan notifikasi push agar sirine pencurian tetap berbunyi saat layar HP mati dan Anda dapat membekukan terminal kasir seketika langsung dari layar kunci ponsel (Lockscreen Remote Kill-Switch).
+            </p>
+          </div>
+
+          <button
+            type="button"
+            disabled={subscribingPush}
+            onClick={handleActivatePush}
+            className="shrink-0 h-11 px-5 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl border-2 border-[#B45309] shadow-[3px_3px_0px_#451A03] active:translate-y-0.5 active:shadow-none flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <BellRing size={16} className={subscribingPush ? 'animate-spin' : 'animate-pulse'} strokeWidth={2.5} />
+            <span>{subscribingPush ? 'MENGHUBUNGKAN...' : '[ 🔔 AKTIFKAN SIRINE RADAR DI LAYAR KUNCI HP ]'}</span>
+          </button>
+        </div>
+      )}
 
       {/* ── GRID TERMINAL REGISTER AKTIF ────────────────────────────── */}
       <div className="space-y-3">
