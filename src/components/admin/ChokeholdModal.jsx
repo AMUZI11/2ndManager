@@ -51,34 +51,34 @@ export default function ChokeholdModal({ isOpen, onClose, shop, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in font-sans">
-      <div className="w-full max-w-lg bg-zinc-950 border-2 border-zinc-700 shadow-[0_25px_50px_rgba(0,0,0,0.9)] rounded-xl overflow-hidden animate-scale-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in font-sans">
+      <div className="w-full max-w-lg bg-white border-2 border-slate-800 shadow-[6px_6px_0_#1E293B] rounded-2xl overflow-hidden animate-scale-up">
         {/* Header */}
-        <div className={`p-4 border-b border-zinc-800 flex items-center justify-between ${
-          isChokehold ? 'bg-red-950/40' : isRelease ? 'bg-emerald-950/40' : 'bg-amber-950/40'
+        <div className={`p-4 border-b-2 border-slate-800 flex items-center justify-between ${
+          isChokehold ? 'bg-rose-50' : isRelease ? 'bg-emerald-50' : 'bg-amber-50'
         }`}>
           <div className="flex items-center space-x-3">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center border font-bold ${
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border-2 border-slate-800 font-bold ${
               isChokehold 
-                ? 'bg-[#E30022] text-white border-red-500' 
+                ? 'bg-[#E30022] text-white shadow-[2px_2px_0_#1E293B]' 
                 : isRelease
-                ? 'bg-emerald-500 text-black border-emerald-400'
-                : 'bg-amber-500 text-black border-amber-400'
+                ? 'bg-emerald-400 text-slate-900 shadow-[2px_2px_0_#1E293B]'
+                : 'bg-amber-400 text-slate-900 shadow-[2px_2px_0_#1E293B]'
             }`}>
               {isChokehold ? <ShieldAlert size={18} /> : isRelease ? <Check size={18} /> : <Clock size={18} />}
             </div>
             <div>
-              <h3 className="font-heading font-black text-sm text-zinc-100 uppercase tracking-tight">
+              <h3 className="font-heading font-black text-sm text-slate-900 uppercase tracking-tight">
                 Penegakan Tagihan &amp; Chokehold
               </h3>
-              <p className="text-[11px] font-mono text-zinc-400">
-                Toko: <span className="text-zinc-200 font-bold">{shop.name}</span> (#{shop.id.slice(0, 8)})
+              <p className="text-[11px] font-mono text-slate-600">
+                Toko: <span className="text-slate-900 font-bold">{shop.name}</span> (#{shop.id.slice(0, 8)})
               </p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 rounded text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 flex items-center justify-center"
+            className="w-8 h-8 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-200 border border-transparent hover:border-slate-300 flex items-center justify-center transition-colors"
           >
             <X size={16} />
           </button>
@@ -87,62 +87,62 @@ export default function ChokeholdModal({ isOpen, onClose, shop, onSuccess }) {
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {error && (
-            <div className="p-3 bg-red-950/60 border border-red-800 text-red-300 text-xs font-mono rounded">
+            <div className="p-3 bg-rose-50 border-2 border-rose-400 text-rose-800 text-xs font-mono rounded-xl">
               {error}
             </div>
           )}
 
           {/* Action Type Selection */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold">
+            <label className="text-[11px] font-mono uppercase tracking-wider text-slate-700 font-bold">
               Pilihan Tindakan Operasional
             </label>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setAction('DISPENSASI')}
-                className={`p-2.5 rounded border text-xs font-bold transition-all text-left flex flex-col justify-between h-18 ${
+                className={`p-2.5 rounded-xl border-2 text-xs font-bold transition-all text-left flex flex-col justify-between h-20 cursor-pointer shadow-[2px_2px_0_#1E293B] ${
                   action === 'DISPENSASI'
-                    ? 'bg-amber-950/40 border-amber-500 text-amber-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    ? 'bg-amber-100 border-amber-600 text-amber-950'
+                    : 'bg-white border-slate-800 text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                <span className="font-mono text-[10px] text-amber-500 font-extrabold">[ DISPENSASI ]</span>
-                <span className="text-[11px]">Beri Masa Tenggang</span>
+                <span className="font-mono text-[10px] text-amber-700 font-extrabold">[ DISPENSASI ]</span>
+                <span className="text-[11px] leading-tight">Beri Masa Tenggang</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setAction('CHOKEHOLD')}
-                className={`p-2.5 rounded border text-xs font-bold transition-all text-left flex flex-col justify-between h-18 ${
+                className={`p-2.5 rounded-xl border-2 text-xs font-bold transition-all text-left flex flex-col justify-between h-20 cursor-pointer shadow-[2px_2px_0_#1E293B] ${
                   action === 'CHOKEHOLD'
-                    ? 'bg-red-950/60 border-[#E30022] text-red-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    ? 'bg-rose-100 border-[#E30022] text-rose-950'
+                    : 'bg-white border-slate-800 text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <span className="font-mono text-[10px] text-[#E30022] font-extrabold">[ KUNCI AKSES ]</span>
-                <span className="text-[11px]">Enforce Chokehold</span>
+                <span className="text-[11px] leading-tight">Enforce Chokehold</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setAction('RELEASE')}
-                className={`p-2.5 rounded border text-xs font-bold transition-all text-left flex flex-col justify-between h-18 ${
+                className={`p-2.5 rounded-xl border-2 text-xs font-bold transition-all text-left flex flex-col justify-between h-20 cursor-pointer shadow-[2px_2px_0_#1E293B] ${
                   action === 'RELEASE'
-                    ? 'bg-emerald-950/40 border-emerald-500 text-emerald-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    ? 'bg-emerald-100 border-emerald-600 text-emerald-950'
+                    : 'bg-white border-slate-800 text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                <span className="font-mono text-[10px] text-emerald-500 font-extrabold">[ PULIHKAN ]</span>
-                <span className="text-[11px]">Buka Kunci Normal</span>
+                <span className="font-mono text-[10px] text-emerald-700 font-extrabold">[ PULIHKAN ]</span>
+                <span className="text-[11px] leading-tight">Buka Kunci Normal</span>
               </button>
             </div>
           </div>
 
           {/* Conditional: Days selection for Dispensasi */}
           {action === 'DISPENSASI' && (
-            <div className="space-y-1.5 bg-zinc-900/50 p-3 rounded border border-zinc-800">
-              <label className="text-xs text-zinc-300 font-semibold block">
+            <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border-2 border-slate-800 shadow-[2px_2px_0_#1E293B]">
+              <label className="text-xs text-slate-800 font-bold block">
                 Durasi Tambahan Masa Tenggang (Grace Period):
               </label>
               <div className="flex items-center space-x-2">
@@ -151,10 +151,10 @@ export default function ChokeholdModal({ isOpen, onClose, shop, onSuccess }) {
                     key={d}
                     type="button"
                     onClick={() => setDays(d)}
-                    className={`px-3 py-1.5 rounded text-xs font-mono font-bold border transition-colors ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold border-2 transition-all cursor-pointer ${
                       days === d
-                        ? 'bg-amber-500 text-black border-amber-400'
-                        : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:text-zinc-200'
+                        ? 'bg-amber-400 text-slate-900 border-slate-800 shadow-[2px_2px_0_#1E293B]'
+                        : 'bg-white text-slate-700 border-slate-400 hover:border-slate-800'
                     }`}
                   >
                     +{d} Hari
@@ -166,24 +166,24 @@ export default function ChokeholdModal({ isOpen, onClose, shop, onSuccess }) {
 
           {/* Reason Field */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold flex justify-between">
+            <label className="text-[11px] font-mono uppercase tracking-wider text-slate-700 font-bold flex justify-between">
               <span>Justifikasi / Alasan (Wajib diisi)</span>
-              <span className="text-zinc-500 font-normal">{reason.trim().length}/10 min</span>
+              <span className="text-slate-500 font-normal">{reason.trim().length}/10 min</span>
             </label>
             <textarea
               rows={3}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Tulis alasan tindakan operasional ini (tercatat di immutable audit ledger)..."
-              className="w-full bg-zinc-900 border border-zinc-700 rounded p-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-400 font-sans resize-none"
+              className="w-full bg-white border-2 border-slate-800 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#CCFF00] font-sans resize-none shadow-[1px_1px_0_#1E293B]"
             />
           </div>
 
           {/* Safety Guard for Chokehold */}
           {isChokehold && (
-            <div className="space-y-2 bg-red-950/30 border border-red-900/60 p-3 rounded">
-              <p className="text-xs text-red-300 font-mono flex items-center gap-1.5">
-                <AlertTriangle size={14} className="text-red-400 shrink-0" />
+            <div className="space-y-2 bg-rose-50 border-2 border-rose-400 p-3 rounded-xl shadow-[2px_2px_0_#1E293B]">
+              <p className="text-xs text-rose-900 font-mono flex items-center gap-1.5">
+                <AlertTriangle size={14} className="text-rose-600 shrink-0" />
                 <span>Ketik <strong>KONFIRMASI</strong> untuk mengunci akses kasir secara instan:</span>
               </p>
               <input
@@ -191,31 +191,31 @@ export default function ChokeholdModal({ isOpen, onClose, shop, onSuccess }) {
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
                 placeholder="Ketik KONFIRMASI"
-                className="w-full bg-zinc-950 border border-red-800 rounded px-3 py-1.5 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-red-500 uppercase"
+                className="w-full bg-white border-2 border-rose-500 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500 uppercase"
               />
             </div>
           )}
 
           {/* Buttons */}
-          <div className="flex items-center justify-end space-x-3 pt-2 border-t border-zinc-800">
+          <div className="flex items-center justify-end space-x-3 pt-2 border-t-2 border-slate-200">
             <button
               type="button"
               onClick={onClose}
-              className="h-8 px-3 rounded border border-zinc-700 text-zinc-300 text-xs hover:bg-zinc-900 cursor-pointer"
+              className="h-9 px-4 rounded-xl border-2 border-slate-800 text-slate-700 bg-white hover:bg-slate-100 font-mono font-bold text-xs cursor-pointer shadow-[2px_2px_0_#1E293B] transition-all"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={!isFormValid || loading}
-              className={`h-8 px-4 rounded text-xs font-extrabold flex items-center space-x-1.5 transition-all cursor-pointer ${
+              className={`h-9 px-5 rounded-xl text-xs font-mono font-black flex items-center space-x-1.5 transition-all cursor-pointer border-2 border-slate-800 shadow-[3px_3px_0_#1E293B] ${
                 !isFormValid || loading
-                  ? 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed'
+                  ? 'bg-slate-200 text-slate-400 border-slate-400 shadow-none cursor-not-allowed'
                   : isChokehold
-                  ? 'bg-[#E30022] hover:bg-red-600 text-white border border-red-400 shadow-[0_0_12px_rgba(227,0,34,0.4)]'
+                  ? 'bg-[#E30022] hover:bg-rose-700 text-white'
                   : isRelease
-                  ? 'bg-emerald-500 hover:bg-emerald-400 text-black border border-emerald-400'
-                  : 'bg-amber-500 hover:bg-amber-400 text-black border border-amber-400'
+                  ? 'bg-emerald-400 hover:bg-emerald-300 text-slate-900'
+                  : 'bg-[#CCFF00] hover:bg-[#b8e600] text-slate-900'
               }`}
             >
               <span>{loading ? 'Memproses...' : isChokehold ? 'KUNCI SEKARANG' : isRelease ? 'PULIHKAN AKSES' : 'TERAPKAN DISPENSASI'}</span>

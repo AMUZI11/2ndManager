@@ -223,29 +223,11 @@ export async function proxy(request) {
     return response;
   }
 
-  // 308 Permanent Redirects for consolidated Mission Control architecture
-  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/admin';
-    return NextResponse.redirect(url, 308);
-  }
-
+  // Owner route alias: automatically redirect /owner to /dashboard
   if (pathname === '/owner' || pathname.startsWith('/owner/')) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/admin';
-    return NextResponse.redirect(url, 308);
-  }
-
-  if (pathname === '/products') {
-    const url = request.nextUrl.clone();
-    url.pathname = '/admin/inventory';
-    return NextResponse.redirect(url, 308);
-  }
-
-  if (pathname === '/transactions') {
-    const url = request.nextUrl.clone();
-    url.pathname = '/admin/transactions';
-    return NextResponse.redirect(url, 308);
+    const dashboardUrl = request.nextUrl.clone();
+    dashboardUrl.pathname = '/dashboard';
+    return NextResponse.redirect(dashboardUrl);
   }
 
   // User Side Protected Routes: Check for Supabase auth cookie

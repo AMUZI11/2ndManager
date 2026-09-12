@@ -31,94 +31,97 @@ export default function AuditLogsPage() {
   }, [actionFilter, page]);
 
   return (
-    <div className="space-y-6 font-sans max-w-7xl mx-auto">
+    <div className="space-y-6 font-sans max-w-7xl mx-auto pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-4">
+      <div className="bg-white/90 backdrop-blur-md border-2 border-slate-800 rounded-2xl p-5 shadow-[3px_3px_0_#1E293B] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <FileLock2 size={20} className="text-[#CCFF00]" />
-            <h2 className="font-heading font-black text-xl text-zinc-100 uppercase tracking-tight">
+            <span className="w-2.5 h-2.5 bg-[#CCFF00] inline-block rounded-full border border-slate-800" />
+            <h2 className="font-heading font-black text-xl text-slate-900 uppercase tracking-tight">
               Immutable Audit Trail Ledger
             </h2>
           </div>
-          <p className="text-xs text-zinc-400 font-mono mt-0.5">
+          <p className="text-xs text-slate-500 font-mono mt-0.5">
             Buku besar permanen tanpa izin ubah/hapus (Append-Only PostgreSQL Policy)
           </p>
         </div>
 
         <div className="flex items-center space-x-2.5">
-          <div className="flex items-center bg-zinc-900 border border-zinc-700 rounded h-8 px-2 text-xs text-zinc-400">
-            <Filter size={12} className="mr-1.5 text-zinc-500" />
+          <div className="flex items-center bg-white border-2 border-slate-800 rounded-xl px-2.5 py-1 text-xs text-slate-700 shadow-[1px_1px_0_#1E293B]">
+            <Filter size={13} className="mr-1.5 text-slate-500" />
             <select
               value={actionFilter}
               onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
-              className="bg-transparent text-xs text-zinc-300 focus:outline-none font-mono cursor-pointer"
+              className="bg-transparent text-xs text-slate-900 font-bold focus:outline-none font-mono cursor-pointer uppercase"
             >
-              <option value="ALL" className="bg-zinc-900">SEMUA TINDAKAN</option>
-              <option value="CHOKEHOLD_ENFORCE" className="bg-zinc-900">CHOKEHOLD ENFORCE</option>
-              <option value="CHOKEHOLD_RELEASE" className="bg-zinc-900">CHOKEHOLD RELEASE</option>
-              <option value="SUPPORT_TICKET_RESOLVED" className="bg-zinc-900">TICKET RESOLVED</option>
-              <option value="CATEGORY_TEMPLATES_SEEDED" className="bg-zinc-900">SEED CATEGORIES</option>
+              <option value="ALL">SEMUA TINDAKAN</option>
+              <option value="CHOKEHOLD_ENFORCE">CHOKEHOLD ENFORCE</option>
+              <option value="CHOKEHOLD_RELEASE">CHOKEHOLD RELEASE</option>
+              <option value="SUPPORT_TICKET_RESOLVED">TICKET RESOLVED</option>
+              <option value="CATEGORY_TEMPLATES_SEEDED">SEED CATEGORIES</option>
             </select>
           </div>
 
           <button
             onClick={fetchLogs}
-            className="h-8 w-8 rounded bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-zinc-100 flex items-center justify-center cursor-pointer"
+            className="h-9 w-9 rounded-xl bg-white border-2 border-slate-800 text-slate-800 hover:bg-slate-100 flex items-center justify-center cursor-pointer shadow-[2px_2px_0_#1E293B] transition-all"
+            title="Refresh Ledger"
           >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
       {/* Ledger Table */}
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg overflow-hidden shadow-2xl">
+      <div className="bg-white/90 backdrop-blur-md rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0_#1E293B] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse font-sans">
             <thead>
-              <tr className="border-b border-zinc-800 bg-zinc-950/80 text-[10px] font-mono uppercase tracking-wider text-zinc-400">
-                <th className="py-2.5 px-3">WAKTU (WIB)</th>
-                <th className="py-2.5 px-3">AKTOR ADMIN</th>
-                <th className="py-2.5 px-3">JENIS TINDAKAN</th>
-                <th className="py-2.5 px-3">TARGET TOKO</th>
-                <th className="py-2.5 px-3">JUSTIFIKASI / ALASAN</th>
-                <th className="py-2.5 px-3 text-right">INTEGRITAS</th>
+              <tr className="border-b-2 border-slate-800 bg-slate-100/90 text-[10px] font-mono uppercase tracking-wider text-slate-700 font-black">
+                <th className="py-3 px-3.5">WAKTU (WIB)</th>
+                <th className="py-3 px-3.5">AKTOR ADMIN</th>
+                <th className="py-3 px-3.5">JENIS TINDAKAN</th>
+                <th className="py-3 px-3.5">TARGET TOKO</th>
+                <th className="py-3 px-3.5">JUSTIFIKASI / ALASAN</th>
+                <th className="py-3 px-3.5 text-right">INTEGRITAS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60 text-xs">
+            <tbody className="divide-y divide-slate-200 text-xs font-sans">
               {loading && logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-zinc-500 font-mono text-xs">
+                  <td colSpan={6} className="py-12 text-center text-slate-500 font-mono text-xs">
                     Memuat buku besar audit...
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-zinc-500 font-mono text-xs">
+                  <td colSpan={6} className="py-12 text-center text-slate-500 font-mono text-xs">
                     Belum ada riwayat audit yang cocok.
                   </td>
                 </tr>
               ) : (
                 logs.map((item) => (
-                  <tr key={item.id} className="hover:bg-zinc-850/60 transition-colors h-10">
-                    <td className="py-2 px-3 font-mono text-zinc-400 text-[11px] whitespace-nowrap">
+                  <tr key={item.id} className="hover:bg-amber-50/40 transition-colors h-11">
+                    <td className="py-2.5 px-3.5 font-mono text-slate-600 text-[11px] whitespace-nowrap">
                       {new Date(item.created_at).toLocaleString('id-ID')}
                     </td>
-                    <td className="py-2 px-3 font-mono text-zinc-300 text-[11px] truncate max-w-[160px]">
+                    <td className="py-2.5 px-3.5 font-mono text-slate-900 text-[11px] truncate max-w-[160px] font-bold">
                       {item.admin_email}
                     </td>
-                    <td className="py-2 px-3 font-mono text-[#CCFF00] font-bold text-[11px]">
-                      {item.action_type}
+                    <td className="py-2.5 px-3.5 font-mono text-slate-900 font-black text-[11px]">
+                      <span className="bg-[#CCFF00] text-slate-900 border border-slate-800 px-1.5 py-0.5 rounded text-[10px]">
+                        {item.action_type}
+                      </span>
                     </td>
-                    <td className="py-2 px-3 text-zinc-300 truncate max-w-[150px]">
+                    <td className="py-2.5 px-3.5 text-slate-800 font-medium truncate max-w-[150px]">
                       {item.shops?.name || (item.target_shop_id ? `#${item.target_shop_id.slice(0, 8)}` : 'Sistem')}
                     </td>
-                    <td className="py-2 px-3 text-zinc-400 text-xs truncate max-w-[280px]">
+                    <td className="py-2.5 px-3.5 text-slate-600 text-xs truncate max-w-[280px]">
                       {item.reason}
                     </td>
-                    <td className="py-2 px-3 text-right font-mono text-[10px] text-emerald-400 font-bold whitespace-nowrap">
-                      <span className="inline-flex items-center space-x-1 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded">
-                        <ShieldCheck size={11} />
+                    <td className="py-2.5 px-3.5 text-right font-mono text-[10px] text-emerald-800 font-bold whitespace-nowrap">
+                      <span className="inline-flex items-center space-x-1 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-lg">
+                        <ShieldCheck size={12} className="text-emerald-700" />
                         <span>IMMUTABLE</span>
                       </span>
                     </td>
@@ -130,20 +133,20 @@ export default function AuditLogsPage() {
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-3 border-t border-zinc-800 bg-zinc-950/60 flex items-center justify-between text-xs font-mono text-zinc-400">
+        <div className="p-3.5 border-t-2 border-slate-800 bg-slate-50 flex items-center justify-between text-xs font-mono text-slate-700">
           <span>Halaman {page} dari {totalPages}</span>
           <div className="flex items-center space-x-2">
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="h-7 px-2.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 disabled:opacity-40 hover:bg-zinc-800 flex items-center"
+              className="h-8 px-3 rounded-xl bg-white border-2 border-slate-800 text-slate-800 disabled:opacity-40 hover:bg-slate-100 flex items-center shadow-[1px_1px_0_#1E293B] cursor-pointer"
             >
               <ChevronLeft size={14} />
             </button>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="h-7 px-2.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 disabled:opacity-40 hover:bg-zinc-800 flex items-center"
+              className="h-8 px-3 rounded-xl bg-white border-2 border-slate-800 text-slate-800 disabled:opacity-40 hover:bg-slate-100 flex items-center shadow-[1px_1px_0_#1E293B] cursor-pointer"
             >
               <ChevronRight size={14} />
             </button>

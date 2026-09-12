@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -19,7 +19,6 @@ import {
   ShieldAlert,
   Settings,
   HelpCircle,
-  ShieldCheck,
   AlertTriangle,
   Ticket,
   FileCheck,
@@ -31,8 +30,8 @@ import {
   Menu,
   X,
   ChevronDown,
-  ExternalLink,
-  RefreshCw,
+  ArrowLeft,
+  Home,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -60,7 +59,6 @@ export default function AdminMissionControlLayout({ children }) {
   });
   const [anomalyCount, setAnomalyCount] = useState(0);
 
-  // Check auth & role
   useEffect(() => {
     let isMounted = true;
 
@@ -105,7 +103,7 @@ export default function AdminMissionControlLayout({ children }) {
         setProfile(prof);
         setIsSuperadmin(isSuper);
 
-        // Fetch owned shops / branches
+        // Fetch owned shops
         let shopQuery = supabase
           .from('shops')
           .select('id, name, subscription_tier, operational_status, parent_shop_id')
@@ -128,7 +126,6 @@ export default function AdminMissionControlLayout({ children }) {
           });
         }
 
-        // Quick unread anomaly count
         try {
           const { count } = await supabase
             .from('security_anomaly_events')
@@ -177,19 +174,27 @@ export default function AdminMissionControlLayout({ children }) {
 
   if (loading || !session) {
     return (
-      <div className="min-h-screen bg-[#080C14] text-white flex flex-col items-center justify-center font-mono select-none">
-        <div className="w-12 h-12 border-4 border-[#1E293B] border-t-[#CCFF00] animate-spin mb-4" />
-        <span className="text-xs tracking-widest text-slate-400 font-bold uppercase">
-          [ OTORISASI MISSION CONTROL ADMIN... ]
-        </span>
+      <div className="min-h-screen bg-[#F8F9FA] text-slate-900 flex flex-col items-center justify-center font-sans relative">
+        <div aria-hidden="true" className="fixed inset-0 z-0 pointer-events-none overflow-hidden select-none">
+          <div className="absolute -top-32 -left-32 w-[550px] h-[550px] bg-amber-200/25 rounded-full blur-[130px]" />
+          <div className="absolute top-1/4 -right-32 w-[600px] h-[600px] bg-purple-200/25 rounded-full blur-[140px]" />
+          <div className="absolute -bottom-32 left-1/3 w-[550px] h-[550px] bg-orange-100/30 rounded-full blur-[120px]" />
+        </div>
+        <div className="relative z-10 flex flex-col items-center space-y-3">
+          <div className="w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-xs font-bold text-slate-700 uppercase tracking-wider">
+            [ MEMVALIDASI SESI MISSION CONTROL... ]
+          </span>
+        </div>
       </div>
     );
   }
 
-  // Pillar 1: Ringkasan & POS
+  // Pillar 1: Ringkasan & Navigasi Web
   const pillar1Items = [
     { href: '/admin', label: 'Ringkasan Eksekutif', icon: LayoutDashboard, exact: true },
-    { href: '/pos', label: 'Terminal Kasir POS', icon: ShoppingCart, external: false },
+    { href: '/dashboard', label: 'Beranda Utama Web', icon: Home, exact: true },
+    { href: '/pos', label: 'Terminal Kasir POS', icon: ShoppingCart },
   ];
 
   // Pillar 2: Inventaris & Cabang
@@ -233,12 +238,12 @@ export default function AdminMissionControlLayout({ children }) {
       <div className="px-3 py-1 text-[10px] font-mono font-bold tracking-widest text-slate-500 uppercase flex items-center justify-between">
         <span>{title}</span>
         {isSuper && (
-          <span className="bg-rose-950/80 text-rose-400 border border-rose-800 text-[8px] px-1 py-0.2 font-mono">
+          <span className="bg-rose-100 text-rose-700 border border-rose-300 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
             SUPER
           </span>
         )}
       </div>
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = item.exact
@@ -250,18 +255,18 @@ export default function AdminMissionControlLayout({ children }) {
               key={item.href}
               href={item.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center justify-between px-3 py-2 text-xs font-mono font-bold uppercase transition-all duration-100 ${
+              className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-tight transition-all duration-150 ${
                 isActive
-                  ? 'bg-[#CCFF00] text-black border-2 border-black font-black shadow-[2px_2px_0px_#000000] translate-x-0.5'
-                  : 'text-slate-300 hover:text-white hover:bg-[#161F36] border-2 border-transparent'
+                  ? 'bg-white/90 text-slate-900 border-2 border-slate-800 shadow-[3px_3px_0_#1E293B] font-black'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-white/60 border-2 border-transparent hover:border-slate-800 hover:-translate-y-0.5 hover:shadow-[2px_2px_0_#1E293B]'
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <Icon size={15} className={`shrink-0 ${isActive ? 'text-black' : 'text-slate-400'}`} />
+                <Icon size={16} className={`shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-500'}`} />
                 <span className="truncate">{item.label}</span>
               </div>
               {item.href === '/pos' && (
-                <span className="text-[9px] bg-black text-[#CCFF00] px-1.5 py-0.5 font-mono shrink-0 ml-1">
+                <span className="text-[9px] bg-[#CCFF00] text-black font-mono font-black px-1.5 py-0.5 rounded border border-black shrink-0 ml-1">
                   POS
                 </span>
               )}
@@ -273,80 +278,95 @@ export default function AdminMissionControlLayout({ children }) {
   );
 
   return (
-    <div className="min-h-screen bg-[#080C14] text-slate-100 font-sans flex flex-col selection:bg-[#CCFF00] selection:text-black">
-      {/* ─── 1. TOP COMMAND DECK (STICKY HEADER) ─── */}
-      <header className="sticky top-0 z-40 h-16 bg-[#0F172A] border-b-2 border-[#1E293B] px-4 lg:px-6 flex items-center justify-between shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+    <div className="min-h-screen bg-[#F8F9FA] text-slate-900 font-sans flex flex-col relative selection:bg-[#CCFF00] selection:text-slate-900">
+      {/* ─── GLOBAL AMBIENT BLEND BACKDROP (Sama Persis dengan Web App) ─── */}
+      <div 
+        aria-hidden="true" 
+        className="fixed inset-0 z-0 pointer-events-none overflow-hidden select-none transform-gpu translate-z-0"
+      >
+        <div className="absolute -top-32 -left-32 w-[550px] h-[550px] bg-amber-200/25 rounded-full blur-[130px] transform-gpu translate-z-0" />
+        <div className="absolute top-1/4 -right-32 w-[600px] h-[600px] bg-purple-200/25 rounded-full blur-[140px] transform-gpu translate-z-0" />
+        <div className="absolute -bottom-32 left-1/3 w-[550px] h-[550px] bg-orange-100/30 rounded-full blur-[120px] transform-gpu translate-z-0" />
+      </div>
+
+      {/* ─── 1. TOP COMMAND DECK (STICKY GLASSMORPHIC HEADER) ─── */}
+      <header className="sticky top-0 z-40 h-16 bg-white/70 backdrop-blur-xl border-b border-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] px-4 lg:px-6 flex items-center justify-between">
         {/* Left: Brand & Title */}
         <div className="flex items-center gap-3">
           <Link href="/admin" className="flex items-center gap-2 shrink-0 group">
-            <div className="bg-[#CCFF00] text-black font-mono font-black text-sm w-8 h-8 flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_#000000] group-hover:rotate-6 transition-transform">
+            <div className="bg-black text-[#CCFF00] font-black text-sm w-8 h-8 flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_#1E293B] rounded-lg">
               2M
             </div>
             <div className="hidden sm:flex flex-col">
-              <span className="font-black text-sm tracking-tight text-white uppercase font-mono leading-none">
+              <span className="font-black text-sm tracking-tight text-slate-900 uppercase font-heading leading-none">
                 2ndManager
               </span>
-              <span className="text-[9px] font-mono text-[#CCFF00] font-bold tracking-widest uppercase">
+              <span className="text-[9px] font-mono text-slate-600 font-bold tracking-widest uppercase">
                 MISSION CONTROL
               </span>
             </div>
           </Link>
 
-          <span className="hidden md:inline-block h-6 w-px bg-slate-700 mx-1" />
+          <span className="hidden md:inline-block h-6 w-px bg-slate-300 mx-1" />
 
           {/* Branch Selector Dropdown */}
           <div className="relative flex items-center">
             <select
               value={activeShopId}
               onChange={handleBranchChange}
-              className="appearance-none bg-[#161F36] text-white border-2 border-[#334155] focus:border-[#CCFF00] text-xs font-mono font-bold uppercase pl-3 pr-8 py-1.5 focus:outline-none transition-colors cursor-pointer shadow-[2px_2px_0px_#000000]"
+              className="appearance-none bg-white/90 text-slate-900 border-2 border-slate-800 focus:border-slate-900 text-xs font-mono font-bold uppercase pl-3 pr-8 py-1.5 rounded-xl shadow-[2px_2px_0px_#1E293B] cursor-pointer focus:outline-none"
             >
-              <option value="ALL">KONSOLIDASI (SEMUA CABANG)</option>
+              <option value="ALL">SEMUA CABANG (KONSOLIDASI)</option>
               {shops.map((s, idx) => (
                 <option key={s.id} value={s.id}>
                   CABANG {idx + 1}: {s.name.toUpperCase()}
                 </option>
               ))}
             </select>
-            <ChevronDown size={14} className="absolute right-2.5 text-slate-400 pointer-events-none" />
+            <ChevronDown size={14} className="absolute right-2.5 text-slate-600 pointer-events-none" />
           </div>
         </div>
 
         {/* Center / Right: Status Badges & Quick Action */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Back to Web App Link */}
+          <Link
+            href="/dashboard"
+            className="hidden md:flex items-center gap-1.5 bg-white/90 hover:bg-white text-slate-800 border-2 border-slate-800 px-3 py-1.5 rounded-xl text-xs font-mono font-bold uppercase shadow-[2px_2px_0px_#1E293B] hover:-translate-y-0.5 transition-all"
+            title="Kembali ke Beranda Web"
+          >
+            <Home size={14} />
+            <span>BERANDA WEB</span>
+          </Link>
+
           {/* License Badge */}
-          <div className="hidden lg:flex items-center gap-1.5 bg-[#161F36] border border-[#334155] px-2.5 py-1 text-[11px] font-mono font-bold uppercase text-slate-300">
-            <span className="w-2 h-2 rounded-none bg-[#CCFF00]" />
+          <div className="hidden lg:flex items-center gap-1.5 bg-white/90 border-2 border-slate-800 rounded-xl px-2.5 py-1 text-[11px] font-mono font-bold uppercase text-slate-900 shadow-[2px_2px_0px_#1E293B]">
+            <span className="w-2 h-2 rounded-full bg-[#CCFF00] border border-black" />
             <span>[ {licenseInfo.tier} : SISA {licenseInfo.daysRemaining} HARI ]</span>
           </div>
 
           {/* Security Radar Badge */}
           <Link
             href="/radar"
-            className={`hidden sm:flex items-center gap-1.5 border px-2.5 py-1 text-[11px] font-mono font-bold uppercase transition-all ${
+            className={`hidden sm:flex items-center gap-1.5 border-2 rounded-xl px-2.5 py-1 text-[11px] font-mono font-bold uppercase transition-all shadow-[2px_2px_0px_#1E293B] ${
               anomalyCount > 0
-                ? 'bg-rose-950/60 border-rose-600 text-rose-300 hover:bg-rose-900/80 animate-pulse'
-                : 'bg-[#161F36] border-[#334155] text-slate-300 hover:border-[#CCFF00]'
+                ? 'bg-rose-100 border-rose-700 text-rose-900 hover:bg-rose-200 animate-pulse'
+                : 'bg-white/90 border-slate-800 text-slate-900 hover:bg-white'
             }`}
           >
             <span
-              className={`w-2 h-2 rounded-none ${anomalyCount > 0 ? 'bg-rose-500' : 'bg-emerald-400'}`}
+              className={`w-2 h-2 rounded-full ${anomalyCount > 0 ? 'bg-rose-600' : 'bg-emerald-500'}`}
             />
             <span>{anomalyCount > 0 ? `[ 🔴 ${anomalyCount} ANOMALI ]` : '[ 🟢 RADAR AMAN ]'}</span>
           </Link>
 
-          {/* Role Badge */}
-          <div className="hidden xl:flex items-center bg-black border border-slate-700 px-2 py-1 text-[10px] font-mono font-bold uppercase text-[#CCFF00]">
-            {isSuperadmin ? '[ ⚡ SUPERADMIN OVERLORD ]' : '[ 👑 JURAGAN WARUNG ]'}
-          </div>
-
           {/* Quick Action Button: POS */}
           <Link
             href="/pos"
-            className="flex items-center gap-1.5 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-mono font-black text-xs uppercase px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+            className="flex items-center gap-1.5 bg-[#CCFF00] hover:bg-[#b8e600] text-slate-900 font-mono font-black text-xs uppercase px-3.5 py-1.5 rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] hover:-translate-y-0.5 active:translate-y-0 transition-all"
           >
             <ShoppingCart size={14} className="stroke-[2.5]" />
-            <span className="hidden sm:inline">BUKA KASIR POS</span>
+            <span className="hidden sm:inline">KASIR POS</span>
             <span className="sm:hidden">POS</span>
           </Link>
 
@@ -354,8 +374,8 @@ export default function AdminMissionControlLayout({ children }) {
           <button
             type="button"
             onClick={handleLogout}
-            title="Keluar dari Mission Control"
-            className="hidden sm:flex items-center gap-1 bg-[#161F36] hover:bg-rose-950/80 text-slate-300 hover:text-rose-400 border border-[#334155] hover:border-rose-700 px-2.5 py-1.5 text-xs font-mono font-bold uppercase transition-colors cursor-pointer"
+            title="Keluar dari Sistem"
+            className="hidden sm:flex items-center gap-1 bg-white hover:bg-slate-900 hover:text-white text-slate-800 border-2 border-slate-800 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold uppercase shadow-[2px_2px_0px_#1E293B] transition-colors cursor-pointer"
           >
             <LogOut size={14} />
           </button>
@@ -364,8 +384,8 @@ export default function AdminMissionControlLayout({ children }) {
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden flex items-center justify-center w-9 h-9 bg-[#161F36] border border-[#334155] text-white hover:border-[#CCFF00] transition-colors"
-            aria-label="Toggle Menu Navigasi"
+            className="lg:hidden flex items-center justify-center w-9 h-9 bg-white border-2 border-slate-800 rounded-xl text-slate-900 shadow-[2px_2px_0px_#1E293B] cursor-pointer"
+            aria-label="Toggle Menu"
           >
             {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
@@ -373,51 +393,48 @@ export default function AdminMissionControlLayout({ children }) {
       </header>
 
       {/* ─── 2. BODY SHELL: SIDEBAR + MAIN CONTENT ─── */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* DESKTOP SIDEBAR: Tactical 4-Pillar (+ 5th Superadmin) Navigation */}
-        <aside className="hidden lg:flex flex-col w-72 bg-[#0F172A] border-r-2 border-[#1E293B] overflow-y-auto shrink-0 select-none p-4 space-y-5">
-          {/* Pillar 1 */}
-          {renderNavSection('PILAR 1: RINGKASAN & POS', pillar1Items)}
-
-          {/* Pillar 2 */}
-          {renderNavSection('PILAR 2: INVENTARIS & CABANG', pillar2Items)}
-
-          {/* Pillar 3 */}
-          {renderNavSection('PILAR 3: KEUANGAN SAK EMKM', pillar3Items)}
-
-          {/* Pillar 4 */}
-          {renderNavSection('PILAR 4: ORGANISASI & LISENSI', pillar4Items)}
-
-          {/* Pillar 5 (Superadmin Only) */}
-          {isSuperadmin &&
-            renderNavSection('PILAR 5: PLATFORM OVERLORD', pillar5Items, true)}
-
-          {/* Footer Info Box */}
-          <div className="pt-4 mt-auto border-t border-[#1E293B] space-y-2">
-            <div className="bg-[#080C14] border border-[#1E293B] p-2.5 text-[10px] font-mono text-slate-400 space-y-1">
-              <div className="flex justify-between">
-                <span>OPERATOR:</span>
-                <strong className="text-white uppercase truncate ml-1">
-                  {profile?.username || session.email.split('@')[0]}
-                </strong>
+      <div className="flex-1 flex relative z-10">
+        {/* DESKTOP SIDEBAR: Glassmorphism Bubble with Top-Right Arc */}
+        <aside className="hidden lg:flex flex-col w-[280px] bg-white/60 backdrop-blur-xl border-r border-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] rounded-tr-[2.5rem] p-5 space-y-5 flex-shrink-0 justify-between min-h-[calc(100vh-4rem)] sticky top-16 z-30">
+          <div className="space-y-4">
+            {/* Quick Context Switch */}
+            <div className="p-3 bg-white/80 border-2 border-slate-800 rounded-2xl shadow-[2px_2px_0px_#1E293B] space-y-1">
+              <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-800">
+                <span className="uppercase truncate">
+                  OP: <strong>{profile?.username || session.email.split('@')[0]}</strong>
+                </span>
+                <span className="w-2 h-2 rounded-full bg-[#CCFF00] border border-slate-800 animate-pulse" />
               </div>
-              <div className="flex justify-between">
-                <span>STATUS:</span>
-                <span className="text-[#CCFF00] font-bold">TERKONEKSI</span>
-              </div>
-              <div className="flex justify-between text-[9px] text-slate-500 pt-1 border-t border-slate-900">
-                <span>ENGINE:</span>
-                <span>V3 BRUTALIST</span>
+              <div className="text-[10px] text-slate-500 font-mono uppercase">
+                ROLE: <strong className="text-slate-900">{isSuperadmin ? 'SUPERADMIN' : (profile?.role || 'JURAGAN')}</strong>
               </div>
             </div>
 
+            {/* Pillar 1 */}
+            {renderNavSection('PILAR 1: RINGKASAN & POS', pillar1Items)}
+
+            {/* Pillar 2 */}
+            {renderNavSection('PILAR 2: INVENTARIS & CABANG', pillar2Items)}
+
+            {/* Pillar 3 */}
+            {renderNavSection('PILAR 3: KEUANGAN SAK EMKM', pillar3Items)}
+
+            {/* Pillar 4 */}
+            {renderNavSection('PILAR 4: ORGANISASI & LISENSI', pillar4Items)}
+
+            {/* Pillar 5 (Superadmin Only) */}
+            {isSuperadmin &&
+              renderNavSection('PILAR 5: PLATFORM OVERLORD', pillar5Items, true)}
+          </div>
+
+          <div className="pt-3 border-t border-slate-200/80 space-y-2">
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 bg-[#161F36] hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 border border-[#334155] hover:border-rose-700 py-2 text-xs font-mono font-bold uppercase transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 bg-white/90 hover:bg-slate-900 hover:text-white text-slate-800 border-2 border-slate-800 rounded-xl py-2.5 text-xs font-mono font-bold uppercase shadow-[2px_2px_0px_#1E293B] transition-colors cursor-pointer"
             >
               <LogOut size={14} />
-              <span>KELUAR SESI ADMIN</span>
+              <span>KELUAR SESI</span>
             </button>
           </div>
         </aside>
@@ -427,25 +444,25 @@ export default function AdminMissionControlLayout({ children }) {
           <div className="fixed inset-0 z-50 lg:hidden flex">
             {/* Backdrop */}
             <div
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
               onClick={() => setIsMobileMenuOpen(false)}
             />
 
-            {/* Tactical Drawer Content */}
-            <div className="relative w-80 max-w-[85vw] bg-[#0F172A] border-r-2 border-[#CCFF00] h-full overflow-y-auto p-4 flex flex-col space-y-5 z-10 shadow-[6px_0px_0px_#000000]">
-              <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+            {/* Drawer Content */}
+            <div className="relative w-80 max-w-[85vw] bg-white/95 backdrop-blur-2xl border-r-2 border-slate-800 h-full overflow-y-auto p-5 flex flex-col space-y-4 z-10 shadow-[6px_0px_0px_#1E293B]">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="bg-[#CCFF00] text-black font-mono font-black text-xs w-6 h-6 flex items-center justify-center">
+                  <div className="bg-black text-[#CCFF00] font-black text-xs w-6 h-6 flex items-center justify-center rounded">
                     2M
                   </div>
-                  <span className="font-mono font-black text-xs uppercase text-white">
+                  <span className="font-heading font-black text-sm uppercase text-slate-900">
                     MISSION CONTROL
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-1 text-slate-400 hover:text-white border border-[#334155]"
+                  className="p-1 text-slate-700 hover:text-slate-900 border border-slate-300 rounded-lg"
                 >
                   <X size={16} />
                 </button>
@@ -458,11 +475,11 @@ export default function AdminMissionControlLayout({ children }) {
               {isSuperadmin &&
                 renderNavSection('PILAR 5: PLATFORM OVERLORD', pillar5Items, true)}
 
-              <div className="pt-4 border-t border-[#1E293B] mt-auto space-y-2">
+              <div className="pt-3 border-t border-slate-200 mt-auto">
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 bg-rose-950/80 text-rose-300 border border-rose-800 py-2.5 text-xs font-mono font-bold uppercase transition-colors"
+                  className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl py-2.5 text-xs font-mono font-bold uppercase transition-colors"
                 >
                   <LogOut size={14} />
                   <span>KELUAR SESI</span>
@@ -473,7 +490,7 @@ export default function AdminMissionControlLayout({ children }) {
         )}
 
         {/* ─── 3. MAIN WORKSPACE CONTAINER ─── */}
-        <main className="flex-1 overflow-y-auto bg-[#080C14] p-4 md:p-6 lg:p-8 space-y-6">
+        <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full overflow-x-hidden space-y-6">
           {children}
         </main>
       </div>

@@ -180,15 +180,15 @@ export default function AdminTransactionsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 font-mono">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* ─── 1. HEADER SECTION ─── */}
-      <div className="bg-[#0F172A] border-2 border-[#1E293B] p-4 sm:p-5 shadow-[3px_3px_0px_#000000] flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white/90 backdrop-blur-md border-2 border-slate-800 rounded-2xl p-5 shadow-[3px_3px_0_#1E293B] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-[11px] font-bold text-[#CCFF00] tracking-widest uppercase">
-            <span className="w-2.5 h-2.5 bg-[#CCFF00] inline-block border border-black" />
+          <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-slate-600 tracking-widest uppercase">
+            <span className="w-2.5 h-2.5 bg-[#CCFF00] inline-block rounded-full border border-slate-800" />
             <span>JURNAL FINANSIAL & PITA KASIR CONTINUOUS</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-tight mt-1">
+          <h1 className="text-2xl sm:text-3xl font-heading font-black uppercase text-slate-900 tracking-tight mt-1">
             PITA TRANSAKSI & BUKU JURNAL KASIR
           </h1>
         </div>
@@ -198,7 +198,7 @@ export default function AdminTransactionsPage() {
             type="button"
             onClick={() => loadData(false)}
             disabled={loading}
-            className="flex items-center gap-1.5 bg-[#161F36] hover:bg-[#223055] text-slate-300 border border-[#334155] px-3 py-2 text-xs font-bold uppercase transition-all cursor-pointer"
+            className="flex items-center gap-1.5 bg-white hover:bg-slate-100 text-slate-800 border-2 border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono font-bold uppercase transition-all shadow-[2px_2px_0_#1E293B] cursor-pointer"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             <span>SINKRONKAN</span>
@@ -206,7 +206,7 @@ export default function AdminTransactionsPage() {
 
           <Link
             href="/pos"
-            className="flex items-center gap-1.5 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black text-xs uppercase px-4 py-2 border-2 border-black shadow-[2px_2px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+            className="flex items-center gap-1.5 bg-[#CCFF00] hover:bg-[#b8e600] text-slate-900 font-mono font-black text-xs uppercase px-4 py-2 rounded-xl border-2 border-slate-800 shadow-[3px_3px_0_#1E293B] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
           >
             <span>+ BUKA TERMINAL POS</span>
           </Link>
@@ -215,38 +215,38 @@ export default function AdminTransactionsPage() {
 
       {/* ─── 2. KPI SUMMARY ROW ─── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[#0F172A] border-2 border-[#1E293B] p-3.5 shadow-[2px_2px_0px_#000000]">
-          <span className="text-[10px] text-slate-400 block uppercase">TOTAL NOTA TERCATAT</span>
-          <strong className="text-xl font-black text-white">{stats.totalNota} LEMBAR</strong>
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl border-2 border-slate-800 p-4 shadow-[3px_3px_0_#1E293B]">
+          <span className="text-[10px] font-mono text-slate-500 block uppercase">TOTAL NOTA TERCATAT</span>
+          <strong className="text-xl font-mono font-black text-slate-900">{stats.totalNota} LEMBAR</strong>
         </div>
 
-        <div className="bg-[#0F172A] border-2 border-[#1E293B] p-3.5 shadow-[2px_2px_0px_#000000]">
-          <span className="text-[10px] text-slate-400 block uppercase">TOTAL OMZET LUNAS</span>
-          <strong className="text-xl font-black text-[#CCFF00]">{formatRupiah(stats.lunasNominal)}</strong>
-          <span className="text-[9px] text-slate-500 block uppercase mt-0.5">
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl border-2 border-slate-800 p-4 shadow-[3px_3px_0_#1E293B]">
+          <span className="text-[10px] font-mono text-slate-500 block uppercase">TOTAL OMZET LUNAS</span>
+          <strong className="text-xl font-mono font-black text-emerald-600">{formatRupiah(stats.lunasNominal)}</strong>
+          <span className="text-[9px] font-mono text-slate-500 block uppercase mt-0.5">
             {stats.lunasCount} TRANSAKSI SUKSES
           </span>
         </div>
 
-        <div className="bg-[#0F172A] border-2 border-[#1E293B] p-3.5 shadow-[2px_2px_0px_#000000]">
-          <span className="text-[10px] text-slate-400 block uppercase">PIUTANG KASBON</span>
-          <strong className="text-xl font-black text-amber-400">{formatRupiah(stats.piutangNominal)}</strong>
-          <span className="text-[9px] text-slate-500 block uppercase mt-0.5">
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl border-2 border-slate-800 p-4 shadow-[3px_3px_0_#1E293B]">
+          <span className="text-[10px] font-mono text-slate-500 block uppercase">PIUTANG KASBON</span>
+          <strong className="text-xl font-mono font-black text-amber-600">{formatRupiah(stats.piutangNominal)}</strong>
+          <span className="text-[9px] font-mono text-slate-500 block uppercase mt-0.5">
             {stats.piutangCount} NOTA BELUM LUNAS
           </span>
         </div>
 
-        <div className="bg-[#0F172A] border-2 border-[#1E293B] p-3.5 shadow-[2px_2px_0px_#000000]">
-          <span className="text-[10px] text-slate-400 block uppercase">TOTAL TRANSAKSI VOID</span>
-          <strong className="text-xl font-black text-rose-400">{formatRupiah(stats.voidNominal)}</strong>
-          <span className="text-[9px] text-rose-400/80 block uppercase mt-0.5">
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl border-2 border-slate-800 p-4 shadow-[3px_3px_0_#1E293B]">
+          <span className="text-[10px] font-mono text-slate-500 block uppercase">TOTAL TRANSAKSI VOID</span>
+          <strong className="text-xl font-mono font-black text-rose-600">{formatRupiah(stats.voidNominal)}</strong>
+          <span className="text-[9px] font-mono text-rose-600/80 block uppercase mt-0.5">
             {stats.voidCount} NOTA DIBATALKAN
           </span>
         </div>
       </div>
 
       {/* ─── 3. SEARCH & FILTER DECK ─── */}
-      <div className="bg-[#0F172A] border-2 border-[#1E293B] p-4 shadow-[2px_2px_0px_#000000] space-y-3">
+      <div className="bg-white/90 backdrop-blur-md rounded-2xl border-2 border-slate-800 p-4 shadow-[3px_3px_0_#1E293B] space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -255,13 +255,13 @@ export default function AdminTransactionsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="CARI NOMOR BON, PELANGGAN, ATAU NAMA KASIR..."
-              className="w-full bg-[#161F36] border-2 border-[#334155] focus:border-[#CCFF00] text-white placeholder:text-slate-500 text-xs font-bold uppercase px-4 py-2.5 focus:outline-none transition-colors"
+              className="w-full bg-white border-2 border-slate-800 focus:border-slate-900 text-slate-900 placeholder:text-slate-400 text-xs font-mono font-bold uppercase px-3.5 py-2.5 rounded-xl focus:outline-none transition-colors shadow-[1px_1px_0_#1E293B]"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-800"
               >
                 <X size={14} />
               </button>
@@ -273,7 +273,7 @@ export default function AdminTransactionsPage() {
             <select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
-              className="w-full appearance-none bg-[#161F36] border-2 border-[#334155] focus:border-[#CCFF00] text-white text-xs font-bold uppercase px-3 py-2.5 focus:outline-none cursor-pointer"
+              className="w-full appearance-none bg-white border-2 border-slate-800 focus:border-slate-900 text-slate-900 text-xs font-mono font-bold uppercase px-3.5 py-2.5 rounded-xl focus:outline-none cursor-pointer shadow-[1px_1px_0_#1E293B]"
             >
               <option value="ALL">SEMUA CABANG</option>
               {shops.map((s) => (
@@ -282,7 +282,7 @@ export default function AdminTransactionsPage() {
                 </option>
               ))}
             </select>
-            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
           </div>
         </div>
 
@@ -291,10 +291,10 @@ export default function AdminTransactionsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('ALL')}
-            className={`px-3 py-1.5 text-xs font-bold uppercase border transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 text-xs font-mono font-black uppercase rounded-xl border-2 transition-all cursor-pointer ${
               activeTab === 'ALL'
-                ? 'bg-[#CCFF00] text-black border-black font-black shadow-[2px_2px_0px_#000000]'
-                : 'bg-[#161F36] text-slate-300 border-[#334155] hover:border-slate-400'
+                ? 'bg-[#CCFF00] text-slate-900 border-slate-800 shadow-[2px_2px_0_#1E293B]'
+                : 'bg-white text-slate-700 border-slate-300 hover:border-slate-800 hover:bg-slate-50'
             }`}
           >
             SEMUA JURNAL ({stats.totalNota})
@@ -303,10 +303,10 @@ export default function AdminTransactionsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('LUNAS')}
-            className={`px-3 py-1.5 text-xs font-bold uppercase border transition-colors cursor-pointer flex items-center gap-1 ${
+            className={`px-3 py-1.5 text-xs font-mono font-black uppercase rounded-xl border-2 transition-all cursor-pointer flex items-center gap-1 ${
               activeTab === 'LUNAS'
-                ? 'bg-emerald-400 text-black border-black font-black shadow-[2px_2px_0px_#000000]'
-                : 'bg-[#161F36] text-emerald-300 border-[#334155] hover:border-emerald-500'
+                ? 'bg-emerald-200 text-emerald-950 border-slate-800 shadow-[2px_2px_0_#1E293B]'
+                : 'bg-white text-emerald-800 border-slate-300 hover:border-emerald-600 hover:bg-emerald-50'
             }`}
           >
             <span>LUNAS ({stats.lunasCount})</span>
@@ -315,10 +315,10 @@ export default function AdminTransactionsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('PIUTANG')}
-            className={`px-3 py-1.5 text-xs font-bold uppercase border transition-colors cursor-pointer flex items-center gap-1 ${
+            className={`px-3 py-1.5 text-xs font-mono font-black uppercase rounded-xl border-2 transition-all cursor-pointer flex items-center gap-1 ${
               activeTab === 'PIUTANG'
-                ? 'bg-amber-400 text-black border-black font-black shadow-[2px_2px_0px_#000000]'
-                : 'bg-[#161F36] text-amber-300 border-[#334155] hover:border-amber-500'
+                ? 'bg-amber-200 text-amber-950 border-slate-800 shadow-[2px_2px_0_#1E293B]'
+                : 'bg-white text-amber-800 border-slate-300 hover:border-amber-600 hover:bg-amber-50'
             }`}
           >
             <span>KASBON / PIUTANG ({stats.piutangCount})</span>
@@ -327,10 +327,10 @@ export default function AdminTransactionsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('VOID')}
-            className={`px-3 py-1.5 text-xs font-bold uppercase border transition-colors cursor-pointer flex items-center gap-1 ${
+            className={`px-3 py-1.5 text-xs font-mono font-black uppercase rounded-xl border-2 transition-all cursor-pointer flex items-center gap-1 ${
               activeTab === 'VOID'
-                ? 'bg-rose-500 text-white border-black font-black shadow-[2px_2px_0px_#000000]'
-                : 'bg-[#161F36] text-rose-300 border-[#334155] hover:border-rose-500'
+                ? 'bg-rose-200 text-rose-950 border-slate-800 shadow-[2px_2px_0_#1E293B]'
+                : 'bg-white text-rose-800 border-slate-300 hover:border-rose-600 hover:bg-rose-50'
             }`}
           >
             <span>VOID ({stats.voidCount})</span>
@@ -339,175 +339,177 @@ export default function AdminTransactionsPage() {
       </div>
 
       {/* ─── 4. HIGH-DENSITY LEDGER TABLE ─── */}
-      <div className="bg-[#0F172A] border-2 border-[#1E293B] shadow-[3px_3px_0px_#000000] overflow-x-auto">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="bg-[#161F36] border-b-2 border-[#1E293B] text-[11px] font-black uppercase text-slate-300">
-              <th className="p-3 w-40">NO NOTA / BON</th>
-              <th className="p-3 w-44">WAKTU TRANSAKSI</th>
-              <th className="p-3 w-36">KASIR</th>
-              <th className="p-3 min-w-[140px]">PELANGGAN</th>
-              <th className="p-3 w-28">METODE</th>
-              <th className="p-3 w-36 text-right">TOTAL NOMINAL</th>
-              <th className="p-3 w-36 text-center">INTEGRITAS DATA</th>
-              <th className="p-3 w-28 text-center">STRUK</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#1E293B]">
-            {loading ? (
-              <tr>
-                <td colSpan={8} className="p-8 text-center text-slate-400 uppercase">
-                  <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#CCFF00]" />
-                  [ MENYINKRONKAN PITA TRANSAKSI... ]
-                </td>
+      <div className="bg-white/90 backdrop-blur-md rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0_#1E293B] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-slate-100/90 border-b-2 border-slate-800 text-[11px] font-mono font-black uppercase text-slate-700">
+                <th className="p-3.5 w-40">NO NOTA / BON</th>
+                <th className="p-3.5 w-44">WAKTU TRANSAKSI</th>
+                <th className="p-3.5 w-36">KASIR</th>
+                <th className="p-3.5 min-w-[140px]">PELANGGAN</th>
+                <th className="p-3.5 w-28">METODE</th>
+                <th className="p-3.5 w-36 text-right">TOTAL NOMINAL</th>
+                <th className="p-3.5 w-36 text-center">INTEGRITAS DATA</th>
+                <th className="p-3.5 w-28 text-center">STRUK</th>
               </tr>
-            ) : filteredTransactions.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="p-10 text-center text-slate-400 uppercase">
-                  <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-                  [ TIDAK ADA JURNAL TRANSAKSI SESUAI FILTER ]
-                </td>
-              </tr>
-            ) : (
-              filteredTransactions.map((tx) => {
-                const status = (tx.status || 'LUNAS').toUpperCase();
-                const bonNo = tx.nomor_bon || tx.id?.slice(0, 12) || 'TRX-000';
-                const cashier = tx.operator || tx.cashier_name || 'KASIR';
-                const customer = tx.customers?.nama || customers[tx.customer_id] || 'UMUM';
-                const method = (tx.payment_method || 'TUNAI').toUpperCase();
-                const amount = Number(tx.omzet_total ?? tx.total_amount ?? 0);
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-slate-500 uppercase font-mono">
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-slate-800" />
+                    [ MENYINKRONKAN PITA TRANSAKSI... ]
+                  </td>
+                </tr>
+              ) : filteredTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-10 text-center text-slate-500 uppercase font-mono">
+                    <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                    [ TIDAK ADA JURNAL TRANSAKSI SESUAI FILTER ]
+                  </td>
+                </tr>
+              ) : (
+                filteredTransactions.map((tx) => {
+                  const status = (tx.status || 'LUNAS').toUpperCase();
+                  const bonNo = tx.nomor_bon || tx.id?.slice(0, 12) || 'TRX-000';
+                  const cashier = tx.operator || tx.cashier_name || 'KASIR';
+                  const customer = tx.customers?.nama || customers[tx.customer_id] || 'UMUM';
+                  const method = (tx.payment_method || 'TUNAI').toUpperCase();
+                  const amount = Number(tx.omzet_total ?? tx.total_amount ?? 0);
 
-                return (
-                  <tr
-                    key={tx.id}
-                    className="hover:bg-[#161F36]/80 transition-colors group"
-                  >
-                    {/* No Nota & Status */}
-                    <td className="p-3">
-                      <div className="font-bold text-white uppercase group-hover:text-[#CCFF00] transition-colors">
-                        {bonNo}
-                      </div>
-                      <div className="mt-0.5">
-                        {status === 'LUNAS' && (
-                          <span className="text-[9px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700 px-1 py-0.2 uppercase">
-                            [ LUNAS ]
-                          </span>
-                        )}
-                        {status === 'PIUTANG' && (
-                          <span className="text-[9px] font-black bg-amber-950 text-amber-300 border border-amber-700 px-1 py-0.2 uppercase">
-                            [ KASBON ]
-                          </span>
-                        )}
-                        {status === 'VOID' && (
-                          <span className="text-[9px] font-black bg-rose-950 text-rose-300 border border-rose-700 px-1 py-0.2 uppercase">
-                            [ VOID ]
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                  return (
+                    <tr
+                      key={tx.id}
+                      className="hover:bg-amber-50/40 transition-colors group"
+                    >
+                      {/* No Nota & Status */}
+                      <td className="p-3.5 font-mono">
+                        <div className="font-black text-slate-900 uppercase group-hover:text-amber-900 transition-colors">
+                          {bonNo}
+                        </div>
+                        <div className="mt-0.5">
+                          {status === 'LUNAS' && (
+                            <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded uppercase">
+                              LUNAS
+                            </span>
+                          )}
+                          {status === 'PIUTANG' && (
+                            <span className="text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded uppercase">
+                              KASBON
+                            </span>
+                          )}
+                          {status === 'VOID' && (
+                            <span className="text-[9px] font-black bg-rose-100 text-rose-800 border border-rose-300 px-1.5 py-0.5 rounded uppercase">
+                              VOID
+                            </span>
+                          )}
+                        </div>
+                      </td>
 
-                    {/* Waktu */}
-                    <td className="p-3 text-slate-400 text-[11px]">
-                      {formatDateTime(tx.tanggal || tx.created_at)}
-                    </td>
+                      {/* Waktu */}
+                      <td className="p-3.5 text-slate-600 font-mono text-[11px]">
+                        {formatDateTime(tx.tanggal || tx.created_at)}
+                      </td>
 
-                    {/* Kasir */}
-                    <td className="p-3 text-slate-300 font-bold uppercase truncate max-w-[130px]">
-                      {cashier}
-                    </td>
+                      {/* Kasir */}
+                      <td className="p-3.5 text-slate-800 font-mono font-bold uppercase truncate max-w-[130px]">
+                        {cashier}
+                      </td>
 
-                    {/* Pelanggan */}
-                    <td className="p-3 text-white uppercase truncate max-w-[150px]">
-                      {customer}
-                    </td>
+                      {/* Pelanggan */}
+                      <td className="p-3.5 text-slate-900 font-medium uppercase truncate max-w-[150px]">
+                        {customer}
+                      </td>
 
-                    {/* Metode Bayar */}
-                    <td className="p-3">
-                      <span className="text-[10px] bg-black border border-[#334155] px-1.5 py-0.5 text-slate-300 font-bold uppercase">
-                        {method}
-                      </span>
-                    </td>
+                      {/* Metode Bayar */}
+                      <td className="p-3.5">
+                        <span className="text-[10px] font-mono bg-slate-100 border border-slate-300 px-2 py-0.5 rounded text-slate-700 font-bold uppercase">
+                          {method}
+                        </span>
+                      </td>
 
-                    {/* Total Nominal */}
-                    <td className="p-3 text-right">
-                      <strong
-                        className={`text-sm font-black ${
-                          status === 'VOID'
-                            ? 'text-rose-400 line-through'
-                            : status === 'PIUTANG'
-                            ? 'text-amber-400'
-                            : 'text-[#CCFF00]'
-                        }`}
-                      >
-                        {formatRupiah(amount)}
-                      </strong>
-                    </td>
+                      {/* Total Nominal */}
+                      <td className="p-3.5 text-right font-mono">
+                        <strong
+                          className={`text-sm font-black ${
+                            status === 'VOID'
+                              ? 'text-rose-600 line-through'
+                              : status === 'PIUTANG'
+                              ? 'text-amber-600'
+                              : 'text-slate-900'
+                          }`}
+                        >
+                          {formatRupiah(amount)}
+                        </strong>
+                      </td>
 
-                    {/* Integritas Data */}
-                    <td className="p-3 text-center">
-                      <span className="text-[9px] font-bold bg-black border border-[#334155] px-1.5 py-0.5 text-slate-400 uppercase inline-flex items-center gap-1">
-                        <ShieldCheck size={10} className="text-[#CCFF00]" />
-                        <span>HMAC-VALID</span>
-                      </span>
-                    </td>
+                      {/* Integritas Data */}
+                      <td className="p-3.5 text-center">
+                        <span className="text-[9px] font-mono font-bold bg-slate-100 border border-slate-300 px-2 py-0.5 rounded text-slate-700 uppercase inline-flex items-center gap-1">
+                          <ShieldCheck size={11} className="text-emerald-600" />
+                          <span>HMAC-VALID</span>
+                        </span>
+                      </td>
 
-                    {/* Action: Struk Thermal */}
-                    <td className="p-3 text-center">
-                      <button
-                        type="button"
-                        onClick={() => openReceipt(tx)}
-                        title="Lihat & Cetak Struk Kasir"
-                        className="bg-[#161F36] hover:bg-[#202c4b] text-[#CCFF00] border border-[#334155] px-2.5 py-1 text-[11px] font-bold uppercase transition-colors inline-flex items-center gap-1 cursor-pointer"
-                      >
-                        <Printer size={12} />
-                        <span>STRUK</span>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                      {/* Action: Struk Thermal */}
+                      <td className="p-3.5 text-center">
+                        <button
+                          type="button"
+                          onClick={() => openReceipt(tx)}
+                          title="Lihat & Cetak Struk Kasir"
+                          className="bg-white hover:bg-slate-100 text-slate-900 border-2 border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-mono font-black uppercase shadow-[1px_1px_0_#1E293B] transition-all inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <Printer size={12} />
+                          <span>STRUK</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* ─── 5. CONTINUOUS ROLL THERMAL RECEIPT MODAL ─── */}
       {isReceiptModalOpen && selectedTx && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
-          <div className="bg-[#0F172A] border-2 border-[#CCFF00] shadow-[6px_6px_0px_#000000] max-w-sm w-full p-4 space-y-4 font-mono max-h-[95vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl border-2 border-slate-800 shadow-[6px_6px_0_#1E293B] max-w-sm w-full p-5 space-y-4 font-mono max-h-[95vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b-2 border-[#1E293B] pb-2 text-white">
-              <div className="flex items-center gap-1.5 text-xs font-black uppercase">
-                <Receipt size={16} className="text-[#CCFF00]" />
-                <span>PREVIEW STRUK KASIR THERMAL</span>
+            <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3 text-slate-900">
+              <div className="flex items-center gap-2 text-xs font-black uppercase">
+                <Receipt size={18} className="text-slate-800" />
+                <span>PREVIEW STRUK THERMAL</span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsReceiptModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="text-slate-400 hover:text-slate-800 p-1"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
             {/* Thermal Slip Simulation (Simulasi Kertas Kasir 58mm/80mm) */}
             <div
               id="printable-receipt"
-              className="bg-zinc-100 text-zinc-900 p-5 rounded-none border-2 border-black font-mono text-[11px] space-y-2 shadow-inner"
+              className="bg-slate-50 text-slate-900 p-5 rounded-xl border-2 border-slate-800 font-mono text-[11px] space-y-2 shadow-inner"
             >
               {/* Header Struk */}
-              <div className="text-center space-y-0.5 border-b border-dashed border-zinc-400 pb-2">
+              <div className="text-center space-y-0.5 border-b border-dashed border-slate-400 pb-2">
                 <h3 className="font-black text-sm uppercase tracking-tight">2ndManager STORE</h3>
-                <p className="text-[10px] text-zinc-600 uppercase">
+                <p className="text-[10px] text-slate-600 uppercase">
                   {shops.find((s) => s.id === selectedTx.shop_id)?.name || 'CABANG UTAMA B2B'}
                 </p>
-                <p className="text-[9px] text-zinc-500">
+                <p className="text-[9px] text-slate-500">
                   {formatDateTime(selectedTx.tanggal || selectedTx.created_at)}
                 </p>
               </div>
 
               {/* Meta Nota */}
-              <div className="text-[10px] space-y-0.5 py-1 border-b border-dashed border-zinc-400">
+              <div className="text-[10px] space-y-0.5 py-1 border-b border-dashed border-slate-400">
                 <div className="flex justify-between">
                   <span>NO BON:</span>
                   <strong className="uppercase">
@@ -531,7 +533,7 @@ export default function AdminTransactionsPage() {
               </div>
 
               {/* Itemized Lines */}
-              <div className="py-2 space-y-1.5 border-b border-dashed border-zinc-400 text-[10px]">
+              <div className="py-2 space-y-1.5 border-b border-dashed border-slate-400 text-[10px]">
                 {(selectedTx.transaction_items || selectedTx.items || []).length > 0 ? (
                   (selectedTx.transaction_items || selectedTx.items).map((item, idx) => {
                     const name = item.products?.nama || item.product_name || item.product_type_snapshot || 'ITEM POS';
@@ -541,9 +543,9 @@ export default function AdminTransactionsPage() {
                     return (
                       <div key={idx} className="space-y-0.5">
                         <div className="font-bold uppercase truncate">{name}</div>
-                        <div className="flex justify-between text-zinc-600">
+                        <div className="flex justify-between text-slate-600">
                           <span>{qty} x {formatRupiah(item.harga_jual || (lineTotal / qty))}</span>
-                          <strong className="text-zinc-900">{formatRupiah(lineTotal)}</strong>
+                          <strong className="text-slate-900">{formatRupiah(lineTotal)}</strong>
                         </div>
                       </div>
                     );
@@ -562,16 +564,16 @@ export default function AdminTransactionsPage() {
                   <span>TOTAL:</span>
                   <span>{formatRupiah(selectedTx.omzet_total || selectedTx.total_amount)}</span>
                 </div>
-                <div className="flex justify-between text-[10px] text-zinc-600">
+                <div className="flex justify-between text-[10px] text-slate-600">
                   <span>METODE BAYAR:</span>
                   <span className="uppercase">{selectedTx.payment_method || 'TUNAI'}</span>
                 </div>
               </div>
 
               {/* Footer Struk */}
-              <div className="text-center pt-3 border-t border-dashed border-zinc-400 text-[9px] text-zinc-500 uppercase space-y-0.5">
+              <div className="text-center pt-3 border-t border-dashed border-slate-400 text-[9px] text-slate-500 uppercase space-y-0.5">
                 <p>TERIMA KASIH ATAS KUNJUNGAN ANDA</p>
-                <p className="font-mono text-[8px] text-zinc-400">
+                <p className="font-mono text-[8px] text-slate-400">
                   REF: HMAC-{selectedTx.id?.slice(0, 8)} • 2NDMANAGER.COM
                 </p>
               </div>
@@ -582,17 +584,17 @@ export default function AdminTransactionsPage() {
               <button
                 type="button"
                 onClick={() => setIsReceiptModalOpen(false)}
-                className="flex-1 bg-[#161F36] text-slate-300 border border-[#334155] py-2 text-xs font-bold uppercase"
+                className="flex-1 bg-white hover:bg-slate-100 text-slate-800 border-2 border-slate-800 rounded-xl py-2.5 text-xs font-mono font-bold uppercase shadow-[2px_2px_0_#1E293B] cursor-pointer"
               >
                 TUTUP
               </button>
               <button
                 type="button"
                 onClick={handlePrintThermal}
-                className="flex-1 bg-[#CCFF00] text-black border-2 border-black py-2 text-xs font-black uppercase shadow-[2px_2px_0px_#000000] flex items-center justify-center gap-1.5"
+                className="flex-1 bg-[#CCFF00] hover:bg-[#b8e600] text-slate-900 border-2 border-slate-800 rounded-xl py-2.5 text-xs font-mono font-black uppercase shadow-[2px_2px_0_#1E293B] flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Printer size={13} />
-                <span>CETAK ULANG STRUK</span>
+                <Printer size={14} />
+                <span>CETAK STRUK</span>
               </button>
             </div>
           </div>
