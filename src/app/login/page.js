@@ -54,7 +54,7 @@ function LoginContent() {
     let targetUrl = redirectTo;
     if (!targetUrl) {
       if (isSuperadmin) {
-        targetUrl = '/admin/dashboard';
+        targetUrl = '/admin';
       } else {
         try {
           const { data: profile } = await supabase
@@ -62,9 +62,9 @@ function LoginContent() {
             .select('role')
             .eq('id', authData?.user?.id)
             .single();
-          targetUrl = profile?.role === 'CASHIER' ? '/pos' : '/dashboard';
+          targetUrl = profile?.role === 'CASHIER' ? '/pos' : '/admin';
         } catch {
-          targetUrl = '/dashboard';
+          targetUrl = '/admin';
         }
       }
     }
@@ -125,7 +125,7 @@ function LoginContent() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined,
+          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/admin` : undefined,
         },
       });
       if (error) throw error;
