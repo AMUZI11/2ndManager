@@ -1,426 +1,642 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import { SUBSCRIPTION_PLANS, ADD_ONS, normalizePlan } from '@/lib/subscription';
-import { Sparkles, ShieldCheck, Check, X, AlertCircle, Upload, CheckCircle2, Clock, ArrowLeft } from 'lucide-react';
+import {
+  ShieldCheck,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  ArrowLeft,
+  Copy,
+  Check,
+  Zap,
+  Key,
+  QrCode,
+  Receipt,
+  MessageSquare,
+  AlertTriangle,
+  Building2,
+  Lock,
+  RefreshCw,
+} from 'lucide-react';
+
+const CATALOG_PLANS = [
+  {
+    key: 'SUPERVISOR',
+    name: 'Supervisor Shift',
+    priceRp: 49000,
+    priceLabel: 'Rp 49.000',
+    period: '/ bulan',
+    badge: 'KASIR TUNGGAL',
+    features: [
+      'Bebas Kuota Bon & Bon Kasbon Pelanggan',
+      'Alarm HPP Kulakan (Margin Guard)',
+      'Konversi Satuan Grosir (Multi-Unit 15 SKU)',
+      'Notifikasi WhatsApp Tagihan',
+      'Pencatatan Pinjaman Tabung Gas & Galon (20 Item)',
+      'Sinkronisasi Background Sync POS Otomatis',
+    ],
+    borderCol: '#38BDF8',
+    bgCol: '#0369A1',
+  },
+  {
+    key: 'MANAJER',
+    name: 'Manajer Operasional',
+    priceRp: 149000,
+    priceLabel: 'Rp 149.000',
+    period: '/ bulan',
+    badge: 'WARUNG RAMAI',
+    isPopular: true,
+    features: [
+      'Seluruh Fitur Paket Supervisor',
+      'Hingga 5 Perangkat Terminal Kasir Bersamaan',
+      'Hard Block Bon Minus (Negative Margin Hard Block)',
+      'Smart Reorder Prediksi Kulakan Cerdas',
+      'Kunci Kasir Jarak Jauh (Remote Kill-Switch)',
+      'Laporan Pajak PP 55/2022 & Keuangan SAK EMKM',
+    ],
+    borderCol: '#F59E0B',
+    bgCol: '#B45309',
+  },
+  {
+    key: 'EKSEKUTIF',
+    name: 'Eksekutif Multi-Cabang',
+    priceRp: 399000,
+    priceLabel: 'Rp 399.000',
+    period: '/ bulan',
+    badge: 'MULTI-GERAI B2B',
+    features: [
+      'Seluruh Fitur Paket Manajer Operasional',
+      'Kelola Hingga 3 Cabang Toko Fisik Mandiri',
+      'Mutasi Antar-Cabang Two-Phase (PIN & Barcode)',
+      'Pencatatan Susut Barang di Jalan (Transit Shrinkage)',
+      'Generator Berkas Pengajuan Kredit KUR Bank (QR Seal)',
+      'Radar Keamanan Konsolidasi Seluruh Cabang',
+    ],
+    borderCol: '#CCFF00',
+    bgCol: '#4D7C0F',
+  },
+];
+
+const BANK_ACCOUNTS = [
+  { bank: 'BCA', number: '8010-8899-22', holder: 'PT 2NDMANAGER TEKNOLOGI' },
+  { bank: 'MANDIRI', number: '137-00-998877-1', holder: 'PT 2NDMANAGER TEKNOLOGI' },
+  { bank: 'BRI', number: '0341-01-002233-50-9', holder: 'PT 2NDMANAGER TEKNOLOGI' },
+  { bank: 'BSI', number: '7199-8822-01', holder: 'PT 2NDMANAGER TEKNOLOGI' },
+];
 
 export default function BillingPage() {
-  const supabase = createClient();
-
   const [loading, setLoading] = useState(true);
-  const [billingData, setBillingData] = useState(null);
-  const [selectedPlan, setSelectedPlan] = useState('EKSEKUTIF');
-  
-  const [file, setFile] = useState(null);
-  const [filePreview, setFilePreview] = useState(null);
+  const [subStatus, setSubStatus] = useState(null);
+  const [selectedCatalog, setSelectedCatalog] = useState('MANAJER');
 
-  const [uploading, setUploading] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  // 4x4 Segmented Input State
+  const [segments, setSegments] = useState(['2NDM', '', '', '']);
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [redeemError, setRedeemError] = useState('');
+  const [redeemSuccess, setRedeemSuccess] = useState(null);
 
-  const fetchBillingData = async () => {
+  // Copy feedback state
+  const [copiedKey, setCopiedKey] = useState('');
+
+  const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
+
+  const fetchSubscriptionStatus = async () => {
     try {
       setLoading(true);
-      setErrorMessage('');
-
-      const res = await fetch('/api/v1/billing');
+      const res = await fetch('/api/v1/billing/status', { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
         if (json?.data) {
-          const planKey = normalizePlan(json.data.plan || json.data.tier || json.data.subscription?.plan);
-          setBillingData({
-            subscription: json.data.subscription || { plan: planKey },
-            proofs: json.data.payment_proofs || [],
-            shopName: json.data.shop_name || 'Toko Saya',
-            currentBranches: json.data.branch_count || 1,
-            currentCashiers: json.data.cashier_limit || json.data.cashier_count || 1,
-          });
-          setSelectedPlan(planKey === 'MAGANG' ? 'EKSEKUTIF' : planKey);
+          setSubStatus(json.data);
           return;
         }
       }
-
-      // Default fallback
-      setBillingData({
-        subscription: { plan: 'MAGANG' },
-        proofs: [],
-        shopName: 'Toko Saya',
-        currentBranches: 1,
-        currentCashiers: 1,
+      setSubStatus({
+        tier: 'MAGANG',
+        is_in_grace: false,
+        is_expired: false,
+        days_remaining: 0,
+        active_branches_allowed: 1,
+        organization_name: 'Warung Saya',
+        history: [],
       });
-      setSelectedPlan('EKSEKUTIF');
     } catch (err) {
-      console.warn("[Billing fetch fallback]", err);
-      setBillingData({
-        subscription: { plan: 'MAGANG' },
-        proofs: [],
-        shopName: 'Toko Saya',
-        currentBranches: 1,
-        currentCashiers: 1,
-      });
-      setSelectedPlan('EKSEKUTIF');
+      console.warn('[Billing Status Fetch Error]', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchBillingData();
-
-    const handlePlanUpdate = () => {
-      fetchBillingData();
-    };
-    window.addEventListener('hl-plan-changed', handlePlanUpdate);
-    return () => window.removeEventListener('hl-plan-changed', handlePlanUpdate);
+    fetchSubscriptionStatus();
   }, []);
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (!selectedFile) return;
+  // Segmented input change handler
+  const handleSegmentChange = (index, value) => {
+    setRedeemError('');
+    setRedeemSuccess(null);
 
-    if (!selectedFile.type.startsWith('image/')) {
-      setErrorMessage('Hanya file gambar yang diizinkan (JPG/PNG).');
-      return;
+    const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+    const newSegs = [...segments];
+    newSegs[index] = clean;
+    setSegments(newSegs);
+
+    // Auto advance saat 4 karakter terisi
+    if (clean.length === 4 && index < 3) {
+      inputRefs[index + 1].current?.focus();
     }
-
-    if (selectedFile.size > 2 * 1024 * 1024) {
-      setErrorMessage('Ukuran file maksimal 2MB.');
-      return;
-    }
-
-    setFile(selectedFile);
-    setErrorMessage('');
-    
-    const reader = new FileReader();
-    reader.onload = (e) => setFilePreview(e.target.result);
-    reader.readAsDataURL(selectedFile);
   };
 
-  const handleUploadProof = async () => {
-    if (!file) {
-      setErrorMessage('Pilih bukti transfer terlebih dahulu.');
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !segments[index] && index > 0) {
+      inputRefs[index - 1].current?.focus();
+    }
+  };
+
+  // Smart Paste Handler: paste 16-19 chars into any block
+  const handlePaste = (e) => {
+    e.preventDefault();
+    setRedeemError('');
+    setRedeemSuccess(null);
+
+    const pasted = e.clipboardData.getData('text');
+    if (!pasted) return;
+
+    // Bersihkan dash, spasi, dan karakter non-alphanumeric
+    const clean = pasted.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+    if (clean.length >= 16) {
+      const seg0 = clean.slice(0, 4);
+      const seg1 = clean.slice(4, 8);
+      const seg2 = clean.slice(8, 12);
+      const seg3 = clean.slice(12, 16);
+      setSegments([seg0, seg1, seg2, seg3]);
+      inputRefs[3].current?.focus();
+    } else if (clean.length > 0) {
+      // Paste sebagian
+      const newSegs = [...segments];
+      newSegs[0] = clean.slice(0, 4);
+      if (clean.length > 4) newSegs[1] = clean.slice(4, 8);
+      if (clean.length > 8) newSegs[2] = clean.slice(8, 12);
+      if (clean.length > 12) newSegs[3] = clean.slice(12, 16);
+      setSegments(newSegs);
+    }
+  };
+
+  // Submit Activation
+  const handleRedeem = async (e) => {
+    e?.preventDefault();
+    setRedeemError('');
+    setRedeemSuccess(null);
+
+    const fullCode = segments.join('-').toUpperCase();
+    if (fullCode.length !== 19 || segments.some((s) => s.length !== 4)) {
+      setRedeemError('Harap lengkapi seluruh 4 kotak kode voucher lisensi (16 karakter).');
       return;
     }
 
     try {
-      setUploading(true);
-      setErrorMessage('');
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('plan_requested', selectedPlan);
-
-      const res = await fetch('/api/v1/billing', {
+      setIsRedeeming(true);
+      const res = await fetch('/api/v1/billing/activate', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokenCode: fullCode }),
       });
 
       const json = await res.json();
-
       if (!res.ok || json.error) {
-        throw new Error(json.message || json.error?.message || 'Gagal mengupload bukti pembayaran.');
+        throw new Error(json.message || 'Gagal mengaktifkan voucher lisensi.');
       }
 
-      setToastMessage('Bukti transfer berhasil dikirim! Menunggu verifikasi tim 2ndManager.');
-      setFile(null);
-      setFilePreview(null);
-      fetchBillingData();
-      
-      setTimeout(() => setToastMessage(''), 5000);
+      setRedeemSuccess(json.data || { message: 'Lisensi berhasil diaktifkan!' });
+      setSegments(['2NDM', '', '', '']);
+      inputRefs[1].current?.focus();
+      await fetchSubscriptionStatus();
     } catch (err) {
-      console.error("[Upload error]", err);
-      setErrorMessage(err.message || 'Gagal mengupload bukti transfer. Coba lagi.');
+      setRedeemError(err.message || 'Terjadi kesalahan koneksi.');
     } finally {
-      setUploading(false);
+      setIsRedeeming(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 space-y-3">
-        <div className="w-10 h-10 border-4 border-slate-900 border-t-[#CCFF00] rounded-full animate-spin" />
-        <p className="font-mono text-xs uppercase tracking-widest font-bold text-slate-700">Memuat data kontrak langganan...</p>
-      </div>
-    );
-  }
+  const copyToClipboard = (text, key) => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(''), 3000);
+    }
+  };
+
+  const currentTier = (subStatus?.tier || 'MAGANG').toUpperCase();
+  const isInGrace = Boolean(subStatus?.is_in_grace);
+  const isExpired = Boolean(subStatus?.is_expired);
+  const daysRemaining = subStatus?.days_remaining ?? 0;
+
+  const currentCatalogPlan = CATALOG_PLANS.find((p) => p.key === selectedCatalog) || CATALOG_PLANS[1];
+
+  const waMessage = encodeURIComponent(
+    `Halo Admin 2ndManager, saya ingin konfirmasi pembayaran lisensi:\n\n` +
+      `*Nama Usaha:* ${subStatus?.organization_name || 'Toko 2ndManager'}\n` +
+      `*Paket:* ${currentCatalogPlan.name} (${currentCatalogPlan.priceLabel})\n` +
+      `*Metode:* Transfer Bank / QRIS Statis\n\n` +
+      `Mohon kirimkan kode voucher aktivasi 16-digit setelah dana terverifikasi. Terima kasih!`
+  );
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 pb-32 font-sans space-y-8">
+    <div className="min-h-screen bg-[#07090E] text-slate-100 p-4 sm:p-6 lg:p-8 font-sans pb-32">
       <div className="max-w-7xl mx-auto space-y-8">
-        
-        {/* PAGE HEADER */}
-        <div className="bg-white p-6 sm:p-8 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B]">
-          <div className="mb-4">
+        {/* Navigation & Header */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="btn-arcade inline-flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] rounded-xl font-mono text-xs font-bold uppercase transition-all cursor-pointer"
+              className="flex items-center gap-2 px-3 py-1.5 bg-[#0B0F17] hover:bg-slate-800 text-slate-300 hover:text-white font-mono text-xs font-bold border-2 border-slate-700 shadow-[2px_2px_0px_#1E293B] transition-all"
             >
-              <ArrowLeft size={14} /> Kembali ke Dashboard
+              <ArrowLeft size={14} strokeWidth={2.5} />
+              <span>DASHBOARD</span>
             </Link>
+            <div className="h-4 w-px bg-slate-700" />
+            <span className="font-mono text-xs font-bold text-slate-400 uppercase tracking-wider">
+              PORTAL LISENSI & PEMBAYARAN MANDIRI
+            </span>
           </div>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 border border-slate-300 rounded-lg text-slate-800 font-mono text-[10px] font-bold uppercase mb-2">
-                <ShieldCheck size={14} className="text-slate-800" /> KONTRAK &amp; LISENSI
-              </div>
-              <h1 className="font-display font-black text-2xl sm:text-3xl lg:text-4xl uppercase text-slate-900 tracking-tight">
-                PILIH MANAJER TOKO ANDA
-              </h1>
-              <p className="font-sans text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl">
-                Semakin tinggi level kontrak, semakin ketat sistem mengawal omzet, mencegah kecurangan kasir, dan menagih piutang secara otomatis.
-              </p>
-            </div>
-            
-            <div className="bg-slate-50 border-2 border-slate-800 rounded-xl p-3 px-4 shadow-[2px_2px_0px_#1E293B] shrink-0">
-              <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">Kontrak Aktif:</span>
-              <p className="text-sm font-mono font-black text-slate-900 uppercase">
-                {billingData?.subscription?.plan || 'MAGANG'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* 4 TIER CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
-          
-          {/* MAGANG (Rp 0) */}
-          <div className="bg-white border-2 border-dashed border-slate-300 rounded-2xl p-6 flex flex-col justify-between opacity-80">
-            <div>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-100 px-2 py-0.5 rounded">TIER 0</span>
-              <h3 className="font-display font-black text-lg uppercase text-slate-700 mt-2">Kontrak Magang</h3>
-              <p className="font-mono text-2xl font-black text-slate-500 mt-2 tabular-nums">Rp 0</p>
-              <p className="font-mono text-[11px] text-slate-500">/bulan • 50 struk limit</p>
-              
-              <div className="mt-4 space-y-1.5 border-t border-slate-200 pt-4">
-                {SUBSCRIPTION_PLANS?.MAGANG?.feature_list?.map((f, i) => (
-                  <div key={i} className={`flex items-start gap-2 font-mono text-xs py-0.5 ${f.included ? 'text-slate-700' : 'text-slate-400 line-through'}`}>
-                    <span className="font-bold">{f.included ? '✓' : '✗'}</span>
-                    <span>{f.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button disabled className="w-full border-2 border-slate-300 text-slate-400 font-mono font-bold uppercase py-2.5 mt-6 rounded-xl cursor-not-allowed text-xs">
-              PAKET STANDAR
-            </button>
-          </div>
-
-          {/* SUPERVISOR (Rp 149k) */}
-          <div className={`bg-white border-2 border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-[4px_4px_0px_#1E293B] transition-all ${
-            selectedPlan === 'SUPERVISOR' ? 'ring-2 ring-slate-900 bg-amber-50/20' : ''
-          }`}>
-            <div>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">TIER 1</span>
-              <h3 className="font-display font-black text-lg uppercase text-slate-900 mt-2">Kontrak Supervisor</h3>
-              <p className="font-mono text-2xl font-black text-slate-900 mt-2 tabular-nums">Rp 149.000</p>
-              <p className="font-mono text-[11px] text-slate-500">/bulan • 2 kasir, 1 cabang</p>
-              
-              <div className="mt-4 space-y-1.5 border-t border-slate-200 pt-4">
-                {SUBSCRIPTION_PLANS?.SUPERVISOR?.feature_list?.map((f, i) => (
-                  <div key={i} className={`flex items-start gap-2 font-mono text-xs py-0.5 ${f.included ? 'text-slate-800 font-semibold' : 'text-slate-400 line-through'}`}>
-                    <span className="font-bold">{f.included ? '✓' : '✗'}</span>
-                    <span>{f.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button 
-              onClick={() => setSelectedPlan('SUPERVISOR')} 
-              className={`btn-arcade w-full border-2 border-slate-800 font-mono font-bold uppercase py-2.5 mt-6 rounded-xl transition-all text-xs cursor-pointer ${
-                selectedPlan === 'SUPERVISOR' 
-                  ? 'bg-slate-900 text-[#CCFF00] shadow-[2px_2px_0px_#1E293B]' 
-                  : 'bg-white text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              {selectedPlan === 'SUPERVISOR' ? '✓ DIPILIH' : 'PILIH SUPERVISOR'}
-            </button>
-          </div>
-
-          {/* MANAJER (Rp 349k) */}
-          <div className={`bg-white border-2 border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-[4px_4px_0px_#1E293B] transition-all ${
-            selectedPlan === 'MANAJER' ? 'ring-2 ring-slate-900 bg-emerald-50/20' : ''
-          }`}>
-            <div>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">TIER 2</span>
-              <h3 className="font-display font-black text-lg uppercase text-slate-900 mt-2">Kontrak Manajer</h3>
-              <p className="font-mono text-2xl font-black text-slate-900 mt-2 tabular-nums">Rp 349.000</p>
-              <p className="font-mono text-[11px] text-slate-500">/bulan • 5 kasir, 1 cabang, radar</p>
-              
-              <div className="mt-4 space-y-1.5 border-t border-slate-200 pt-4">
-                {SUBSCRIPTION_PLANS?.MANAJER?.feature_list?.map((f, i) => (
-                  <div key={i} className={`flex items-start gap-2 font-mono text-xs py-0.5 ${f.included ? 'text-slate-800 font-semibold' : 'text-slate-400 line-through'}`}>
-                    <span className="font-bold">{f.included ? '✓' : '✗'}</span>
-                    <span>{f.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button 
-              onClick={() => setSelectedPlan('MANAJER')} 
-              className={`btn-arcade w-full border-2 border-slate-800 font-mono font-bold uppercase py-2.5 mt-6 rounded-xl transition-all text-xs cursor-pointer ${
-                selectedPlan === 'MANAJER' 
-                  ? 'bg-slate-900 text-[#CCFF00] shadow-[2px_2px_0px_#1E293B]' 
-                  : 'bg-white text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              {selectedPlan === 'MANAJER' ? '✓ DIPILIH' : 'PILIH MANAJER'}
-            </button>
-          </div>
-
-          {/* EKSEKUTIF (Rp 399k) */}
-          <div className="bg-[#CCFF00] border-4 border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-[8px_8px_0px_#1E293B] relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-slate-900 text-[#CCFF00] font-mono text-[9px] font-black uppercase px-3 py-1 rounded-bl-xl tracking-widest border-l-2 border-b-2 border-slate-800">
-              REKOMENDASI MUTLAK
-            </div>
-            
-            <div>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-900 bg-white/70 px-2 py-0.5 rounded border border-slate-800">TIER 3 (VIP)</span>
-              <p className="font-mono text-[10px] font-black uppercase tracking-wider text-slate-900 mt-2">CUMA +RP 50.000 DARI MANAJER</p>
-              <h3 className="font-display font-black text-xl uppercase text-slate-900 mt-0.5">Kontrak Eksekutif</h3>
-              
-              <p className="font-mono text-3xl sm:text-4xl font-black text-slate-900 mt-2 tabular-nums">Rp 399.000</p>
-              <p className="font-mono text-[11px] text-slate-800 font-bold">/bulan • 10 kasir, 3 cabang, auto-WA 06:00</p>
-              
-              <div className="mt-4 space-y-1.5 border-t border-slate-900/30 pt-4">
-                {SUBSCRIPTION_PLANS?.EKSEKUTIF?.feature_list?.map((f, i) => (
-                  <div key={i} className="flex items-start gap-2 font-mono text-xs py-0.5 font-bold text-slate-900">
-                    <span className="text-slate-900">{f.star ? '★' : '✓'}</span>
-                    <span>{f.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <button
-              onClick={() => setSelectedPlan('EKSEKUTIF')}
-              className={`btn-arcade w-full bg-slate-900 text-[#CCFF00] border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] font-mono font-black uppercase py-3 mt-6 rounded-xl cursor-pointer text-xs sm:text-sm transition-all ${
-                selectedPlan === 'EKSEKUTIF' ? 'ring-2 ring-slate-900' : ''
-              }`}
-            >
-              {selectedPlan === 'EKSEKUTIF' ? '✓ KONTRAK EKSEKUTIF TERPILIH' : 'TANDA TANGANI KONTRAK EKSEKUTIF'}
-            </button>
-          </div>
-        </div>
-
-        {/* PAYMENT PROOF UPLOAD SECTION */}
-        <div className="bg-white rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] p-6 sm:p-8 space-y-6">
-          <div className="border-b border-slate-200 pb-4">
-            <h2 className="font-display font-black text-lg sm:text-xl uppercase text-slate-900">Unggah Bukti Transfer Bank</h2>
-            <p className="font-sans text-xs text-slate-600 mt-1">Kirim bukti pembayaran untuk verifikasi &amp; aktivasi otomatis lisensi Anda.</p>
-          </div>
-          
-          <div className="border-2 border-slate-800 rounded-xl p-4 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[2px_2px_0px_#1E293B]">
-            <div>
-              <p className="font-mono text-[10px] uppercase font-bold text-slate-500 tracking-wider">PAKET TERPILIH</p>
-              <p className="font-mono text-lg font-black text-slate-900 mt-0.5">
-                {SUBSCRIPTION_PLANS?.[selectedPlan]?.name || selectedPlan} — {SUBSCRIPTION_PLANS?.[selectedPlan]?.price_formatted || '-'}
-              </p>
-            </div>
-            <div className="bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-mono text-slate-700">
-              <span className="font-bold text-slate-900">BCA:</span> 123-456-7890 (PT 2ndManager Indonesia)
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="block font-mono text-xs uppercase font-bold text-slate-800">
-              Bukti Transfer (Format JPG/PNG, maksimal 2MB)
-            </label>
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleFileChange} 
-              className="w-full bg-slate-50 border-2 border-slate-800 rounded-xl p-3 font-mono text-xs cursor-pointer focus:ring-2 focus:ring-[#CCFF00] outline-none" 
-            />
-            {filePreview && (
-              <div className="mt-3 p-2 bg-slate-100 rounded-xl border border-slate-300 inline-block">
-                <img src={filePreview} alt="Preview Bukti" className="border border-slate-800 rounded-lg max-h-48 object-contain" />
-              </div>
-            )}
-          </div>
-          
           <button
-            onClick={handleUploadProof}
-            disabled={uploading || !file}
-            className="btn-arcade w-full bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] font-mono font-black uppercase py-3.5 rounded-xl cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-xs sm:text-sm"
+            onClick={fetchSubscriptionStatus}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#0B0F17] hover:bg-slate-900 text-slate-400 hover:text-[#CCFF00] font-mono text-xs font-bold border-2 border-slate-800 transition-all cursor-pointer"
           >
-            {uploading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
-                <span>MENGUNGGAH BUKTI...</span>
-              </>
-            ) : (
-              <>
-                <Upload size={16} />
-                <span>KIRIM BUKTI PEMBAYARAN KONTRAK</span>
-              </>
-            )}
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} strokeWidth={2.5} />
+            <span>SINKRONKAN STATUS</span>
           </button>
-          
-          {toastMessage && (
-            <div className="font-mono text-xs text-slate-900 bg-emerald-100 border-2 border-emerald-600 p-3 rounded-xl flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-700 shrink-0" />
-              <span>{toastMessage}</span>
-            </div>
-          )}
-          {errorMessage && (
-            <div className="font-mono text-xs text-rose-900 bg-rose-50 border-2 border-rose-400 p-3 rounded-xl flex items-center gap-2">
-              <AlertCircle size={16} className="text-rose-600 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
         </div>
 
-        {/* ADD-ON SECTION */}
-        <div className="bg-white rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] p-6 sm:p-8 space-y-4">
-          <div className="border-b border-slate-200 pb-3">
-            <h2 className="font-display font-black text-lg uppercase text-slate-900">Ekstensi Add-On Kapasitas</h2>
-            <p className="font-sans text-xs text-slate-600 mt-0.5">Tambahan kapasitas kasir &amp; cabang di luar batas paket kontrak Anda.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            {ADD_ONS && Object.values(ADD_ONS).map(addon => (
-              <div key={addon.id} className="bg-slate-50 border-2 border-slate-800 rounded-xl p-4 shadow-[2px_2px_0px_#1E293B]">
-                <p className="font-mono font-bold text-xs uppercase text-slate-900">{addon.name}</p>
-                <p className="font-mono text-xl font-black text-slate-900 mt-1 tabular-nums">{addon.price_formatted}</p>
-                <p className="font-mono text-[10px] text-slate-500 mt-0.5">{addon.unit}</p>
+        {/* Arcade Brutalist Master Banner */}
+        <div className="relative bg-[#0B0F17] border-3 border-[#F59E0B] p-6 lg:p-8 shadow-[6px_6px_0px_#B45309] overflow-hidden">
+          <div className="absolute top-0 right-0 transform translate-x-8 -translate-y-8 w-48 h-48 bg-[#F59E0B]/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-950/80 border border-amber-500/60 text-amber-300 font-mono text-xs font-black uppercase tracking-widest">
+                <Sparkles size={13} className="text-[#F59E0B]" strokeWidth={2.5} />
+                MONETISASI MANDIRI RESILIEN
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* PAYMENT HISTORY */}
-        {billingData?.proofs?.length > 0 && (
-          <div className="bg-white rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] p-6 sm:p-8 space-y-4">
-            <div className="border-b border-slate-200 pb-3">
-              <h2 className="font-display font-black text-lg uppercase text-slate-900">Riwayat Pengajuan Kontrak</h2>
-              <p className="font-sans text-xs text-slate-600 mt-0.5">Status verifikasi pembayaran yang pernah dikirimkan.</p>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white uppercase font-mono">
+                PUSAT LISENSI & KONTRAK AKTIF
+              </h1>
+              <p className="text-sm sm:text-base text-slate-400 max-w-2xl">
+                Aktivasi instan via kode voucher kriptografis 16-digit. Tanpa ketergantungan payment gateway,
+                ramah operator muda, dan tahan pemadaman jaringan offline.
+              </p>
             </div>
-            <div className="space-y-2 pt-2">
-              {billingData.proofs.map((proof, i) => (
-                <div key={i} className="flex items-center justify-between border-b border-slate-100 pb-2.5 font-mono text-xs">
-                  <div className="flex items-center gap-2">
-                    <Clock size={14} className="text-slate-400" />
-                    <span className="font-bold text-slate-800">{proof.plan_requested || proof.plan}</span>
-                    <span className="text-slate-500">— {proof.amount_formatted || proof.amount || '-'}</span>
-                  </div>
-                  <span className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded border ${
-                    proof.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border-emerald-400' : 
-                    proof.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-400' : 
-                    'bg-amber-100 text-amber-800 border-amber-400'
-                  }`}>
-                    {proof.status}
+
+            {/* Speedometer Status Card */}
+            <div className="w-full lg:w-auto bg-[#07090E] border-2 border-slate-700 p-5 shadow-[4px_4px_0px_#0F172A] min-w-[280px]">
+              <div className="text-xs font-mono font-bold text-slate-500 uppercase">STATUS LANGGANAN ANDA</div>
+              <div className="mt-2 flex items-center gap-3">
+                <div
+                  className={`px-3 py-1 font-mono text-sm font-black border-2 ${
+                    currentTier === 'EKSEKUTIF'
+                      ? 'bg-lime-950 text-[#CCFF00] border-lime-500 shadow-[2px_2px_0px_#65A30D]'
+                      : currentTier === 'MANAJER'
+                      ? 'bg-amber-950 text-amber-300 border-amber-500 shadow-[2px_2px_0px_#D97706]'
+                      : currentTier === 'SUPERVISOR'
+                      ? 'bg-sky-950 text-sky-300 border-sky-500 shadow-[2px_2px_0px_#0284C7]'
+                      : 'bg-slate-900 text-slate-300 border-slate-700'
+                  }`}
+                >
+                  [ 🏆 TIER {currentTier} ]
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-800 space-y-1 font-mono text-xs">
+                <div className="flex justify-between text-slate-400">
+                  <span>Masa Aktif:</span>
+                  <span className="font-bold text-white">
+                    {isExpired ? 'Kedaluwarsa' : `Sisa ${daysRemaining} Hari`}
                   </span>
                 </div>
-              ))}
+                {subStatus?.expires_at && (
+                  <div className="flex justify-between text-slate-500">
+                    <span>Berlaku Hingga:</span>
+                    <span>{new Date(subStatus.expires_at).toLocaleDateString('id-ID')}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-slate-400">
+                  <span>Cabang Aktif:</span>
+                  <span className="font-bold text-[#CCFF00]">
+                    Maks {subStatus?.active_branches_allowed || 1} Cabang
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Grace Period Warning Banner */}
+          {isInGrace && (
+            <div className="mt-6 p-4 bg-amber-950/90 border-2 border-amber-500 text-amber-200 font-mono text-xs sm:text-sm font-bold flex items-center gap-3 animate-pulse shadow-[4px_4px_0px_#B45309]">
+              <AlertTriangle size={20} className="text-amber-400 shrink-0" strokeWidth={2.5} />
+              <div>
+                <span>[ ⚠️ PERINGATAN: MASA TENGGANG AKTIF - SEGERA AKTIFKAN VOUCHER ]</span>
+                <p className="font-sans font-normal text-amber-300 text-xs mt-0.5">
+                  Langganan Anda telah melewati batas waktu normal. Segera lakukan perpanjangan sebelum fitur
+                  multi-cabang dan radar dibekukan otomatis ke tier Magang (H+3).
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 4x4 Segmented Voucher Activation Box */}
+        <div className="bg-[#0B0F17] border-3 border-slate-700 p-6 lg:p-8 shadow-[6px_6px_0px_#1E293B] space-y-6">
+          <div className="flex items-center gap-3 border-b-2 border-slate-800 pb-4">
+            <div className="p-2 bg-amber-500/10 border-2 border-amber-500/40 text-[#F59E0B]">
+              <Key size={20} strokeWidth={2.5} />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-mono font-black uppercase text-white tracking-wide">
+                AKTIVASI VOUCHER LISENSI 16-DIGIT
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400">
+                Masukkan kode voucher fisik / digital bertanda tangan HMAC yang Anda peroleh dari admin atau mitra.
+              </p>
+            </div>
+          </div>
+
+          {redeemSuccess && (
+            <div className="p-4 bg-lime-950/80 border-2 border-lime-500 text-lime-200 font-mono text-sm flex items-start gap-3 shadow-[4px_4px_0px_#4D7C0F]">
+              <CheckCircle2 size={20} className="text-[#CCFF00] shrink-0 mt-0.5" strokeWidth={2.5} />
+              <div>
+                <span className="font-black text-[#CCFF00]">
+                  [ ⚡ AKTIVASI BERHASIL: TIER {redeemSuccess.tier} AKTIF ]
+                </span>
+                <p className="font-sans text-xs text-lime-300 mt-1">
+                  {redeemSuccess.message || 'Masa aktif langganan Anda berhasil diperpanjang.'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {redeemError && (
+            <div className="p-4 bg-red-950/80 border-2 border-red-500 text-red-200 font-mono text-sm flex items-start gap-3 shadow-[4px_4px_0px_#991B1B]">
+              <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" strokeWidth={2.5} />
+              <div>
+                <span className="font-black text-red-400">[ ❌ GAGAL AKTIVASI ]</span>
+                <p className="font-sans text-xs text-red-300 mt-1">{redeemError}</p>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleRedeem} className="space-y-6">
+            <div className="space-y-2">
+              <label className="block text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">
+                KODE VOUCHER (4 KOTAK MONOSPACE - AUTO ADVANCE & PASTE READY)
+              </label>
+
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3" onPaste={handlePaste}>
+                {segments.map((seg, idx) => (
+                  <React.Fragment key={idx}>
+                    <input
+                      ref={inputRefs[idx]}
+                      type="text"
+                      maxLength={4}
+                      value={seg}
+                      onChange={(e) => handleSegmentChange(idx, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(idx, e)}
+                      placeholder={idx === 0 ? '2NDM' : 'XXXX'}
+                      className="w-20 sm:w-28 h-14 bg-[#07090E] border-2 border-slate-600 focus:border-[#CCFF00] focus:ring-2 focus:ring-[#CCFF00]/20 text-center font-mono text-xl sm:text-2xl font-black text-[#CCFF00] tracking-widest uppercase outline-none shadow-[3px_3px_0px_#0F172A] transition-all"
+                    />
+                    {idx < 3 && <span className="font-mono text-2xl font-black text-slate-600">-</span>}
+                  </React.Fragment>
+                ))}
+              </div>
+              <p className="text-[11px] font-mono text-slate-500">
+                Tips: Anda dapat langsung menekan tombol Paste (Ctrl+V) kode lengkap 16 karakter ke kotak mana saja.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isRedeeming}
+              className="px-6 py-3.5 bg-[#CCFF00] hover:bg-[#b8e600] active:translate-x-[2px] active:translate-y-[2px] text-slate-950 font-mono text-sm font-black border-2 border-black shadow-[4px_4px_0px_#000000] flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+            >
+              {isRedeeming ? (
+                <>
+                  <RefreshCw size={16} className="animate-spin" strokeWidth={2.5} />
+                  <span>MEMVALIDASI KRIPTOGRAFI...</span>
+                </>
+              ) : (
+                <>
+                  <Zap size={16} strokeWidth={2.5} />
+                  <span>[ ⚡ AKTIFKAN VOUCHER SEKARANG ]</span>
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Subscription Packages Catalog */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl sm:text-2xl font-mono font-black uppercase text-white tracking-wide">
+              KATALOG PAKET LANGGANAN RESMI
+            </h2>
+            <span className="font-mono text-xs text-slate-400">PILIH SESUAI KEBUTUHAN SKALA USAHA</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {CATALOG_PLANS.map((plan) => {
+              const isSelected = selectedCatalog === plan.key;
+              const isCurrent = currentTier === plan.key;
+
+              return (
+                <div
+                  key={plan.key}
+                  onClick={() => setSelectedCatalog(plan.key)}
+                  className={`cursor-pointer transition-all border-3 p-6 flex flex-col justify-between relative ${
+                    isSelected
+                      ? 'bg-[#0E1524] shadow-[6px_6px_0px_#38BDF8]'
+                      : 'bg-[#0B0F17] hover:bg-[#0E121C] shadow-[4px_4px_0px_#1E293B]'
+                  }`}
+                  style={{ borderColor: isSelected ? plan.borderCol : '#334155' }}
+                >
+                  {plan.isPopular && (
+                    <div className="absolute -top-3 right-4 px-3 py-0.5 bg-[#F59E0B] text-black font-mono text-[10px] font-black uppercase border border-black shadow-[2px_2px_0px_#000]">
+                      PALING BANYAK DIGUNAKAN
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-black px-2.5 py-1 bg-slate-900 border border-slate-700 text-slate-300">
+                        {plan.badge}
+                      </span>
+                      {isCurrent && (
+                        <span className="font-mono text-xs font-black text-[#CCFF00] flex items-center gap-1">
+                          <CheckCircle2 size={13} strokeWidth={2.5} /> PAKET AKTIF
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-mono font-black text-white">{plan.name}</h3>
+                      <div className="mt-2 flex items-baseline gap-1">
+                        <span className="text-2xl sm:text-3xl font-mono font-black text-[#CCFF00]">
+                          {plan.priceLabel}
+                        </span>
+                        <span className="text-xs font-mono text-slate-400">{plan.period}</span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-800 pt-4 space-y-2">
+                      {plan.features.map((feat, fIdx) => (
+                        <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-300">
+                          <Check size={14} className="text-[#CCFF00] shrink-0 mt-0.5" strokeWidth={2.5} />
+                          <span>{feat}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-800">
+                    <button
+                      type="button"
+                      className={`w-full py-2.5 font-mono text-xs font-bold border-2 transition-all ${
+                        isSelected
+                          ? 'bg-[#CCFF00] text-black border-black shadow-[3px_3px_0px_#000]'
+                          : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500'
+                      }`}
+                    >
+                      {isSelected ? '[ PILIHAN TERPILIH ]' : 'PILIH PAKET INI'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Frictionless Grassroots Payment Portal */}
+        <div className="bg-[#0B0F17] border-3 border-slate-700 p-6 lg:p-8 shadow-[6px_6px_0px_#1E293B] space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-slate-800 pb-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-sky-950 border border-sky-500/60 text-sky-300 font-mono text-[11px] font-black uppercase mb-1">
+                <Receipt size={13} strokeWidth={2.5} /> PEER-TO-PEER PAYMENT GATE
+              </div>
+              <h2 className="text-lg sm:text-xl font-mono font-black uppercase text-white tracking-wide">
+                PORTAL PEMBAYARAN MANUAL (TRANSFER & QRIS STATIS)
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400">
+                Pilihan paket terpilih: <span className="font-bold text-white">{currentCatalogPlan.name}</span> (
+                <span className="font-bold text-[#CCFF00]">{currentCatalogPlan.priceLabel}</span>)
+              </p>
+            </div>
+
+            <a
+              href={`https://wa.me/6281234567890?text=${waMessage}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#20bd5a] text-black font-mono text-xs font-black border-2 border-black shadow-[3px_3px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+            >
+              <MessageSquare size={16} strokeWidth={2.5} />
+              <span>[ 💬 KONFIRMASI PEMBAYARAN VIA WHATSAPP ]</span>
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Rekening Transfer Bank */}
+            <div className="lg:col-span-2 space-y-3">
+              <span className="block text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
+                REKENING TRANSFER RESMI
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {BANK_ACCOUNTS.map((acc) => (
+                  <div
+                    key={acc.bank}
+                    className="p-4 bg-[#07090E] border-2 border-slate-700 space-y-2 relative shadow-[2px_2px_0px_#0F172A]"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-black text-amber-400">{acc.bank}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(acc.number.replace(/-/g, ''), acc.bank)}
+                        className="flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        {copiedKey === acc.bank ? (
+                          <>
+                            <Check size={12} className="text-[#CCFF00]" strokeWidth={2.5} />
+                            <span className="text-[#CCFF00]">TERSALIN</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={12} strokeWidth={2.5} />
+                            <span>SALIN</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <div className="font-mono text-base font-black text-white tracking-wider">{acc.number}</div>
+                    <div className="text-[11px] text-slate-500 font-mono uppercase">A.N. {acc.holder}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* QRIS Statis Visual Placeholder */}
+            <div className="p-4 bg-[#07090E] border-2 border-slate-700 flex flex-col items-center justify-center text-center space-y-3 shadow-[2px_2px_0px_#0F172A]">
+              <div className="p-3 bg-white border-2 border-black inline-block">
+                <QrCode size={96} className="text-black" strokeWidth={2} />
+              </div>
+              <div>
+                <div className="font-mono text-xs font-black text-white uppercase">QRIS STANDAR INDONESIA</div>
+                <div className="text-[11px] font-mono text-slate-400 mt-0.5">NMID: ID1020304050607</div>
+              </div>
+              <p className="text-[10px] text-slate-500 max-w-[220px]">
+                Dapat dipindai oleh seluruh e-wallet (GoPay, OVO, Dana, ShopeePay) dan m-Banking.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Voucher Redemption History */}
+        {subStatus?.history && subStatus.history.length > 0 && (
+          <div className="bg-[#0B0F17] border-2 border-slate-800 p-6 space-y-4">
+            <h3 className="text-sm font-mono font-black uppercase text-slate-300 tracking-wider">
+              RIWAYAT VOUCHER YANG PERNAH DIAKTIFKAN
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-mono text-xs">
+                <thead>
+                  <tr className="border-b-2 border-slate-800 text-slate-500">
+                    <th className="py-2 px-3">KODE VOUCHER</th>
+                    <th className="py-2 px-3">TIER</th>
+                    <th className="py-2 px-3">DURASI</th>
+                    <th className="py-2 px-3">TANGGAL AKTIVASI</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {subStatus.history.map((h) => (
+                    <tr key={h.id || h.token_code} className="hover:bg-slate-900/40">
+                      <td className="py-2.5 px-3 font-bold text-[#CCFF00]">{h.token_code}</td>
+                      <td className="py-2.5 px-3">
+                        <span className="px-2 py-0.5 bg-slate-800 border border-slate-700 text-slate-300 font-bold">
+                          {h.tier_id}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-400">{h.duration_days} Hari</td>
+                      <td className="py-2.5 px-3 text-slate-500">
+                        {h.redeemed_at ? new Date(h.redeemed_at).toLocaleString('id-ID') : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
 }
-

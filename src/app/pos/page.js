@@ -3,11 +3,12 @@ export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Barcode, Search, ShoppingBag, Plus, Minus, Trash2, CheckCircle2,
   Printer, Send, RefreshCw, LogOut, ArrowLeft, Store, UserCheck,
   AlertTriangle, ShieldCheck, AlertCircle, Sparkles, CreditCard, Wallet,
-  Package, Lock, Wifi, WifiOff, PiggyBank, Coins, Monitor, X, Zap
+  Package, Lock, Wifi, WifiOff, PiggyBank, Coins, Monitor, X, Zap, Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
@@ -47,6 +48,7 @@ import {
 } from '@/utils/posOfflineDb';
 import { initPosSyncListeners, syncOfflineData } from '@/utils/posSyncEngine';
 import { checkAutoUnpackEligibility, applyOptimisticAutoUnpack } from '@/utils/posEngine';
+import { detectClockTampering, updateMonotonicClock, syncTimeFromServer } from '@/utils/clockGuard';
 
 // Web Audio API beep sound for barcode scanner feedback
 function playScannerBeep() {
@@ -269,6 +271,29 @@ export default function PosPage() {
 
   // ── Network Status & Background Sync Engine Listener ───────────────────────
   const [isOnline, setIsOnline] = useState(() => typeof window !== 'undefined' ? navigator.onLine : true);
+
+  // ── Tahap 10: Clock Guard & License Grace Period State ──────────────────────
+  const [clockStatus, setClockStatus] = useState({ isTampered: false, deltaMinutes: 0 });
+  const [isSubscriptionInGrace, setIsSubscriptionInGrace] = useState(false);
+
+  useEffect(() => {
+    const verifyClockAndLicense = async () => {
+      const status = detectClockTampering();
+      setClockStatus(status);
+
+      try {
+        const res = await fetch('/api/v1/billing/status', { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          setIsSubscriptionInGrace(Boolean(json?.data?.is_in_grace));
+        }
+      } catch {}
+    };
+
+    verifyClockAndLicense();
+    const interval = setInterval(verifyClockAndLicense, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -1022,6 +1047,8 @@ export default function PosPage() {
           });
         });
 
+        updateMonotonicClock(new Date().toISOString());
+
         setCompletedTx({
           id: txId,
           nomor_bon: nomorBon.trim(),
@@ -1073,6 +1100,7 @@ export default function PosPage() {
 
       if (res.success) {
         setOwnerPinOverride(null);
+        updateMonotonicClock(new Date().toISOString());
         setCompletedTx({
           ...res.data,
           cart_snapshot: cartItems,
@@ -1135,6 +1163,14 @@ export default function PosPage() {
       paymentPhaseStartTimeRef.current = Date.now();
     }
     setErrorMessage('');
+
+    // Tahap 10: Anti-Clock Tampering Check (Offline Checkout Lock)
+    const currentClockStatus = detectClockTampering();
+    if (currentClockStatus.isTampered && !isOnline) {
+      setErrorMessage(`Transaksi offline diblokir karena jam sistem komputer/HP Anda lebih lambat ${currentClockStatus.deltaMinutes} menit dari transaksi terakhir. Harap sinkronkan jam perangkat Anda.`);
+      return;
+    }
+
     if (cartItems.length === 0) {
       setErrorMessage('Keranjang masih kosong.');
       return;
@@ -1641,6 +1677,55 @@ export default function PosPage() {
           </button>
         </div>
       </header>
+
+      {/* ── Tahap 10: Grace Period & Clock Guard Warning Banners ── */}
+      {isSubscriptionInGrace && (
+        <div className="bg-amber-500 text-slate-950 px-4 py-2 text-xs font-mono font-black border-b-2 border-slate-950 flex flex-wrap items-center justify-between gap-2 shadow-[0_2px_4px_rgba(0,0,0,0.1)]">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} className="text-slate-950 shrink-0" strokeWidth={2.5} />
+            <span>⚠️ LISENSI KEDALUWARSA: Segera perpanjang langganan sebelum fitur multi-cabang dan radar dibekukan.</span>
+          </div>
+          <Link
+            href="/billing"
+            className="px-2.5 py-1 bg-slate-950 text-[#CCFF00] text-[11px] font-bold rounded border border-black hover:bg-slate-800 transition-all cursor-pointer"
+          >
+            [ PERPANJANG SEKARANG ]
+          </Link>
+        </div>
+      )}
+
+      {clockStatus?.isTampered && (
+        <div
+          className="px-4 py-2.5 text-xs font-mono font-bold text-amber-300 border-b-2 border-amber-600 flex flex-wrap items-center justify-between gap-3 shadow-[0_2px_4px_rgba(0,0,0,0.2)] animate-pulse"
+          style={{
+            background: 'repeating-linear-gradient(45deg, #0B0F17, #0B0F17 10px, #261602 10px, #261602 20px)',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <Clock size={16} className="text-amber-400 shrink-0" strokeWidth={2.5} />
+            <span>
+              ⚠️ ANOMALI JAM PERANGKAT TERDETEKSI: Jam sistem laptop/HP Anda lebih lambat {clockStatus.deltaMinutes} menit dari riwayat transaksi terakhir. Mode transaksi offline dinonaktifkan.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                await syncTimeFromServer();
+                setClockStatus(detectClockTampering());
+              }}
+              className="px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black rounded border border-black shadow-[2px_2px_0px_#000] cursor-pointer"
+            >
+              [ 🔄 Cek Jam Server Resmi ]
+            </button>
+            {isOnline && (
+              <span className="px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-600 text-[10px] font-bold">
+                [ 🌐 ONLINE - KASIR AKTIF ]
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── BODY UTAMA (Kiri: Katalog & Scanner | Kanan: Keranjang) ── */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden min-h-0">
@@ -2270,13 +2355,17 @@ export default function PosPage() {
             {/* Tombol Checkout Arcade Feedback (F2 Key) */}
             <button
               onClick={handleCheckout}
-              disabled={submitting || cartItems.length === 0}
+              disabled={submitting || cartItems.length === 0 || (clockStatus?.isTampered && !isOnline)}
               className="btn-arcade w-full bg-[#CCFF00] hover:bg-[#b3e600] disabled:opacity-50 text-slate-900 font-extrabold h-14 text-sm font-mono uppercase shadow-[4px_4px_0_#1E293B] active:translate-y-0.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer border-2 border-slate-800 tracking-wider"
             >
               {submitting ? (
                 <>
                   <RefreshCw size={18} className="animate-spin text-slate-900" /> MENYIMPAN BON...
                 </>
+              ) : clockStatus?.isTampered && !isOnline ? (
+                <span className="text-rose-700 flex items-center gap-1.5 text-xs">
+                  <Clock size={16} strokeWidth={2.5} /> [ ⛔ CHECKOUT OFFLINE DIKUNCI: PERBAIKI JAM PERANGKAT ]
+                </span>
               ) : (
                 <>
                   <CheckCircle2 size={18} className="text-slate-900" /> PROSES &amp; CETAK STRUK <span className="bg-slate-900 text-[#CCFF00] text-xs px-2 py-0.5 rounded font-mono font-bold">[F2]</span>
