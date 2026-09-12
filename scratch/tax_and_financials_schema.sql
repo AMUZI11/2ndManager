@@ -145,7 +145,7 @@ BEGIN
       AND tanggal >= v_m_start AND tanggal < v_m_end;
 
     -- Ambil margin bersih konsinyasi untuk bulan ini
-    SELECT COALESCE(SUM(store_gross_profit), 0) INTO v_m_consignment
+    SELECT COALESCE(SUM(COALESCE(store_margin_amount, total_profit, 0)), 0) INTO v_m_consignment
     FROM consignment_batches
     WHERE shop_id = ANY(v_shop_ids)
       AND status = 'SETTLED'
@@ -329,14 +329,14 @@ BEGIN
 
   -- C. Liabilitas Lancar:
   -- - Utang Usaha Vendor Konsinyasi Belum Disetor
-  SELECT COALESCE(SUM(sold_qty * vendor_price), 0) INTO v_consignment_payables
+  SELECT COALESCE(SUM(COALESCE(vendor_payout_amount, total_payout, sold_qty * vendor_price_per_unit, 0)), 0) INTO v_consignment_payables
   FROM consignment_batches
   WHERE shop_id = ANY(v_shop_ids) AND status = 'ACTIVE';
 
   -- - Kewajiban Titipan Escrow Tabung Gas / Galon (Status HELD)
-  SELECT COALESCE(SUM(amount), 0) INTO v_held_escrow
+  SELECT COALESCE(SUM(deposit_amount), 0) INTO v_held_escrow
   FROM customer_asset_deposits
-  WHERE shop_id = ANY(v_shop_ids) AND type = 'DEPOSIT_IN';
+  WHERE shop_id = ANY(v_shop_ids) AND status = 'HELD';
 
   v_total_liabilities := v_consignment_payables + v_held_escrow;
 

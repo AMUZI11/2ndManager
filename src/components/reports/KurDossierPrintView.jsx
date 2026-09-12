@@ -694,6 +694,10 @@ export default function KurDossierPrintView({
 
       {/* CSS Khusus Cetak A4 */}
       <style jsx global>{`
+        @page {
+          size: A4 portrait;
+          margin: 0;
+        }
         @media print {
           body {
             background: white !important;
