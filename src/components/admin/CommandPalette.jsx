@@ -13,7 +13,8 @@ import {
   ArrowRight,
   Store as ShopIcon,
   X,
-  CreditCard
+  CreditCard,
+  Tag
 } from 'lucide-react';
 
 export default function CommandPalette() {
@@ -25,7 +26,9 @@ export default function CommandPalette() {
 
   const commands = [
     { id: 'dash', title: 'Platform Pulse & Telemetry', category: 'Modul Utama', href: '/admin/dashboard', icon: Activity, shortcut: 'Alt+1' },
-    { id: 'proofs', title: 'Verifikasi Bukti Pembayaran & Langganan', category: 'Modul Utama', href: '/admin/payment-proofs', icon: CreditCard, shortcut: 'Alt+7' },
+    { id: 'claims', title: 'Audit Klaim Pembayaran & Fraud Revocation', category: 'Modul Utama', href: '/admin/claims', icon: CreditCard, shortcut: 'Alt+7' },
+    { id: 'promos', title: 'Mesin Kode Promo & Growth Generator', category: 'Modul Utama', href: '/admin/promos', icon: Tag, shortcut: 'Alt+8' },
+    { id: 'proofs', title: 'Verifikasi Bukti Pembayaran (Legacy)', category: 'Modul Utama', href: '/admin/payment-proofs', icon: CreditCard, shortcut: 'Alt+9' },
     { id: 'tenants', title: 'Tenant Directory & Billing Chokehold', category: 'Modul Utama', href: '/admin/tenants', icon: Store, shortcut: 'Alt+2' },
     { id: 'panic', title: 'Emergency WA Triage Queue', category: 'Tanggap Darurat', href: '/admin/panic-dispatch', icon: LifeBuoy, shortcut: 'Alt+3' },
     { id: 'cat', title: 'Master 11 Kategori Retail & Seeder', category: 'Katalog', href: '/admin/categories-master', icon: Layers, shortcut: 'Alt+4' },

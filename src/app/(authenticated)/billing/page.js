@@ -20,6 +20,14 @@ import {
   Building2,
   Lock,
   RefreshCw,
+  UploadCloud,
+  Tag,
+  X,
+  FileCheck,
+  Calendar,
+  CreditCard,
+  ChevronRight,
+  Gift
 } from 'lucide-react';
 
 const CATALOG_PLANS = [
@@ -87,10 +95,18 @@ const BANK_ACCOUNTS = [
   { bank: 'BSI', number: '7199-8822-01', holder: 'PT 2NDMANAGER TEKNOLOGI' },
 ];
 
+const DURATION_OPTIONS = [
+  { months: 1, label: '1 Bulan' },
+  { months: 3, label: '3 Bulan' },
+  { months: 6, label: '6 Bulan' },
+  { months: 12, label: '1 Tahun' },
+];
+
 export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [subStatus, setSubStatus] = useState(null);
   const [selectedCatalog, setSelectedCatalog] = useState('MANAJER');
+  const [durationMonths, setDurationMonths] = useState(1);
 
   // 4x4 Segmented Input State
   const [segments, setSegments] = useState(['2NDM', '', '', '']);
@@ -98,10 +114,26 @@ export default function BillingPage() {
   const [redeemError, setRedeemError] = useState('');
   const [redeemSuccess, setRedeemSuccess] = useState(null);
 
+  // Promo Code Engine State
+  const [promoInput, setPromoInput] = useState('');
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState(null);
+  const [promoError, setPromoError] = useState('');
+
+  // Payment Claim State
+  const [proofFile, setProofFile] = useState(null);
+  const [proofPreview, setProofPreview] = useState(null);
+  const [senderBank, setSenderBank] = useState('BCA');
+  const [senderAccountName, setSenderAccountName] = useState('');
+  const [isSubmittingClaim, setIsSubmittingClaim] = useState(false);
+  const [claimError, setClaimError] = useState('');
+  const [optimisticModal, setOptimisticModal] = useState(null);
+
   // Copy feedback state
   const [copiedKey, setCopiedKey] = useState('');
 
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
+  const fileInputRef = useRef(null);
 
   const fetchSubscriptionStatus = async () => {
     try {
@@ -165,7 +197,6 @@ export default function BillingPage() {
     const pasted = e.clipboardData.getData('text');
     if (!pasted) return;
 
-    // Bersihkan dash, spasi, dan karakter non-alphanumeric
     const clean = pasted.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
     if (clean.length >= 16) {
@@ -176,7 +207,6 @@ export default function BillingPage() {
       setSegments([seg0, seg1, seg2, seg3]);
       inputRefs[3].current?.focus();
     } else if (clean.length > 0) {
-      // Paste sebagian
       const newSegs = [...segments];
       newSegs[0] = clean.slice(0, 4);
       if (clean.length > 4) newSegs[1] = clean.slice(4, 8);
@@ -186,7 +216,7 @@ export default function BillingPage() {
     }
   };
 
-  // Submit Activation
+  // Submit Activation via 16-digit voucher
   const handleRedeem = async (e) => {
     e?.preventDefault();
     setRedeemError('');
@@ -222,6 +252,123 @@ export default function BillingPage() {
     }
   };
 
+  // Validate Promo Code
+  const handleValidatePromo = async (e) => {
+    e?.preventDefault();
+    setPromoError('');
+    if (!promoInput.trim()) {
+      setPromoError('Ketik kode promo terlebih dahulu.');
+      return;
+    }
+
+    try {
+      setIsValidatingPromo(true);
+      const res = await fetch('/api/v1/billing/promo/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: promoInput.trim().toUpperCase(),
+          tierId: selectedCatalog,
+          durationMonths: durationMonths,
+          orgId: subStatus?.organization_id,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        throw new Error(json.message || 'Kode promo tidak valid atau sudah kadaluwarsa.');
+      }
+
+      setAppliedPromo(json.data);
+      setPromoError('');
+    } catch (err) {
+      setPromoError(err.message);
+      setAppliedPromo(null);
+    } finally {
+      setIsValidatingPromo(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoInput('');
+    setPromoError('');
+  };
+
+  // File Upload Handler
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setClaimError('Ukuran file maksimal 10 MB.');
+        return;
+      }
+      setProofFile(file);
+      setClaimError('');
+      const previewUrl = URL.createObjectURL(file);
+      setProofPreview(previewUrl);
+    }
+  };
+
+  // Submit Optimistic Payment Claim
+  const handleSubmitClaim = async (e) => {
+    e?.preventDefault();
+    setClaimError('');
+
+    if (!proofFile) {
+      setClaimError('Harap lampirkan foto atau tangkapan layar bukti transfer pembayaran.');
+      return;
+    }
+
+    try {
+      setIsSubmittingClaim(true);
+
+      const formData = new FormData();
+      formData.append('file', proofFile);
+      formData.append('targetTier', appliedPromo?.targetTier || selectedCatalog);
+      formData.append('durationMonths', durationMonths.toString());
+      formData.append('basePrice', calculatedBasePrice.toString());
+      formData.append('finalPrice', calculatedFinalPrice.toString());
+      if (appliedPromo?.promoId) {
+        formData.append('promoCodeId', appliedPromo.promoId);
+      }
+      if (senderBank) {
+        formData.append('senderBank', senderBank);
+      }
+      if (senderAccountName.trim()) {
+        formData.append('senderAccountName', senderAccountName.trim());
+      }
+      if (subStatus?.organization_id) {
+        formData.append('orgId', subStatus.organization_id);
+      }
+
+      const res = await fetch('/api/v1/billing/claim', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        throw new Error(json.message || 'Gagal mengirim bukti pembayaran.');
+      }
+
+      // Tampilkan Optimistic Feedback Modal
+      setOptimisticModal(json.data);
+      setProofFile(null);
+      setProofPreview(null);
+      setSenderAccountName('');
+      setAppliedPromo(null);
+      setPromoInput('');
+
+      // Refresh status langganan di background
+      await fetchSubscriptionStatus();
+    } catch (err) {
+      setClaimError(err.message || 'Terjadi kesalahan sistem saat mengirim bukti transfer.');
+    } finally {
+      setIsSubmittingClaim(false);
+    }
+  };
+
   const copyToClipboard = (text, key) => {
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(text);
@@ -237,12 +384,27 @@ export default function BillingPage() {
 
   const currentCatalogPlan = CATALOG_PLANS.find((p) => p.key === selectedCatalog) || CATALOG_PLANS[1];
 
+  // Price calculations
+  const calculatedBasePrice = currentCatalogPlan.priceRp * durationMonths;
+  let calculatedFinalPrice = calculatedBasePrice;
+
+  if (appliedPromo) {
+    if (appliedPromo.discountType === 'PERCENTAGE') {
+      const discountAmount = Math.round(calculatedBasePrice * (Number(appliedPromo.discountValue) / 100));
+      calculatedFinalPrice = Math.max(0, calculatedBasePrice - discountAmount);
+    } else if (appliedPromo.discountType === 'FIXED_AMOUNT') {
+      calculatedFinalPrice = Math.max(0, calculatedBasePrice - Number(appliedPromo.discountValue));
+    }
+  }
+
   const waMessage = encodeURIComponent(
-    `Halo Admin 2ndManager, saya ingin konfirmasi pembayaran lisensi:\n\n` +
+    `Halo Admin 2ndManager, saya ingin konfirmasi klaim pembayaran lisensi:\n\n` +
       `*Nama Usaha:* ${subStatus?.organization_name || 'Toko 2ndManager'}\n` +
-      `*Paket:* ${currentCatalogPlan.name} (${currentCatalogPlan.priceLabel})\n` +
-      `*Metode:* Transfer Bank / QRIS Statis\n\n` +
-      `Mohon kirimkan kode voucher aktivasi 16-digit setelah dana terverifikasi. Terima kasih!`
+      `*Paket:* ${currentCatalogPlan.name} (${durationMonths} Bulan)\n` +
+      `*Total Bayar:* Rp ${calculatedFinalPrice.toLocaleString('id-ID')}\n` +
+      (appliedPromo ? `*Promo:* ${appliedPromo.code}\n` : '') +
+      `*Bank Pengirim:* ${senderBank} a.n. ${senderAccountName || '-'}\n\n` +
+      `Bukti bayar telah saya unggah ke sistem. Mohon verifikasi auditnya. Terima kasih!`
   );
 
   return (
@@ -281,14 +443,14 @@ export default function BillingPage() {
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-950/80 border border-amber-500/60 text-amber-300 font-mono text-xs font-black uppercase tracking-widest">
                 <Sparkles size={13} className="text-[#F59E0B]" strokeWidth={2.5} />
-                MONETISASI MANDIRI RESILIEN
+                MONETISASI MANDIRI & AUTO-APPROVE INSTAN
               </div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white uppercase font-mono">
-                PUSAT LISENSI & KONTRAK AKTIF
+                PUSAT LISENSI & PEMBAYARAN JURAGAN
               </h1>
               <p className="text-sm sm:text-base text-slate-400 max-w-2xl">
-                Aktivasi instan via kode voucher kriptografis 16-digit. Tanpa ketergantungan payment gateway,
-                ramah operator muda, dan tahan pemadaman jaringan offline.
+                Aktivasi instan tanpa menunggu verifikasi manual! Unggah bukti transfer atau gunakan kode voucher
+                16-digit. Langganan langsung aktif seketika untuk mendukung kelancaran operasional warung Anda.
               </p>
             </div>
 
@@ -360,7 +522,7 @@ export default function BillingPage() {
                 AKTIVASI VOUCHER LISENSI 16-DIGIT
               </h2>
               <p className="text-xs sm:text-sm text-slate-400">
-                Masukkan kode voucher fisik / digital bertanda tangan HMAC yang Anda peroleh dari admin atau mitra.
+                Punya voucher fisik atau kode digital? Masukkan kode 16-digit untuk aktivasi seketika tanpa transfer.
               </p>
             </div>
           </div>
@@ -441,9 +603,9 @@ export default function BillingPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl sm:text-2xl font-mono font-black uppercase text-white tracking-wide">
-              KATALOG PAKET LANGGANAN RESMI
+              1. PILIH PAKET LANGGANAN RESMI
             </h2>
-            <span className="font-mono text-xs text-slate-400">PILIH SESUAI KEBUTUHAN SKALA USAHA</span>
+            <span className="font-mono text-xs text-slate-400">KLIK UNTUK MEMILIH TIER</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -454,7 +616,10 @@ export default function BillingPage() {
               return (
                 <div
                   key={plan.key}
-                  onClick={() => setSelectedCatalog(plan.key)}
+                  onClick={() => {
+                    setSelectedCatalog(plan.key);
+                    if (appliedPromo) setAppliedPromo(null);
+                  }}
                   className={`cursor-pointer transition-all border-3 p-6 flex flex-col justify-between relative ${
                     isSelected
                       ? 'bg-[#0E1524] shadow-[6px_6px_0px_#38BDF8]'
@@ -503,13 +668,13 @@ export default function BillingPage() {
                   <div className="mt-6 pt-4 border-t border-slate-800">
                     <button
                       type="button"
-                      className={`w-full py-2.5 font-mono text-xs font-bold border-2 transition-all ${
+                      className={`w-full py-2.5 font-mono text-xs font-bold border-2 transition-all cursor-pointer ${
                         isSelected
                           ? 'bg-[#CCFF00] text-black border-black shadow-[3px_3px_0px_#000]'
                           : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500'
                       }`}
                     >
-                      {isSelected ? '[ PILIHAN TERPILIH ]' : 'PILIH PAKET INI'}
+                      {isSelected ? '[ PAKET TERPILIH ]' : 'PILIH PAKET INI'}
                     </button>
                   </div>
                 </div>
@@ -518,44 +683,183 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Frictionless Grassroots Payment Portal */}
-        <div className="bg-[#0B0F17] border-3 border-slate-700 p-6 lg:p-8 shadow-[6px_6px_0px_#1E293B] space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-slate-800 pb-4">
-            <div>
-              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-sky-950 border border-sky-500/60 text-sky-300 font-mono text-[11px] font-black uppercase mb-1">
-                <Receipt size={13} strokeWidth={2.5} /> PEER-TO-PEER PAYMENT GATE
-              </div>
-              <h2 className="text-lg sm:text-xl font-mono font-black uppercase text-white tracking-wide">
-                PORTAL PEMBAYARAN MANUAL (TRANSFER & QRIS STATIS)
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-400">
-                Pilihan paket terpilih: <span className="font-bold text-white">{currentCatalogPlan.name}</span> (
-                <span className="font-bold text-[#CCFF00]">{currentCatalogPlan.priceLabel}</span>)
-              </p>
+        {/* 2. OPTIMISTIC PAYMENT CLAIM & PROMO CODE ENGINE */}
+        <div className="bg-[#0B0F17] border-3 border-[#CCFF00] p-6 lg:p-8 shadow-[6px_6px_0px_#4D7C0F] space-y-8">
+          <div className="border-b-2 border-slate-800 pb-4">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-lime-950 border border-lime-500/60 text-[#CCFF00] font-mono text-[11px] font-black uppercase mb-1">
+              <Zap size={13} strokeWidth={2.5} /> FITUR BARU: AUTO-APPROVE INSTAN
             </div>
-
-            <a
-              href={`https://wa.me/6281234567890?text=${waMessage}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#20bd5a] text-black font-mono text-xs font-black border-2 border-black shadow-[3px_3px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all"
-            >
-              <MessageSquare size={16} strokeWidth={2.5} />
-              <span>[ 💬 KONFIRMASI PEMBAYARAN VIA WHATSAPP ]</span>
-            </a>
+            <h2 className="text-xl sm:text-2xl font-mono font-black uppercase text-white tracking-wide">
+              2. UPGRADE / PERPANJANG LANGGANAN INSTAN
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400">
+              Pilih durasi, masukkan kode promo (jika ada), transfer pembayaran, dan unggah bukti struk.
+              Sistem akan langsung mengaktifkan lisensi Anda secara otomatis tanpa perlu menunggu!
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Rekening Transfer Bank */}
-            <div className="lg:col-span-2 space-y-3">
+          {/* Durasi & Kode Promo Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Durasi Langganan */}
+            <div className="lg:col-span-6 space-y-3">
+              <label className="block text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">
+                PILIH DURASI LANGGANAN
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {DURATION_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.months}
+                    type="button"
+                    onClick={() => {
+                      setDurationMonths(opt.months);
+                      if (appliedPromo) setAppliedPromo(null);
+                    }}
+                    className={`py-3 px-2 font-mono text-xs font-black border-2 text-center transition-all cursor-pointer ${
+                      durationMonths === opt.months
+                        ? 'bg-[#CCFF00] text-black border-black shadow-[3px_3px_0px_#000]'
+                        : 'bg-[#07090E] text-slate-400 border-slate-700 hover:border-slate-500 hover:text-white'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Bilah Input Kode Promo Taktil */}
+            <div className="lg:col-span-6 space-y-3">
+              <label className="block text-xs font-mono font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+                <span>KODE PROMO / DISKON WARUNG</span>
+                {appliedPromo && (
+                  <span className="text-[#CCFF00] text-[11px] font-mono">TERAPKAN DISKON</span>
+                )}
+              </label>
+
+              {appliedPromo ? (
+                <div className="p-3 bg-lime-950/80 border-2 border-[#CCFF00] flex items-center justify-between shadow-[3px_3px_0px_#4D7C0F]">
+                  <div className="flex items-center gap-2.5">
+                    <Tag size={16} className="text-[#CCFF00]" strokeWidth={2.5} />
+                    <div>
+                      <div className="font-mono text-xs font-black text-[#CCFF00]">
+                        [ PROMO AKTIF: {appliedPromo.code} ]
+                      </div>
+                      <div className="text-[11px] text-lime-200">
+                        {appliedPromo.discountType === 'PERCENTAGE' && `Diskon ${appliedPromo.discountValue}%`}
+                        {appliedPromo.discountType === 'FIXED_AMOUNT' && `Potongan Rp ${Number(appliedPromo.discountValue).toLocaleString('id-ID')}`}
+                        {appliedPromo.discountType === 'BONUS_DAYS' && `Bonus +${appliedPromo.bonusDays} Hari Masa Aktif`}
+                        {appliedPromo.discountType === 'TIER_OVERRIDE' && `Upgrade ke Tier ${appliedPromo.targetTier}`}
+                        {appliedPromo.description ? ` • ${appliedPromo.description}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemovePromo}
+                    className="p-1.5 bg-black hover:bg-red-950 text-slate-400 hover:text-red-400 border border-slate-700 transition-colors cursor-pointer"
+                    title="Batalkan Promo"
+                  >
+                    <X size={14} strokeWidth={2.5} />
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleValidatePromo} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promoInput}
+                    onChange={(e) => {
+                      setPromoInput(e.target.value.toUpperCase());
+                      setPromoError('');
+                    }}
+                    placeholder="MASUKKAN KODE PROMO..."
+                    className="flex-1 bg-[#07090E] border-2 border-slate-700 focus:border-[#CCFF00] px-4 py-2.5 font-mono text-xs sm:text-sm font-bold text-white uppercase tracking-wider outline-none transition-all shadow-[2px_2px_0px_#0F172A]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isValidatingPromo || !promoInput.trim()}
+                    className="px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b8e600] disabled:opacity-50 text-black font-mono text-xs font-black border-2 border-black shadow-[3px_3px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer shrink-0"
+                  >
+                    {isValidatingPromo ? (
+                      <RefreshCw size={14} className="animate-spin" />
+                    ) : (
+                      <span>[ ⚡ TERAPKAN ]</span>
+                    )}
+                  </button>
+                </form>
+              )}
+
+              {promoError && (
+                <p className="text-[11px] font-mono text-red-400 flex items-center gap-1.5">
+                  <AlertCircle size={12} /> {promoError}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Rincian Pembayaran & Rekening Bank */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-4 border-t-2 border-slate-800">
+            {/* Kolom Kiri: Rincian Total Bayar */}
+            <div className="lg:col-span-5 p-5 bg-[#07090E] border-2 border-slate-700 space-y-4 shadow-[4px_4px_0px_#0F172A]">
+              <div className="font-mono text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-2">
+                RINGKASAN TOTAL TAGIHAN
+              </div>
+
+              <div className="space-y-2 font-mono text-xs">
+                <div className="flex justify-between text-slate-300">
+                  <span>Paket Langganan:</span>
+                  <span className="font-bold text-white">{currentCatalogPlan.name}</span>
+                </div>
+                <div className="flex justify-between text-slate-300">
+                  <span>Durasi:</span>
+                  <span className="font-bold text-white">{durationMonths} Bulan</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Harga Normal:</span>
+                  <span className={appliedPromo ? 'line-through text-slate-500' : 'text-slate-300'}>
+                    Rp {calculatedBasePrice.toLocaleString('id-ID')}
+                  </span>
+                </div>
+
+                {appliedPromo && (
+                  <div className="flex justify-between text-[#CCFF00] font-bold">
+                    <span>Potongan Promo ({appliedPromo.code}):</span>
+                    <span>
+                      - Rp {(calculatedBasePrice - calculatedFinalPrice).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                )}
+
+                {appliedPromo?.bonusDays > 0 && (
+                  <div className="flex justify-between text-sky-400 font-bold">
+                    <span>Bonus Masa Aktif:</span>
+                    <span>+{appliedPromo.bonusDays} Hari</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex items-baseline justify-between">
+                <span className="font-mono text-xs font-black text-slate-400 uppercase">TOTAL DIBAYAR:</span>
+                <div className="text-right">
+                  <span className="text-2xl sm:text-3xl font-mono font-black text-[#CCFF00]">
+                    Rp {calculatedFinalPrice.toLocaleString('id-ID')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 text-[11px] font-mono text-slate-500">
+                Silakan transfer nominal pas di atas ke salah satu rekening resmi di samping.
+              </div>
+            </div>
+
+            {/* Kolom Kanan: Rekening Transfer & QRIS */}
+            <div className="lg:col-span-7 space-y-3">
               <span className="block text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
-                REKENING TRANSFER RESMI
+                REKENING TUJUAN TRANSFER RESMI
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {BANK_ACCOUNTS.map((acc) => (
                   <div
                     key={acc.bank}
-                    className="p-4 bg-[#07090E] border-2 border-slate-700 space-y-2 relative shadow-[2px_2px_0px_#0F172A]"
+                    className="p-3.5 bg-[#07090E] border-2 border-slate-700 space-y-1.5 shadow-[2px_2px_0px_#0F172A]"
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-xs font-black text-amber-400">{acc.bank}</span>
@@ -578,25 +882,163 @@ export default function BillingPage() {
                       </button>
                     </div>
                     <div className="font-mono text-base font-black text-white tracking-wider">{acc.number}</div>
-                    <div className="text-[11px] text-slate-500 font-mono uppercase">A.N. {acc.holder}</div>
+                    <div className="text-[10px] text-slate-500 font-mono uppercase">A.N. {acc.holder}</div>
                   </div>
                 ))}
               </div>
             </div>
+          </div>
 
-            {/* QRIS Statis Visual Placeholder */}
-            <div className="p-4 bg-[#07090E] border-2 border-slate-700 flex flex-col items-center justify-center text-center space-y-3 shadow-[2px_2px_0px_#0F172A]">
-              <div className="p-3 bg-white border-2 border-black inline-block">
-                <QrCode size={96} className="text-black" strokeWidth={2} />
+          {/* Form Unggah Bukti Bayar Instan */}
+          <div className="p-6 bg-[#07090E] border-2 border-slate-700 space-y-6 shadow-[4px_4px_0px_#0F172A]">
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+              <div className="p-2 bg-lime-500/10 border border-lime-500/30 text-[#CCFF00]">
+                <UploadCloud size={18} strokeWidth={2.5} />
               </div>
               <div>
-                <div className="font-mono text-xs font-black text-white uppercase">QRIS STANDAR INDONESIA</div>
-                <div className="text-[11px] font-mono text-slate-400 mt-0.5">NMID: ID1020304050607</div>
+                <h3 className="text-sm font-mono font-black uppercase text-white tracking-wide">
+                  UNGGAH BUKTI STRUK TRANSFER & AKTIFKAN SEGERA
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Format gambar JPG, PNG, atau WebP (maks. 10 MB). Lisensi langsung aktif seketika setelah diunggah!
+                </p>
               </div>
-              <p className="text-[10px] text-slate-500 max-w-[220px]">
-                Dapat dipindai oleh seluruh e-wallet (GoPay, OVO, Dana, ShopeePay) dan m-Banking.
-              </p>
             </div>
+
+            {claimError && (
+              <div className="p-3 bg-red-950/80 border-2 border-red-500 text-red-200 font-mono text-xs flex items-center gap-2">
+                <AlertCircle size={16} className="text-red-400 shrink-0" />
+                <span>{claimError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitClaim} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1.5">
+                    BANK PENGIRIM
+                  </label>
+                  <select
+                    value={senderBank}
+                    onChange={(e) => setSenderBank(e.target.value)}
+                    className="w-full bg-[#0B0F17] border-2 border-slate-700 focus:border-[#CCFF00] px-3 py-2 font-mono text-xs text-white outline-none cursor-pointer"
+                  >
+                    <option value="BCA">BCA (Bank Central Asia)</option>
+                    <option value="MANDIRI">Bank Mandiri</option>
+                    <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
+                    <option value="BNI">BNI (Bank Negara Indonesia)</option>
+                    <option value="BSI">BSI (Bank Syariah Indonesia)</option>
+                    <option value="QRIS">QRIS / E-Wallet (GoPay/OVO/ShopeePay)</option>
+                    <option value="LAINNYA">Bank Lainnya</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1.5">
+                    NAMA PEMILIK REKENING PENGIRIM (OPSIONAL)
+                  </label>
+                  <input
+                    type="text"
+                    value={senderAccountName}
+                    onChange={(e) => setSenderAccountName(e.target.value)}
+                    placeholder="Contoh: Budi Santoso"
+                    className="w-full bg-[#0B0F17] border-2 border-slate-700 focus:border-[#CCFF00] px-3 py-2 font-mono text-xs text-white placeholder-slate-600 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Drag and drop / file selector box */}
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png, image/jpeg, image/jpg, image/webp"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                {proofPreview ? (
+                  <div className="p-4 bg-[#0B0F17] border-2 border-lime-500/60 flex flex-col sm:flex-row items-center gap-4">
+                    <img
+                      src={proofPreview}
+                      alt="Preview Bukti Transfer"
+                      className="w-24 h-24 sm:w-32 sm:h-32 object-cover border-2 border-black shrink-0"
+                    />
+                    <div className="space-y-1 flex-1 text-center sm:text-left">
+                      <div className="font-mono text-xs font-black text-[#CCFF00] flex items-center justify-center sm:justify-start gap-1.5">
+                        <FileCheck size={14} /> BERKAS SIAP DIUNGGAH
+                      </div>
+                      <div className="font-mono text-xs text-slate-300 font-bold truncate max-w-sm">
+                        {proofFile?.name}
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-mono">
+                        {(proofFile?.size / 1024).toFixed(1)} KB
+                      </div>
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProofFile(null);
+                            setProofPreview(null);
+                          }}
+                          className="px-3 py-1 bg-red-950 hover:bg-red-900 text-red-300 font-mono text-xs font-bold border border-red-500 transition-colors cursor-pointer"
+                        >
+                          Ganti Gambar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-6 sm:p-8 bg-[#0B0F17] border-2 border-dashed border-slate-600 hover:border-[#CCFF00] flex flex-col items-center justify-center text-center cursor-pointer transition-colors space-y-2 group"
+                  >
+                    <UploadCloud
+                      size={32}
+                      className="text-slate-500 group-hover:text-[#CCFF00] transition-colors"
+                      strokeWidth={2}
+                    />
+                    <div className="font-mono text-xs sm:text-sm font-bold text-slate-300 group-hover:text-white">
+                      Klik di sini atau seret foto bukti transfer ke kotak ini
+                    </div>
+                    <p className="text-[11px] font-mono text-slate-500">
+                      Mendukung tangkapan layar m-banking (BCA, Mandiri, BRI, BSI) & struk ATM
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                <a
+                  href={`https://wa.me/6281234567890?text=${waMessage}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#0B0F17] hover:bg-slate-900 text-slate-400 hover:text-white font-mono text-xs font-bold border border-slate-700 transition-all text-center"
+                >
+                  <MessageSquare size={14} />
+                  <span>Bantuan Pembayaran via WhatsApp</span>
+                </a>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingClaim || !proofFile}
+                  className="w-full sm:w-auto px-8 py-3.5 bg-[#CCFF00] hover:bg-[#b8e600] active:translate-x-0.5 active:translate-y-0.5 text-black font-mono text-sm font-black border-2 border-black shadow-[4px_4px_0px_#000] flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+                >
+                  {isSubmittingClaim ? (
+                    <>
+                      <RefreshCw size={16} className="animate-spin" strokeWidth={2.5} />
+                      <span>MENGUNGGAH & MENGAKTIFKAN LISENSI...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={16} strokeWidth={2.5} />
+                      <span>[ 🚀 SAYA SUDAH BAYAR — AKTIFKAN LISENSI SEKARANG ]</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
 
@@ -637,6 +1079,78 @@ export default function BillingPage() {
           </div>
         )}
       </div>
+
+      {/* Optimistic Activation Success Modal */}
+      {optimisticModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0B0F17] border-3 border-[#CCFF00] p-6 sm:p-8 max-w-lg w-full shadow-[8px_8px_0px_#4D7C0F] space-y-6 relative animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setOptimisticModal(null)}
+              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-white border border-slate-700 hover:border-white transition-colors cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+
+            <div className="text-center space-y-3">
+              <div className="w-16 h-16 bg-[#CCFF00] text-black mx-auto flex items-center justify-center border-2 border-black shadow-[3px_3px_0px_#000]">
+                <Sparkles size={32} strokeWidth={2.5} />
+              </div>
+
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-lime-950 border border-[#CCFF00] text-[#CCFF00] font-mono text-xs font-black uppercase">
+                {optimisticModal.status === 'INSTANT_ACTIVATED'
+                  ? '⚡ LISENSI LANGSUNG DIAKTIFKAN!'
+                  : '⏳ TINJAUAN PEMBAYARAN'}
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-mono font-black text-white uppercase">
+                {optimisticModal.status === 'INSTANT_ACTIVATED'
+                  ? `SELAMAT! TIER ${optimisticModal.tier} AKTIF`
+                  : 'BUKTI BERHASIL DIKIRIM'}
+              </h2>
+
+              <p className="text-xs sm:text-sm text-slate-300">
+                {optimisticModal.message ||
+                  `Selamat menikmati seluruh fitur paket ${optimisticModal.tier}. Bukti transfer Anda telah otomatis tercatat ke audit ledger sistem.`}
+              </p>
+            </div>
+
+            <div className="p-4 bg-[#07090E] border-2 border-slate-700 font-mono text-xs space-y-2">
+              <div className="flex justify-between text-slate-400">
+                <span>Tier Langganan:</span>
+                <span className="font-bold text-[#CCFF00]">{optimisticModal.tier || selectedCatalog}</span>
+              </div>
+              {optimisticModal.duration_days && (
+                <div className="flex justify-between text-slate-400">
+                  <span>Total Durasi:</span>
+                  <span className="font-bold text-white">{optimisticModal.duration_days} Hari</span>
+                </div>
+              )}
+              {optimisticModal.expires_at && (
+                <div className="flex justify-between text-slate-400">
+                  <span>Berlaku Sampai:</span>
+                  <span className="font-bold text-white">
+                    {new Date(optimisticModal.expires_at).toLocaleDateString('id-ID')}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between text-slate-500 pt-2 border-t border-slate-800 text-[11px]">
+                <span>Status Audit:</span>
+                <span className="text-amber-400 font-bold">Provisional Auto-Approved</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setOptimisticModal(null)}
+                className="w-full py-3 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-mono text-xs sm:text-sm font-black border-2 border-black shadow-[4px_4px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer uppercase"
+              >
+                [ ⚡ TERIMA KASIH, LANJUTKAN BERJUALAN ]
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

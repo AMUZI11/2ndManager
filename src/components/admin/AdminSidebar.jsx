@@ -14,7 +14,8 @@ import {
   ArrowUpRight,
   Terminal,
   ChevronRight,
-  CreditCard
+  CreditCard,
+  Tag
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -56,7 +57,7 @@ export default function AdminSidebar() {
     };
   }, [supabase]);
 
-  // Global Keyboard Shortcuts (Alt + 1 .. 7)
+  // Global Keyboard Shortcuts (Alt + 1 .. 8)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -66,7 +67,8 @@ export default function AdminSidebar() {
         if (e.key === '4') { e.preventDefault(); router.push('/admin/categories-master'); }
         if (e.key === '5') { e.preventDefault(); router.push('/admin/fraud-radar'); }
         if (e.key === '6') { e.preventDefault(); router.push('/admin/audit-logs'); }
-        if (e.key === '7') { e.preventDefault(); router.push('/admin/payment-proofs'); }
+        if (e.key === '7') { e.preventDefault(); router.push('/admin/claims'); }
+        if (e.key === '8') { e.preventDefault(); router.push('/admin/promos'); }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -75,7 +77,8 @@ export default function AdminSidebar() {
 
   const navItems = [
     { href: '/admin/dashboard', label: 'Platform Pulse', icon: Activity, shortcut: 'Alt+1' },
-    { href: '/admin/payment-proofs', label: 'Bukti Pembayaran', icon: CreditCard, shortcut: 'Alt+7', badge: pendingProofsCount },
+    { href: '/admin/claims', label: 'Audit Klaim Bayar', icon: CreditCard, shortcut: 'Alt+7', badge: pendingProofsCount },
+    { href: '/admin/promos', label: 'Mesin Kode Promo', icon: Tag, shortcut: 'Alt+8' },
     { href: '/admin/tenants', label: 'Tenants & Billing', icon: Store, shortcut: 'Alt+2' },
     { href: '/admin/panic-dispatch', label: 'Panic Dispatch', icon: LifeBuoy, shortcut: 'Alt+3' },
     { href: '/admin/categories-master', label: 'Master Kategori', icon: Layers, shortcut: 'Alt+4' },
