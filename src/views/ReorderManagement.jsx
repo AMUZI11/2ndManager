@@ -1088,19 +1088,19 @@ export default function ReorderManagement() {
 
       {/* STICKY BOTTOM TACTILE CASH BAR (BAR KAS TUNAI PASAR SUBUH) */}
       {activeTab === 'REORDER' && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t-2 border-slate-800 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] p-3.5 md:p-4 font-sans">
+        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t-2 border-slate-800 shadow-[0_-4px_16px_rgba(0,0,0,0.1)] p-3 sm:p-4 font-sans">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div className="flex items-center gap-5 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto justify-between sm:justify-start">
               <div>
                 <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider block">
                   Barang Dipilih
                 </span>
-                <span className="text-sm font-mono font-black text-slate-900">
+                <span className="text-sm sm:text-base font-mono font-black text-slate-900">
                   {getSelectedItemsCount()} SKU
                 </span>
               </div>
 
-              <div className="h-8 w-0.5 bg-slate-300" />
+              <div className="h-8 w-0.5 bg-slate-300 hidden sm:block" />
 
               <div>
                 <span className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-wider block">
@@ -1114,11 +1114,26 @@ export default function ReorderManagement() {
 
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
               <button
+                type="button"
                 onClick={handleCopyShoppingList}
-                className="btn-arcade flex-1 sm:flex-initial px-5 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 font-mono font-black text-xs uppercase rounded-xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B] transition-all cursor-pointer flex items-center justify-center gap-2 min-h-[44px]"
+                className="btn-arcade flex-1 sm:flex-initial px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-900 font-mono font-bold text-xs uppercase rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] active:translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-2 min-h-[42px]"
+                title="Salin daftar belanja ke clipboard"
               >
-                <Copy size={15} /> Salin Checklist
+                <Copy size={15} />
+                <span>Salin Checklist</span>
               </button>
+
+              {!isTierLocked && (reorderData?.all_reorder_items?.length || 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsMarketModeOpen(true)}
+                  className="btn-arcade flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 bg-slate-900 hover:bg-black text-[#CCFF00] font-mono font-black text-xs uppercase rounded-xl border-2 border-slate-900 shadow-[3px_3px_0px_#CCFF00] hover:shadow-[4px_4px_0px_#CCFF00] active:translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-2 min-h-[42px]"
+                  title="Buka Mode Belanja Pasar Subuh Satu Jempol"
+                >
+                  <Moon size={16} className="text-[#CCFF00]" />
+                  <span>Mode Pasar Subuh</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1248,16 +1263,7 @@ export default function ReorderManagement() {
         }}
       />
 
-      {/* Floating Mode Pasar Subuh Button */}
-      {activeTab === 'REORDER' && !isTierLocked && (reorderData?.all_reorder_items?.length || 0) > 0 && (
-        <button
-          onClick={() => setIsMarketModeOpen(true)}
-          className="fixed bottom-6 right-6 z-40 bg-slate-900 text-[#CCFF00] hover:bg-slate-800 px-5 py-3.5 rounded-2xl border-2 border-slate-700 shadow-[4px_4px_0px_#000000] font-mono font-black text-xs uppercase flex items-center gap-2.5 transition-transform active:translate-y-0.5 cursor-pointer"
-        >
-          <Moon size={18} className="text-[#CCFF00]" />
-          <span>Mode Pasar Subuh</span>
-        </button>
-      )}
+      {/* Floating Mode Pasar Subuh Button dipindahkan ke dalam sticky bottom cash bar di atas */}
 
       {/* MARKET MODE MODAL (Fullscreen Taktil Satu Jempol) */}
       <MarketModeModal
