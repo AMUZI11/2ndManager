@@ -8,6 +8,7 @@ Dokumentasi arsitektur konfigurasi domain resmi, DNS records, SSL/TLS hardening,
 
 | Hostname | Fungsi Utama | Aksesibilitas |
 | :--- | :--- | :--- |
+| `2ndmanager.vercel.app` | Domain default deployment production Vercel | Publik / Live |
 | `2ndmanager.com` | Landing page, SEO, Legal Kit (UU PDP), Autentikasi | Publik |
 | `www.2ndmanager.com` | Redirect 301 permanen ke apex `2ndmanager.com` | Publik |
 | `*.2ndmanager.com` | Subdomain opsional (misal: `pos.2ndmanager.com`, `admin.2ndmanager.com`) | Terproteksi / Publik |
