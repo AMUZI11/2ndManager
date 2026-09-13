@@ -72,111 +72,114 @@ export default function TenantsPage() {
   const getStatusBadge = (status, chokeholdActive) => {
     if (chokeholdActive || status === 'CHOKEHOLD') {
       return (
-        <span className="font-mono text-[10px] uppercase px-2 py-0.5 bg-red-950/80 text-red-300 border border-red-800 rounded font-black">
-          [ CHOKEHOLD ]
+        <span className="font-mono text-[10px] uppercase px-2 py-0.5 bg-rose-100 text-rose-900 border border-slate-800 rounded font-black">
+          CHOKEHOLD
         </span>
       );
     }
     if (status === 'GRACE_PERIOD') {
       return (
-        <span className="font-mono text-[10px] uppercase px-2 py-0.5 bg-amber-950/80 text-amber-300 border border-amber-700 rounded font-bold">
-          [ DISPENSASI ]
+        <span className="font-mono text-[10px] uppercase px-2 py-0.5 bg-amber-100 text-amber-900 border border-slate-800 rounded font-bold">
+          DISPENSASI
         </span>
       );
     }
     if (status === 'SUSPENDED') {
       return (
-        <span className="font-mono text-[10px] uppercase px-2 py-0.5 bg-zinc-900 text-zinc-400 border border-zinc-700 rounded font-medium">
-          [ SUSPENDED ]
+        <span className="font-mono text-[10px] uppercase px-2 py-0.5 bg-slate-200 text-slate-700 border border-slate-400 rounded font-medium">
+          SUSPENDED
         </span>
       );
     }
     return (
-      <span className="font-mono text-[10px] uppercase px-2 py-0.5 bg-emerald-950/80 text-[#10B981] border border-emerald-800 rounded font-bold">
-        [ AKTIF ]
+      <span className="font-mono text-[10px] uppercase px-2 py-0.5 bg-emerald-100 text-emerald-900 border border-slate-800 rounded font-bold">
+        AKTIF
       </span>
     );
   };
 
   return (
-    <div className="space-y-4 font-sans max-w-7xl mx-auto">
-      {/* Top Header & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
-        <div>
-          <div className="flex items-center space-x-2">
-            <Store size={18} className="text-[#CCFF00]" />
-            <h2 className="font-heading font-black text-lg text-zinc-100 uppercase tracking-tight">
-              Tenant Directory &amp; Billing Chokehold
-            </h2>
+    <div className="space-y-6 font-sans max-w-7xl mx-auto pb-12">
+      {/* Top Header Bento Card */}
+      <div className="bg-white border-2 border-slate-800 rounded-2xl p-6 shadow-[4px_4px_0px_0px_#1e293b] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2.5">
+            <span className="p-2 bg-[#CCFF00] border-2 border-slate-800 rounded-xl shadow-[2px_2px_0px_0px_#1e293b]">
+              <Store size={20} className="text-slate-900" />
+            </span>
+            <h1 className="font-display font-black text-2xl text-slate-900 tracking-tight">
+              Direktori Penyewa &amp; Billing Chokehold
+            </h1>
           </div>
-          <p className="text-xs text-zinc-400 font-mono mt-0.5">
-            Total {totalCount} penyewa terdaftar | Kontrol status operasional &amp; kuota kasir
+          <p className="text-slate-600 text-sm font-medium">
+            Total {totalCount} penyewa terdaftar | Kontrol status operasional &amp; kuota kasir lintas tenant.
           </p>
         </div>
 
         <div className="flex items-center space-x-2.5">
           <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               id="tenant-search-input"
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Cari nama warung/toko... (Shift+L)"
-              className="h-8 pl-8 pr-3 bg-zinc-900/90 border border-zinc-700 rounded text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-400 font-sans w-56 sm:w-64"
+              placeholder="Cari warung... (Shift+L)"
+              className="h-9 pl-9 pr-3 bg-white border-2 border-slate-800 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#CCFF00] font-mono shadow-[2px_2px_0px_0px_#1e293b] w-52 sm:w-60"
             />
           </div>
 
-          <div className="flex items-center bg-zinc-900 border border-zinc-700 rounded h-8 px-2 text-xs text-zinc-400">
-            <Filter size={12} className="mr-1.5 text-zinc-500" />
+          <div className="flex items-center bg-white border-2 border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-mono font-bold shadow-[2px_2px_0px_0px_#1e293b]">
+            <Filter size={13} className="mr-1.5 text-slate-500" />
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="bg-transparent text-xs text-zinc-300 focus:outline-none font-mono cursor-pointer"
+              className="bg-transparent text-xs text-slate-900 focus:outline-none cursor-pointer"
             >
-              <option value="ALL" className="bg-zinc-900">SEMUA STATUS</option>
-              <option value="ACTIVE" className="bg-zinc-900">AKTIF</option>
-              <option value="GRACE_PERIOD" className="bg-zinc-900">DISPENSASI</option>
-              <option value="CHOKEHOLD" className="bg-zinc-900">CHOKEHOLD</option>
+              <option value="ALL">SEMUA STATUS</option>
+              <option value="ACTIVE">AKTIF</option>
+              <option value="GRACE_PERIOD">DISPENSASI</option>
+              <option value="CHOKEHOLD">CHOKEHOLD</option>
             </select>
           </div>
 
           <button
             onClick={() => fetchTenants()}
+            disabled={loading}
             title="Muat Ulang Data"
-            className="h-8 w-8 rounded bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-zinc-100 flex items-center justify-center cursor-pointer"
+            className="flex items-center justify-center h-9 w-9 rounded-xl bg-white border-2 border-slate-800 text-slate-800 shadow-[2px_2px_0px_0px_#1e293b] hover:bg-slate-50 active:translate-x-[1px] active:translate-y-[1px] cursor-pointer"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
-      {/* High-Density Table */}
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg overflow-hidden shadow-2xl">
+      {/* High-Density Table Bento Card */}
+      <div className="bg-white border-2 border-slate-800 rounded-2xl shadow-[4px_4px_0px_0px_#1e293b] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse font-sans">
             <thead>
-              <tr className="border-b border-zinc-800 bg-zinc-950/80 text-[10px] font-mono uppercase tracking-wider text-zinc-400">
-                <th className="py-2.5 px-3">ID / TOKEN</th>
-                <th className="py-2.5 px-3">NAMA TOKO</th>
-                <th className="py-2.5 px-3">OWNER WA</th>
-                <th className="py-2.5 px-3">PAKET</th>
-                <th className="py-2.5 px-3">KASIR (AKTIF/MAX)</th>
-                <th className="py-2.5 px-3">STATUS</th>
-                <th className="py-2.5 px-3 text-right">TINDAKAN</th>
+              <tr className="border-b-2 border-slate-800 bg-slate-100 text-[11px] font-mono uppercase tracking-wider text-slate-700 font-bold">
+                <th className="py-3 px-4">ID / TOKEN</th>
+                <th className="py-3 px-4">NAMA TOKO</th>
+                <th className="py-3 px-4">KONTAK OWNER</th>
+                <th className="py-3 px-4">PAKET TIER</th>
+                <th className="py-3 px-4">KASIR (AKTIF/MAX)</th>
+                <th className="py-3 px-4">STATUS</th>
+                <th className="py-3 px-4 text-right">TINDAKAN</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60 text-xs">
+            <tbody className="divide-y-2 divide-slate-100 text-xs font-mono">
               {loading && tenants.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-zinc-500 font-mono text-xs">
+                  <td colSpan={7} className="py-12 text-center text-slate-400 font-mono text-xs">
                     Memuat data penyewa...
                   </td>
                 </tr>
               ) : tenants.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-zinc-500 font-mono text-xs">
-                    Tidak ditemukan data penyewa yang cocok.
+                  <td colSpan={7} className="py-12 text-center text-slate-500 font-mono text-xs">
+                    Tidak ditemukan data penyewa yang cocok dengan kriteria filter.
                   </td>
                 </tr>
               ) : (
@@ -188,43 +191,45 @@ export default function TenantsPage() {
                   const hasOverride = currentLimit !== baseCashiers;
 
                   return (
-                    <tr key={t.id} className="hover:bg-zinc-850/60 transition-colors h-10">
-                      <td className="py-1.5 px-3 font-mono text-zinc-400 text-[11px] truncate max-w-[100px]">
+                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-4 font-mono text-slate-500 text-[11px] truncate max-w-[100px]">
                         #{t.id.slice(0, 8)}
                       </td>
-                      <td className="py-1.5 px-3 font-bold text-zinc-100 truncate max-w-[200px]">
+                      <td className="py-3 px-4 font-bold font-sans text-slate-900 truncate max-w-[200px]">
                         {t.name}
                       </td>
-                      <td className="py-1.5 px-3 font-mono text-zinc-400 text-[11px] truncate max-w-[140px]">
+                      <td className="py-3 px-4 font-mono text-slate-600 text-[11px] truncate max-w-[140px]">
                         {ownerPhone}
                       </td>
-                      <td className="py-1.5 px-3 font-mono text-zinc-300 text-[11px] uppercase font-semibold">
-                        {tier}
+                      <td className="py-3 px-4">
+                        <span className="bg-lime-200 border border-slate-800 text-slate-900 px-2 py-0.5 rounded font-mono text-[10px] font-black uppercase">
+                          {tier}
+                        </span>
                       </td>
-                      <td className="py-1.5 px-3 font-mono text-[11px]">
-                        <span className={hasOverride ? 'text-emerald-400 font-bold' : 'text-zinc-400'}>
+                      <td className="py-3 px-4 font-mono text-[11px]">
+                        <span className={hasOverride ? 'text-emerald-700 font-black' : 'text-slate-700 font-bold'}>
                           {t.active_cashiers_count || 1} / {currentLimit}
                         </span>
                         {hasOverride && (
-                          <span className="ml-1 text-[9px] px-1 py-0.2 bg-emerald-950/80 border border-emerald-800 text-emerald-300 rounded font-mono font-bold">
+                          <span className="ml-1 text-[9px] px-1 py-0.2 bg-emerald-100 border border-slate-800 text-emerald-800 rounded font-mono font-bold">
                             +{currentLimit - baseCashiers}
                           </span>
                         )}
                       </td>
-                      <td className="py-1.5 px-3">
+                      <td className="py-3 px-4">
                         {getStatusBadge(t.operational_status, t.chokehold_active)}
                       </td>
-                      <td className="py-1.5 px-3 text-right space-x-1.5 whitespace-nowrap">
+                      <td className="py-3 px-4 text-right space-x-2 whitespace-nowrap">
                         <Link
                           href={`/admin/tenants/${t.id}`}
-                          className="h-7 px-2.5 inline-flex items-center space-x-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 text-[11px] font-medium"
+                          className="px-2.5 py-1.5 inline-flex items-center space-x-1 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border-2 border-slate-800 shadow-[2px_2px_0px_0px_#1e293b] active:translate-x-[1px] active:translate-y-[1px] text-[11px] font-mono font-bold transition-all"
                         >
                           <span>Inspeksi</span>
                           <ExternalLink size={10} />
                         </Link>
                         <button
                           onClick={() => openChokeholdModal(t)}
-                          className="h-7 px-2.5 rounded bg-zinc-900 hover:bg-zinc-800 text-[#CCFF00] border border-zinc-700 text-[11px] font-bold cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-xl bg-[#CCFF00] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] text-slate-900 border-2 border-slate-800 shadow-[2px_2px_0px_0px_#1e293b] text-[11px] font-mono font-black transition-all cursor-pointer"
                         >
                           Chokehold
                         </button>
@@ -238,20 +243,20 @@ export default function TenantsPage() {
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-3 border-t border-zinc-800 bg-zinc-950/60 flex items-center justify-between text-xs font-mono text-zinc-400">
-          <span>Halaman {page} dari {totalPages}</span>
+        <div className="p-4 border-t-2 border-slate-800 bg-slate-50 flex items-center justify-between text-xs font-mono text-slate-700">
+          <span className="font-bold">Halaman {page} dari {totalPages}</span>
           <div className="flex items-center space-x-2">
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="h-7 px-2.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-800 flex items-center"
+              className="p-1.5 rounded-lg border-2 border-slate-800 bg-white hover:bg-slate-100 text-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <ChevronLeft size={14} />
             </button>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="h-7 px-2.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-800 flex items-center"
+              className="p-1.5 rounded-lg border-2 border-slate-800 bg-white hover:bg-slate-100 text-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <ChevronRight size={14} />
             </button>

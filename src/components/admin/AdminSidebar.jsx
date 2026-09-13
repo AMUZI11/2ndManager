@@ -4,31 +4,35 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  Activity, 
-  Store, 
-  LifeBuoy, 
-  Layers, 
-  ShieldAlert, 
-  FileLock2, 
   LogOut, 
-  ArrowUpRight,
+  Store, 
   Terminal,
-  ChevronRight,
-  CreditCard
+  ShieldCheck,
+  ChevronRight
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { getFilteredNavSections } from '@/config/adminNav';
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
   const [adminUser, setAdminUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [pendingProofsCount, setPendingProofsCount] = useState(0);
 
   useEffect(() => {
     async function getAdminSession() {
       const { data: { user } } = await supabase.auth.getUser();
       setAdminUser(user);
+      if (user) {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        setProfile(prof);
+      }
     }
     getAdminSession();
 
@@ -56,32 +60,7 @@ export default function AdminSidebar() {
     };
   }, [supabase]);
 
-  // Global Keyboard Shortcuts (Alt + 1 .. 7)
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.altKey && !e.ctrlKey && !e.metaKey) {
-        if (e.key === '1') { e.preventDefault(); router.push('/admin/dashboard'); }
-        if (e.key === '2') { e.preventDefault(); router.push('/admin/tenants'); }
-        if (e.key === '3') { e.preventDefault(); router.push('/admin/panic-dispatch'); }
-        if (e.key === '4') { e.preventDefault(); router.push('/admin/categories-master'); }
-        if (e.key === '5') { e.preventDefault(); router.push('/admin/fraud-radar'); }
-        if (e.key === '6') { e.preventDefault(); router.push('/admin/audit-logs'); }
-        if (e.key === '7') { e.preventDefault(); router.push('/admin/payment-proofs'); }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [router]);
-
-  const navItems = [
-    { href: '/admin/dashboard', label: 'Platform Pulse', icon: Activity, shortcut: 'Alt+1' },
-    { href: '/admin/payment-proofs', label: 'Bukti Pembayaran', icon: CreditCard, shortcut: 'Alt+7', badge: pendingProofsCount },
-    { href: '/admin/tenants', label: 'Tenants & Billing', icon: Store, shortcut: 'Alt+2' },
-    { href: '/admin/panic-dispatch', label: 'Panic Dispatch', icon: LifeBuoy, shortcut: 'Alt+3' },
-    { href: '/admin/categories-master', label: 'Master Kategori', icon: Layers, shortcut: 'Alt+4' },
-    { href: '/admin/fraud-radar', label: 'Radar Anomali', icon: ShieldAlert, shortcut: 'Alt+5' },
-    { href: '/admin/audit-logs', label: 'Audit Trail Ledger', icon: FileLock2, shortcut: 'Alt+6' },
-  ];
+  const { sections, isPlatformAdmin } = getFilteredNavSections(adminUser, profile);
 
   const handleLogout = async () => {
     sessionStorage.removeItem('hl_active_session');
@@ -90,98 +69,100 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-[260px] bg-zinc-950/90 backdrop-blur-xl border-r border-zinc-800 flex flex-col justify-between h-screen flex-shrink-0 z-30 font-sans select-none">
+    <aside className="w-64 bg-white border-r-2 border-slate-800 flex flex-col justify-between h-screen flex-shrink-0 z-30 font-sans select-none shadow-[2px_0_0_0_#1e293b]">
       <div className="flex flex-col flex-1 min-h-0">
         {/* Brand Header */}
-        <div className="h-14 border-b border-zinc-800/80 px-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-7 h-7 bg-[#CCFF00] text-black font-black flex items-center justify-center font-mono text-xs border border-zinc-800">
-              <Terminal size={15} />
+        <div className="h-16 border-b-2 border-slate-800 px-4 flex items-center justify-between bg-slate-50/70">
+          <Link href="/admin" className="flex items-center space-x-2.5 group">
+            <div className="w-8 h-8 bg-[#CCFF00] text-slate-900 font-black flex items-center justify-center font-mono text-sm border-2 border-slate-800 shadow-[2px_2px_0_#1E293B] group-hover:-translate-y-0.5 transition-all">
+              <Terminal size={16} />
             </div>
             <div>
-              <h1 className="font-heading font-black text-sm tracking-tight text-zinc-100 uppercase">
+              <h1 className="font-display font-black text-sm tracking-tight text-slate-900 uppercase">
                 2ndManager
               </h1>
-              <span className="text-[9px] font-mono tracking-widest text-[#CCFF00] font-bold block -mt-0.5">
-                OBSIDIAN DECK
+              <span className="text-[9px] font-mono tracking-wider text-slate-600 font-bold block -mt-0.5">
+                {isPlatformAdmin ? 'SUPERADMIN HUB' : 'MISSION CONTROL'}
               </span>
             </div>
-          </div>
-          <div className="flex items-center space-x-1.5 px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
-            <span className="font-mono text-[10px] text-zinc-400 font-bold">LIVE</span>
+          </Link>
+          <div className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-800 text-emerald-900">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+            <span className="font-mono text-[9px] font-black">LIVE</span>
           </div>
         </div>
 
-        {/* Section Label */}
-        <div className="px-4 pt-4 pb-2">
-          <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
-            Pusat Operasional
-          </p>
-        </div>
+        {/* Navigation Sections */}
+        <nav className="p-3 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
+          {sections.map((section, secIdx) => (
+            <div key={secIdx} className="space-y-1">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-extrabold px-2.5 pb-1">
+                {section.title}
+              </p>
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+                  const isProof = item.href === '/admin/payment-proofs';
 
-        {/* Navigation Items (High-Density h-9) */}
-        <nav className="px-2 space-y-1 overflow-y-auto flex-1 custom-dark-scrollbar">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(item.href));
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`group flex items-center justify-between h-9 px-3 rounded text-xs transition-all ${
-                  isActive
-                    ? 'bg-zinc-900 border border-zinc-700 text-[#CCFF00] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/60 border border-transparent'
-                }`}
-              >
-                <div className="flex items-center space-x-2.5 truncate">
-                  <Icon size={16} className={isActive ? 'text-[#CCFF00]' : 'text-zinc-500 group-hover:text-zinc-300'} />
-                  <span className="truncate">{item.label}</span>
-                </div>
-                <div className="flex items-center space-x-1.5 shrink-0">
-                  {item.badge > 0 && (
-                    <span className="px-1.5 py-0.5 rounded bg-[#CCFF00] text-black font-black text-[9px] font-mono leading-none animate-pulse">
-                      {item.badge}
-                    </span>
-                  )}
-                  <kbd className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-500 border border-zinc-800 group-hover:text-zinc-400 group-hover:border-zinc-700">
-                    {item.shortcut}
-                  </kbd>
-                </div>
-              </Link>
-            );
-          })}
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`group flex items-center justify-between h-9 px-3 rounded-xl text-xs font-semibold transition-all ${
+                        isActive
+                          ? 'bg-slate-900 text-white font-mono shadow-[3px_3px_0px_0px_#64748b] border-2 border-slate-900 font-bold'
+                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 border-2 border-transparent hover:border-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2.5 truncate">
+                        <Icon 
+                          size={15} 
+                          className={isActive ? 'text-[#CCFF00]' : 'text-slate-500 group-hover:text-slate-800'} 
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </div>
+                      
+                      {isProof && pendingProofsCount > 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-rose-500 text-white font-black text-[9px] font-mono leading-none animate-pulse border border-slate-900">
+                          {pendingProofsCount}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
       </div>
 
-      {/* Footer / User Profile & Logout */}
-      <div className="p-3 border-t border-zinc-800/80 space-y-2 bg-zinc-950/60">
+      {/* Footer User Profile & POS Launchpad */}
+      <div className="p-3 border-t-2 border-slate-800 space-y-2 bg-slate-50/80">
         <Link
-          href="/dashboard"
-          className="flex items-center justify-between px-3 py-2 rounded text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 border border-zinc-800/80 transition-colors group"
+          href="/pos"
+          className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-slate-900 bg-[#CCFF00] hover:bg-[#b8e600] border-2 border-slate-800 shadow-[2px_2px_0_#1E293B] transition-all font-mono group"
         >
           <span className="flex items-center space-x-2">
-            <Store size={14} className="text-zinc-500 group-hover:text-zinc-300" />
-            <span>Sisi Toko (User)</span>
+            <Store size={14} className="text-slate-900" />
+            <span>Meja Kasir POS</span>
           </span>
-          <ArrowUpRight size={13} className="text-zinc-600 group-hover:text-zinc-300" />
+          <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
         </Link>
 
-        <div className="flex items-center justify-between px-2 pt-1">
+        <div className="flex items-center justify-between px-2 pt-1 border-t border-slate-200">
           <div className="truncate pr-2">
-            <p className="text-xs font-mono font-bold text-zinc-300 truncate">
-              {adminUser?.email || 'admin@internal'}
+            <p className="text-xs font-mono font-black text-slate-900 truncate">
+              {profile?.username || adminUser?.email?.split('@')[0] || 'Admin'}
             </p>
-            <span className="text-[9px] font-mono text-[#CCFF00] bg-zinc-900 border border-zinc-800 px-1 py-0.2 rounded inline-block uppercase">
-              SUPERADMIN
+            <span className="text-[9px] font-mono font-bold text-slate-500 uppercase">
+              {isPlatformAdmin ? 'SUPERADMIN' : (profile?.role || 'OWNER')}
             </span>
           </div>
           <button
             onClick={handleLogout}
-            title="Keluar Sesi Admin"
-            className="w-8 h-8 rounded flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors cursor-pointer"
+            title="Keluar Sesi"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-slate-300 hover:border-rose-400 transition-colors cursor-pointer"
           >
             <LogOut size={15} />
           </button>

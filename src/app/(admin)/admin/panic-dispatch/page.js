@@ -11,7 +11,8 @@ import {
   ExternalLink,
   ShieldAlert,
   Smartphone,
-  Check
+  Check,
+  Send
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -31,12 +32,12 @@ export default function PanicDispatchPage() {
   const [loading, setLoading] = useState(true);
   const [resolvingId, setResolvingId] = useState(null);
   const [resolveNote, setResolveNote] = useState('');
-  const [audioPlayed, setAudioPlayed] = useState(false);
   const now = useSyncExternalStore(subscribeClock, getClockSnapshot, getServerClockSnapshot);
   const supabase = createClient();
 
   const fetchTickets = useCallback(async () => {
     try {
+      setLoading(true);
       const res = await fetch('/api/v1/admin/panic-dispatch?status=OPEN');
       const json = await res.json();
       if (res.ok && json.data) {
@@ -66,12 +67,10 @@ export default function PanicDispatchPage() {
     }
     loadInitial();
 
-    // Supabase Realtime Listener on platform_events
     const channel = supabase
       .channel('platform_events')
       .on('broadcast', { event: 'PANIC_TICKET_RAISED' }, () => {
         fetchTickets();
-        // Play notification beep
         try {
           const ctx = new (window.AudioContext || window.webkitAudioContext)();
           const osc = ctx.createOscillator();
@@ -119,47 +118,51 @@ export default function PanicDispatchPage() {
   };
 
   return (
-    <div className="space-y-4 font-sans max-w-7xl mx-auto">
-      {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800/80 pb-4">
-        <div>
-          <div className="flex items-center space-x-2">
-            <LifeBuoy size={20} className="text-[#E30022] animate-spin" />
-            <h2 className="font-heading font-black text-lg text-zinc-100 uppercase tracking-tight">
+    <div className="space-y-6 font-sans max-w-7xl mx-auto pb-12">
+      {/* Top Header Bento Card */}
+      <div className="bg-white border-2 border-slate-800 rounded-2xl p-6 shadow-[4px_4px_0px_0px_#1e293b] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2.5">
+            <span className="p-2 bg-rose-500 border-2 border-slate-800 rounded-xl shadow-[2px_2px_0px_0px_#1e293b] text-white">
+              <LifeBuoy size={20} className="animate-spin" />
+            </span>
+            <h1 className="font-display font-black text-2xl text-slate-900 tracking-tight">
               Emergency WA Triage Queue
-            </h2>
-            <span className="font-mono text-xs px-2 py-0.5 rounded bg-red-950 border border-red-800 text-red-300 font-extrabold">
+            </h1>
+            <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-rose-100 border border-slate-800 text-rose-900 font-black tracking-wider">
               SLA TARGET: &lt; 5 MENIT
             </span>
           </div>
-          <p className="text-xs text-zinc-400 font-mono mt-0.5">
-            Antrean panggilan bantuan darurat real-time dari tombol SOS kasir
+          <p className="text-slate-600 text-sm font-medium">
+            Antrean panggilan bantuan darurat real-time dari tombol SOS kasir di terminal toko.
           </p>
         </div>
 
         <button
           onClick={() => fetchTickets()}
-          title="Muat Ulang Antrean"
-          className="h-8 px-3 rounded bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-zinc-100 flex items-center space-x-2 text-xs cursor-pointer"
+          disabled={loading}
+          className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-white border-2 border-slate-800 text-slate-800 font-mono text-xs font-bold shadow-[2px_2px_0px_0px_#1e293b] hover:bg-slate-50 active:translate-x-[1px] active:translate-y-[1px] cursor-pointer"
         >
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          <span>Muat Ulang</span>
+          <span>MUAT ULANG</span>
         </button>
       </div>
 
       {/* Ticket List */}
       {loading && tickets.length === 0 ? (
-        <div className="py-16 text-center text-zinc-500 font-mono text-xs">
+        <div className="bg-white border-2 border-slate-800 rounded-2xl p-12 text-center text-slate-400 font-mono text-xs shadow-[4px_4px_0px_0px_#1e293b]">
           Memeriksa antrean tiket darurat...
         </div>
       ) : tickets.length === 0 ? (
-        <div className="p-12 text-center bg-zinc-900/40 border border-zinc-800 rounded-lg space-y-2">
-          <CheckCircle2 size={32} className="text-[#10B981] mx-auto" />
-          <h3 className="font-heading font-bold text-sm text-zinc-200 uppercase">
+        <div className="bg-white border-2 border-slate-800 rounded-2xl p-12 text-center shadow-[4px_4px_0px_0px_#1e293b] space-y-2">
+          <div className="w-12 h-12 bg-lime-100 border-2 border-slate-800 rounded-2xl flex items-center justify-center mx-auto shadow-[2px_2px_0px_0px_#1e293b]">
+            <CheckCircle2 size={26} className="text-emerald-700" />
+          </div>
+          <h3 className="font-display font-black text-base text-slate-900 uppercase">
             Tidak Ada Tiket Darurat Aktif
           </h3>
-          <p className="text-xs text-zinc-500 font-mono">
-            Seluruh panggilan SOS kasir telah terselesaikan dengan baik.
+          <p className="text-xs text-slate-600 font-mono">
+            Seluruh panggilan SOS kasir telah terselesaikan dengan baik. Antrean bersih.
           </p>
         </div>
       ) : (
@@ -178,64 +181,65 @@ export default function PanicDispatchPage() {
             return (
               <div 
                 key={ticket.id}
-                className="bg-zinc-950 border-2 border-red-800/80 rounded-lg p-5 shadow-[0_10px_30px_rgba(227,0,34,0.15)] space-y-4"
+                className="bg-white border-2 border-slate-800 rounded-2xl p-6 shadow-[4px_4px_0px_0px_#1e293b] space-y-4 transition-transform hover:-translate-y-0.5"
               >
                 {/* Ticket Top Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-slate-800 pb-3">
                   <div className="flex items-center space-x-3">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#E30022] animate-ping" />
+                    <span className="w-3 h-3 rounded-full bg-rose-500 border border-slate-800 animate-ping" />
                     <div>
-                      <span className="text-xs font-mono text-red-400 font-black tracking-wide">
-                        [CRITICAL TICKET #{ticket.id.slice(0, 8)}]
+                      <span className="text-xs font-mono text-rose-600 font-black tracking-wide">
+                        [CRITICAL SOS #{ticket.id.slice(0, 8)}]
                       </span>
-                      <h4 className="font-heading font-black text-base text-zinc-100 uppercase">
+                      <h3 className="font-display font-black text-lg text-slate-900 uppercase tracking-tight">
                         {shopName}
-                      </h4>
+                      </h3>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-2 font-mono text-xs">
-                    <span className="text-zinc-500">Menunggu:</span>
-                    <span className="px-2 py-0.5 rounded bg-red-950 text-red-300 font-bold border border-red-800 animate-pulse">
+                    <span className="text-slate-500 font-bold">Menunggu Respon:</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-900 font-black border border-slate-800 animate-pulse">
                       {getSlaTime(ticket.created_at)}
                     </span>
                   </div>
                 </div>
 
                 {/* Reporter & Issue Detail */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-[10px] font-mono uppercase text-zinc-500 font-bold block">Pelapor:</span>
-                    <p className="text-zinc-200 font-bold">{ticket.reporter_name} ({ticket.reporter_phone || '-'})</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+                  <div className="p-3 bg-slate-50 border-2 border-slate-800 rounded-xl">
+                    <span className="text-[10px] uppercase text-slate-500 font-bold block mb-0.5">Pelapor Kasir:</span>
+                    <p className="text-slate-900 font-black text-sm">{ticket.reporter_name}</p>
+                    <p className="text-slate-600 text-xs mt-0.5">{ticket.reporter_phone || 'Nomor HP tidak tercantum'}</p>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-mono uppercase text-zinc-500 font-bold block">Kendala Dilaporkan:</span>
-                    <p className="text-red-300 font-bold font-mono">{ticket.issue_type}</p>
+                  <div className="p-3 bg-rose-50 border-2 border-slate-800 rounded-xl">
+                    <span className="text-[10px] uppercase text-rose-700 font-bold block mb-0.5">Kendala Dilaporkan:</span>
+                    <p className="text-rose-900 font-black text-sm">{ticket.issue_type}</p>
                   </div>
                 </div>
 
                 {/* Telemetry Box */}
-                <div className="bg-zinc-900/80 border border-zinc-800 rounded p-3 text-xs font-mono space-y-1 text-zinc-300">
-                  <div className="flex items-center space-x-2 text-zinc-400 text-[11px] pb-1 border-b border-zinc-800">
-                    <Smartphone size={13} />
-                    <span className="font-bold uppercase tracking-wider">Data Telemetri Kasir Otomatis:</span>
+                <div className="bg-slate-50 border-2 border-slate-800 rounded-xl p-3.5 text-xs font-mono space-y-1.5 text-slate-800">
+                  <div className="flex items-center space-x-2 text-slate-700 text-xs pb-1.5 border-b border-slate-300 font-bold">
+                    <Smartphone size={14} className="text-slate-900" />
+                    <span className="uppercase tracking-wider">Telemetri Kasir Otomatis:</span>
                   </div>
-                  <p>• Perangkat &amp; Browser: <span className="text-zinc-400">{telemetry.userAgent || 'Tidak tersedia'}</span></p>
+                  <p>• Perangkat &amp; Browser: <span className="text-slate-600">{telemetry.userAgent || 'Tidak tersedia'}</span></p>
                   {telemetry.custom_note && (
-                    <p>• Catatan Tambahan Kasir: <span className="text-amber-300">&quot;{telemetry.custom_note}&quot;</span></p>
+                    <p>• Catatan Kasir: <span className="font-bold text-slate-900">&quot;{telemetry.custom_note}&quot;</span></p>
                   )}
-                  <p>• ID Tiket Sistem: <span className="text-zinc-500">{ticket.id}</span></p>
+                  <p>• ID Tiket: <span className="text-slate-500">{ticket.id}</span></p>
                 </div>
 
                 {/* Action Row */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                   <a
                     href={waUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="h-9 px-4 rounded bg-[#10B981] hover:bg-emerald-600 text-black font-extrabold text-xs flex items-center space-x-2 transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-mono font-black text-xs border-2 border-slate-800 shadow-[3px_3px_0px_0px_#1e293b] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] flex items-center space-x-2 transition-all cursor-pointer"
                   >
-                    <MessageSquare size={15} />
+                    <MessageSquare size={16} />
                     <span>BUKA WHATSAPP RESMI</span>
                   </a>
 
@@ -245,18 +249,18 @@ export default function PanicDispatchPage() {
                         type="text"
                         value={resolveNote}
                         onChange={(e) => setResolveNote(e.target.value)}
-                        placeholder="Catatan resolusi..."
-                        className="h-8 px-2.5 bg-zinc-900 border border-zinc-700 text-xs rounded text-zinc-100 placeholder-zinc-500"
+                        placeholder="Catatan penanganan..."
+                        className="bg-white border-2 border-slate-800 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
                       />
                       <button
                         onClick={() => handleResolve(ticket.id)}
-                        className="h-8 px-3 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-[#CCFF00] border-2 border-slate-800 text-slate-900 font-mono font-black text-xs shadow-[2px_2px_0px_0px_#1e293b] cursor-pointer"
                       >
                         Konfirmasi
                       </button>
                       <button
                         onClick={() => setResolvingId(null)}
-                        className="h-8 px-2.5 rounded bg-zinc-800 text-zinc-400 text-xs cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-white border-2 border-slate-800 text-slate-600 font-mono font-bold text-xs cursor-pointer"
                       >
                         Batal
                       </button>
@@ -264,7 +268,7 @@ export default function PanicDispatchPage() {
                   ) : (
                     <button
                       onClick={() => setResolvingId(ticket.id)}
-                      className="h-9 px-4 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-bold text-xs flex items-center space-x-1.5 cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-800 shadow-[2px_2px_0px_0px_#1e293b] active:translate-x-[1px] active:translate-y-[1px] font-mono font-bold text-xs flex items-center space-x-1.5 cursor-pointer"
                     >
                       <Check size={14} />
                       <span>TANDAI SELESAI</span>

@@ -1,7 +1,5 @@
-"use client";
-import React from 'react';
-import ProductManagement from '@/views/ProductManagement';
+import { redirect } from 'next/navigation';
 
 export default function ProductsPage() {
-  return <ProductManagement />;
+  redirect('/admin/inventory');
 }

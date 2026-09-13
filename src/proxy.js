@@ -119,6 +119,31 @@ export async function proxy(request) {
     }
   );
 
+  // ─── CANONICAL HTTP 308 REDIRECTS (Sisi User diarahkan ke Mission Control Admin) ───
+  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+    const targetUrl = request.nextUrl.clone();
+    targetUrl.pathname = '/admin';
+    return NextResponse.redirect(targetUrl, 308);
+  }
+
+  if (pathname === '/products' || pathname.startsWith('/products/')) {
+    const targetUrl = request.nextUrl.clone();
+    targetUrl.pathname = '/admin/inventory';
+    return NextResponse.redirect(targetUrl, 308);
+  }
+
+  if (pathname === '/transactions' || pathname.startsWith('/transactions/')) {
+    const targetUrl = request.nextUrl.clone();
+    targetUrl.pathname = '/admin/transactions';
+    return NextResponse.redirect(targetUrl, 308);
+  }
+
+  if (pathname === '/owner' || pathname.startsWith('/owner/')) {
+    const targetUrl = request.nextUrl.clone();
+    targetUrl.pathname = '/admin';
+    return NextResponse.redirect(targetUrl, 308);
+  }
+
   const isAdminPage = pathname.startsWith('/admin');
   const isAdminApi = pathname.startsWith('/api/v1/admin');
 
@@ -148,33 +173,69 @@ export async function proxy(request) {
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean);
 
-    const isSuperadmin = superadminEmails.includes(user.email?.toLowerCase());
-    let isAuthorized = isSuperadmin;
+    const isSuperadminEmail = superadminEmails.includes(user.email?.toLowerCase());
 
-    if (!isAuthorized) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-      const staffRoles = ['SUPERADMIN', 'SUPPORT_AGENT', 'BILLING_SPECIALIST'];
-      if (profile && staffRoles.includes(profile.role)) {
-        isAuthorized = true;
+    const role = profile?.role || 'CASHIER';
+    const isSuperadmin = isSuperadminEmail || role === 'SUPERADMIN' || user?.app_metadata?.is_platform_admin === true;
+
+    // 1. CASHIER ISOLATION: Staf kasir dilarang mengakses admin dan diarahkan ke terminal /pos
+    if (role === 'CASHIER' && !isSuperadmin) {
+      if (isAdminApi) {
+        return NextResponse.json(
+          { error: true, code: 'FORBIDDEN_CASHIER', message: 'Kasir tidak memiliki akses ke Mission Control Admin.' },
+          { status: 403 }
+        );
       }
+      const posUrl = request.nextUrl.clone();
+      posUrl.pathname = '/pos';
+      posUrl.searchParams.set('notice', 'cashier_restricted');
+      return NextResponse.redirect(posUrl);
     }
+
+    // 2. SUPERADMIN ONLY PATHS (/admin/vouchers, /admin/tenants)
+    const superadminOnlyRoutes = [
+      '/admin/vouchers',
+      '/admin/tenants',
+    ];
+    const isSuperadminRoute = superadminOnlyRoutes.some(
+      (r) => pathname === r || pathname.startsWith(r + '/')
+    );
+    const isSuperadminApi = isAdminApi && !pathname.startsWith('/api/v1/admin/telemetry');
+
+    if (isSuperadminRoute && !isSuperadmin) {
+      if (isAdminApi) {
+        return NextResponse.json(
+          { error: true, code: 'FORBIDDEN', message: 'Akses ditolak. Memerlukan wewenang Platform Superadmin.' },
+          { status: 403 }
+        );
+      }
+      const adminUrl = request.nextUrl.clone();
+      adminUrl.pathname = '/admin';
+      adminUrl.searchParams.set('error', 'forbidden_action');
+      return NextResponse.redirect(adminUrl);
+    }
+
+    // 3. GENERAL ADMIN AUTHORIZATION (Owner, Boss, Manager, Admin, Superadmin)
+    const allowedAdminRoles = ['BOSS', 'OWNER', 'MANAGER', 'ADMIN', 'SUPERADMIN', 'SUPPORT_AGENT', 'BILLING_SPECIALIST'];
+    const isAuthorized = isSuperadmin || allowedAdminRoles.includes(role);
 
     if (!isAuthorized) {
       if (isAdminApi) {
         return NextResponse.json(
-          { error: true, code: 'FORBIDDEN', message: 'Akses ditolak. Memerlukan wewenang Platform Admin.' },
+          { error: true, code: 'FORBIDDEN', message: 'Akses ditolak. Memerlukan wewenang Admin.' },
           { status: 403 }
         );
       }
-      const forbiddenUrl = request.nextUrl.clone();
-      forbiddenUrl.pathname = '/dashboard';
-      forbiddenUrl.searchParams.set('error', 'forbidden_admin');
-      return NextResponse.redirect(forbiddenUrl);
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      loginUrl.searchParams.set('error', 'unauthorized');
+      return NextResponse.redirect(loginUrl);
     }
 
     return response;
@@ -184,13 +245,6 @@ export async function proxy(request) {
   const publicRoutes = ['/', '/login', '/pricing', '/features', '/privacy', '/terms', '/refund'];
   if (publicRoutes.includes(pathname) || pathname.startsWith('/api/')) {
     return response;
-  }
-
-  // Owner route alias: automatically redirect /owner to /dashboard
-  if (pathname === '/owner' || pathname.startsWith('/owner/')) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = '/dashboard';
-    return NextResponse.redirect(dashboardUrl);
   }
 
   // User Side Protected Routes: Check for Supabase auth cookie
@@ -211,6 +265,8 @@ export async function proxy(request) {
     '/panic-dispatch',
     '/superadmin',
     '/transactions',
+    '/transfers',
+    '/reports',
   ];
 
   const isProtected = protectedPrefixes.some(
