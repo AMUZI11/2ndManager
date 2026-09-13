@@ -24,11 +24,7 @@ export const GET = withAdminAuth(async (request, context, adminContext) => {
         grace_period_until,
         cashier_limit,
         active_cashiers_count,
-        owner:owner_id (
-          id,
-          email:email,
-          raw_user_meta_data
-        ),
+        owner_id,
         subscriptions (
           plan,
           valid_until,
@@ -51,8 +47,32 @@ export const GET = withAdminAuth(async (request, context, adminContext) => {
 
     if (error) throw error;
 
+    // Enrich owner information via auth admin
+    const ownerIds = [...new Set((shops || []).map((s) => s.owner_id).filter(Boolean))];
+    const userMap = {};
+
+    await Promise.all(
+      ownerIds.map(async (oid) => {
+        try {
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(oid);
+          if (u?.user) {
+            userMap[oid] = {
+              id: u.user.id,
+              email: u.user.email,
+              raw_user_meta_data: u.user.user_metadata || {},
+            };
+          }
+        } catch {}
+      })
+    );
+
+    const enrichedShops = (shops || []).map((s) => ({
+      ...s,
+      owner: userMap[s.owner_id] || null,
+    }));
+
     return successResponse({
-      tenants: shops || [],
+      tenants: enrichedShops,
       pagination: {
         page,
         limit,

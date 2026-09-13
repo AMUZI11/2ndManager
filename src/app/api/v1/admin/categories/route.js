@@ -8,10 +8,19 @@ export const GET = withAdminAuth(async (request, context, adminContext) => {
     const { data, error } = await supabaseAdmin
       .from('global_category_templates')
       .select('*')
-      .order('sort_order', { ascending: true });
+      .order('display_order', { ascending: true });
 
     if (error) throw error;
-    return successResponse({ categories: data || [] });
+
+    const categories = (data || []).map((c) => ({
+      ...c,
+      category_code: c.code || c.category_code,
+      category_name: c.name || c.category_name,
+      description: c.example_items || c.description,
+      sort_order: c.display_order ?? c.sort_order ?? 1,
+    }));
+
+    return successResponse({ categories });
   } catch (err) {
     console.error('[GET /api/v1/admin/categories]', err);
     return errorResponse('Gagal memuat master kategori global.', 'SERVER_ERROR', 500);
@@ -23,7 +32,7 @@ export const POST = withAdminAuth(async (request, context, adminContext) => {
 
   try {
     const body = await request.json();
-    const { category_code, category_name, description, icon_name, sort_order = 99 } = body;
+    const { category_code, category_name, description, sort_order = 99 } = body;
 
     if (!category_code || !category_name) {
       return errorResponse('Kode kategori dan nama kategori wajib diisi.', 'VALIDATION_ERROR', 422);
@@ -32,11 +41,10 @@ export const POST = withAdminAuth(async (request, context, adminContext) => {
     const { data, error } = await supabaseAdmin
       .from('global_category_templates')
       .insert({
-        category_code: category_code.trim().toUpperCase(),
-        category_name: category_name.trim(),
-        description: description?.trim() || '',
-        icon_name: icon_name?.trim() || 'Package',
-        sort_order: Number(sort_order),
+        code: category_code.trim().toUpperCase(),
+        name: category_name.trim(),
+        example_items: description?.trim() || '',
+        display_order: Number(sort_order),
       })
       .select()
       .single();

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   LifeBuoy, 
   Clock, 
@@ -8,23 +8,12 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   RefreshCw, 
-  ExternalLink,
+  ExternalLink, 
   ShieldAlert,
   Smartphone,
   Check
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-
-function subscribeClock(callback) {
-  const interval = setInterval(callback, 1000);
-  return () => clearInterval(interval);
-}
-function getClockSnapshot() {
-  return Date.now();
-}
-function getServerClockSnapshot() {
-  return 0;
-}
 
 export default function PanicDispatchPage() {
   const [tickets, setTickets] = useState([]);
@@ -32,8 +21,16 @@ export default function PanicDispatchPage() {
   const [resolvingId, setResolvingId] = useState(null);
   const [resolveNote, setResolveNote] = useState('');
   const [audioPlayed, setAudioPlayed] = useState(false);
-  const now = useSyncExternalStore(subscribeClock, getClockSnapshot, getServerClockSnapshot);
+  const [now, setNow] = useState(0);
   const supabase = createClient();
+
+  useEffect(() => {
+    setNow(Date.now());
+    const clockInterval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(clockInterval);
+  }, []);
 
   const fetchTickets = useCallback(async () => {
     try {
