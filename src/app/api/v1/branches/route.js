@@ -1,87 +1,114 @@
-import { withBossOnly, errorResponse, successResponse, checkSubscriptionActive } from '@/lib/auth-helpers';
+import { withAuth, withBossOnly, errorResponse, successResponse, checkSubscriptionActive, resolveOrganization } from '@/lib/auth-helpers';
 import { checkQuotaLimit } from '@/lib/subscription';
 
-export const GET = withBossOnly(async (request, context, { user, supabase }) => {
+export const GET = withAuth(async (request, context, { user, profile, supabase }) => {
   try {
-    // 1. Cari organisasi milik owner
-    let { data: org } = await supabase
-      .from('organizations')
-      .select('id, name, tier_id, max_branches')
-      .eq('owner_id', user.id)
-      .maybeSingle();
+    // 1. Selesaikan organisasi aktif menggunakan helper yang tahan crash multi-org & cashier
+    let org = await resolveOrganization(supabase, user, profile);
 
-    // Jika belum ada organisasi, cari main shop dan buat organisasi
-    if (!org) {
-      const { data: mainShop } = await supabase
-        .from('shops')
-        .select('id, name, created_at')
-        .eq('owner_id', user.id)
-        .is('parent_shop_id', null)
-        .maybeSingle();
+    // 2. Jika organisasi ditemukan, ambil seluruh cabang di bawah organisasi ini
+    let branches = [];
+    if (org?.id) {
+      const { data: orgBranches, error: bErr } = await supabase
+        .from('branches')
+        .select(`
+          id,
+          organization_id,
+          shop_id,
+          branch_name,
+          branch_code,
+          is_main_branch,
+          address,
+          phone_number,
+          is_active,
+          created_at,
+          shops (
+            id,
+            name,
+            subscription_tier,
+            operational_status
+          )
+        `)
+        .eq('organization_id', org.id)
+        .eq('is_active', true)
+        .order('is_main_branch', { ascending: false })
+        .order('branch_code', { ascending: true });
 
-      if (mainShop) {
-        const { data: newOrg } = await supabase
-          .from('organizations')
-          .insert({
-            owner_id: user.id,
-            name: `${mainShop.name} Group`,
-            tier_id: 'EKSEKUTIF',
-            max_branches: 3,
-          })
-          .select()
-          .single();
+      if (bErr) throw bErr;
+      branches = orgBranches || [];
+    }
 
-        org = newOrg;
-
-        // Daftarkan main shop sebagai Cabang 1 (Pusat)
-        await supabase
+    // 3. Fallback jika cabang masih kosong: cari langsung berdasarkan shop_id user/profil
+    if (branches.length === 0) {
+      const targetShopId = profile?.shop_id;
+      if (targetShopId) {
+        const { data: directBranches } = await supabase
           .from('branches')
-          .insert({
-            organization_id: newOrg.id,
-            shop_id: mainShop.id,
-            branch_name: mainShop.name,
-            branch_code: 'CBG-01',
-            is_main_branch: true,
-          })
-          .select()
-          .maybeSingle();
+          .select(`
+            id,
+            organization_id,
+            shop_id,
+            branch_name,
+            branch_code,
+            is_main_branch,
+            address,
+            phone_number,
+            is_active,
+            created_at,
+            shops (
+              id,
+              name,
+              subscription_tier,
+              operational_status
+            )
+          `)
+          .eq('shop_id', targetShopId)
+          .eq('is_active', true);
+        if (directBranches && directBranches.length > 0) {
+          branches = directBranches;
+        }
       }
     }
 
-    if (!org) {
-      return successResponse([]);
+    // 4. Fallback jika masih kosong dan user adalah owner: cari dari seluruh toko yang dimiliki
+    if (branches.length === 0 && user?.id) {
+      const { data: ownedShops } = await supabase
+        .from('shops')
+        .select('id')
+        .eq('owner_id', user.id);
+
+      if (ownedShops && ownedShops.length > 0) {
+        const shopIds = ownedShops.map((s) => s.id);
+        const { data: ownedBranches } = await supabase
+          .from('branches')
+          .select(`
+            id,
+            organization_id,
+            shop_id,
+            branch_name,
+            branch_code,
+            is_main_branch,
+            address,
+            phone_number,
+            is_active,
+            created_at,
+            shops (
+              id,
+              name,
+              subscription_tier,
+              operational_status
+            )
+          `)
+          .in('shop_id', shopIds)
+          .eq('is_active', true);
+        if (ownedBranches && ownedBranches.length > 0) {
+          branches = ownedBranches;
+        }
+      }
     }
 
-    // 2. Ambil seluruh cabang di bawah organisasi ini
-    const { data: branches, error } = await supabase
-      .from('branches')
-      .select(`
-        id,
-        organization_id,
-        shop_id,
-        branch_name,
-        branch_code,
-        is_main_branch,
-        address,
-        phone_number,
-        is_active,
-        created_at,
-        shops (
-          id,
-          name,
-          subscription_tier,
-          operational_status
-        )
-      `)
-      .eq('organization_id', org.id)
-      .eq('is_active', true)
-      .order('is_main_branch', { ascending: false })
-      .order('branch_code', { ascending: true });
-
-    if (error) throw error;
-
     // Normalisasi struktur output
-    const formatted = (branches || []).map((b) => ({
+    const formatted = branches.map((b) => ({
       id: b.id,
       shop_id: b.shop_id,
       organization_id: b.organization_id,
@@ -103,7 +130,7 @@ export const GET = withBossOnly(async (request, context, { user, supabase }) => 
   }
 });
 
-export const POST = withBossOnly(async (request, context, { user, supabase }) => {
+export const POST = withBossOnly(async (request, context, { user, profile, supabase }) => {
   try {
     const body = await request.json();
     const { name, address, phone_number } = body;
@@ -118,7 +145,8 @@ export const POST = withBossOnly(async (request, context, { user, supabase }) =>
       .select('id, name')
       .eq('owner_id', user.id)
       .is('parent_shop_id', null)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     const mainShopId = mainShop ? mainShop.id : user.id;
 
@@ -138,12 +166,8 @@ export const POST = withBossOnly(async (request, context, { user, supabase }) =>
       return errorResponse(quotaCheck.message, 'LIMIT_EXCEEDED', 403);
     }
 
-    // 3. Pastikan Organisasi ada
-    let { data: org } = await supabase
-      .from('organizations')
-      .select('id')
-      .eq('owner_id', user.id)
-      .maybeSingle();
+    // 3. Pastikan Organisasi ada menggunakan resolveOrganization
+    let org = await resolveOrganization(supabase, user, profile);
 
     if (!org) {
       const { data: newOrg } = await supabase
@@ -152,7 +176,6 @@ export const POST = withBossOnly(async (request, context, { user, supabase }) =>
           owner_id: user.id,
           name: `${mainShop?.name || name} Group`,
           tier_id: 'EKSEKUTIF',
-          max_branches: 3,
         })
         .select()
         .single();

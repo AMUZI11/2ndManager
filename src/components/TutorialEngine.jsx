@@ -4,25 +4,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { HelpCircle, ChevronRight, ChevronLeft, X, CheckCircle } from 'lucide-react';
 import { api } from '../utils/api';
 
-const defaultTutorialContext = {
-  registerTrigger: () => {},
-  demoData: null,
-  setDemoData: () => {},
-  onboardingActive: false,
-  onboardingStep: 0,
-  activeTutorial: null,
-  highlightId: null,
-  nextOnboarding: () => {},
-  prevOnboarding: () => {},
-  skipOnboarding: () => {},
-  nextTutorialStep: () => {},
-  exitTutorial: () => {},
-  startTutorial: () => {},
-};
+const TutorialContext = createContext(null);
 
-const TutorialContext = createContext(defaultTutorialContext);
-
-export const useTutorial = () => useContext(TutorialContext) || defaultTutorialContext;
+export const useTutorial = () => useContext(TutorialContext);
 
 // Steps configuration for Onboarding Tour (8 steps)
 const ONBOARDING_STEPS = [

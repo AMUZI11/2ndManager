@@ -22,13 +22,14 @@ export default function AdminNotificationToast() {
 
       if (type === 'PAYMENT') {
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12);
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
         gain.gain.setValueAtTime(0.15, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
         osc.start();
         osc.stop(ctx.currentTime + 0.35);
       } else {
+        // Emergency Panic Sound
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(440, ctx.currentTime);
         osc.frequency.setValueAtTime(330, ctx.currentTime + 0.1);
@@ -37,7 +38,7 @@ export default function AdminNotificationToast() {
         osc.start();
         osc.stop(ctx.currentTime + 0.4);
       }
-    } catch {
+    } catch (e) {
       // Audio autoplay policy catch
     }
   };
@@ -89,42 +90,46 @@ export default function AdminNotificationToast() {
   if (notifications.length === 0) return null;
 
   return (
-    <div className="fixed top-16 right-6 z-[9999] flex flex-col space-y-3 max-w-sm w-full pointer-events-none font-sans">
+    <div className="fixed top-16 right-6 z-[9999] flex flex-col space-y-3 max-w-sm w-full pointer-events-none">
       {notifications.map((n) => (
         <div
           key={n.id}
-          className="pointer-events-auto p-4 rounded-2xl border-3 border-slate-800 bg-white shadow-[6px_6px_0px_0px_#1e293b] animate-in fade-in duration-200 flex flex-col space-y-2.5 text-slate-900"
+          className={`pointer-events-auto p-4 rounded-xl border shadow-2xl backdrop-blur-xl animate-fade-in flex flex-col space-y-2.5 ${
+            n.type === 'PAYMENT'
+              ? 'bg-zinc-950/95 border-[#CCFF00]/60 shadow-[0_0_20px_rgba(204,255,0,0.15)] text-zinc-100'
+              : 'bg-zinc-950/95 border-rose-500/60 shadow-[0_0_20px_rgba(244,63,94,0.2)] text-zinc-100'
+          }`}
         >
           <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center space-x-2.5">
+            <div className="flex items-center space-x-2">
               <div
-                className={`w-8 h-8 rounded-xl border-2 border-slate-800 flex items-center justify-center font-bold text-xs shrink-0 shadow-[2px_2px_0px_0px_#1e293b] ${
-                  n.type === 'PAYMENT' ? 'bg-[#CCFF00] text-slate-900' : 'bg-rose-500 text-white'
+                className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                  n.type === 'PAYMENT' ? 'bg-[#CCFF00] text-black' : 'bg-rose-500 text-white'
                 }`}
               >
-                {n.type === 'PAYMENT' ? <CreditCard size={16} /> : <LifeBuoy size={16} />}
+                {n.type === 'PAYMENT' ? <CreditCard size={15} /> : <LifeBuoy size={15} />}
               </div>
               <div>
                 <span
                   className={`text-[10px] font-mono font-black tracking-wider uppercase block leading-none ${
-                    n.type === 'PAYMENT' ? 'text-emerald-700' : 'text-rose-600'
+                    n.type === 'PAYMENT' ? 'text-[#CCFF00]' : 'text-rose-400'
                   }`}
                 >
                   {n.title}
                 </span>
-                <span className="text-[10px] font-mono text-slate-500 font-bold">{n.timestamp} WIB</span>
+                <span className="text-[10px] font-mono text-zinc-400">{n.timestamp} WIB</span>
               </div>
             </div>
 
             <button
               onClick={() => dismiss(n.id)}
-              className="text-slate-400 hover:text-slate-900 transition-colors p-1 cursor-pointer font-black"
+              className="text-zinc-500 hover:text-zinc-200 transition-colors p-1 cursor-pointer"
             >
-              <X size={15} />
+              <X size={14} />
             </button>
           </div>
 
-          <p className="text-xs font-sans text-slate-700 font-medium leading-relaxed">
+          <p className="text-xs font-sans text-zinc-300 font-medium leading-relaxed">
             {n.message}
           </p>
 
@@ -132,10 +137,10 @@ export default function AdminNotificationToast() {
             <Link
               href={n.href}
               onClick={() => dismiss(n.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-mono font-black flex items-center space-x-1.5 transition-all border-2 border-slate-800 shadow-[2px_2px_0px_0px_#1e293b] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] cursor-pointer ${
+              className={`h-7 px-3 rounded-lg text-xs font-mono font-bold flex items-center space-x-1.5 transition-all cursor-pointer ${
                 n.type === 'PAYMENT'
-                  ? 'bg-[#CCFF00] text-slate-900'
-                  : 'bg-rose-500 text-white'
+                  ? 'bg-[#CCFF00] hover:bg-[#b3e600] text-black shadow-sm'
+                  : 'bg-rose-600 hover:bg-rose-500 text-white shadow-sm'
               }`}
             >
               <span>{n.btnText}</span>

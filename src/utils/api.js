@@ -611,6 +611,17 @@ export const api = {
     throw new Error(res?.data?.message || 'Gagal memperbarui profil toko');
   },
 
+  verifyOwnerPin: async (pin) => {
+    const res = await fetchAPI('/shops/pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin: String(pin || '').trim() }),
+    });
+    return {
+      valid: Boolean(res?.ok && (res?.data?.data?.valid || res?.data?.valid)),
+      message: res?.data?.message || res?.data?.data?.message || '',
+    };
+  },
+
   // ── FASE 1: PRODUCT UNITS (MULTI-TIER CONVERSION) ─────────────────────────
 
   getProductUnits: async (productId) => {

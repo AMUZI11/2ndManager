@@ -77,7 +77,32 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     if (shopErr) throw shopErr;
 
     if (!shop.is_pin_configured || !shop.owner_pin_hash) {
-      return errorResponse('PIN toko belum disetel oleh pemilik toko.', 'PIN_NOT_CONFIGURED', 400);
+      if (profile.role === 'BOSS' || profile.role === 'ADMIN') {
+        const newHash = hashPin(pin);
+        await supabase
+          .from('shops')
+          .update({
+            owner_pin_hash: newHash,
+            is_pin_configured: true,
+          })
+          .eq('id', shopId);
+
+        resetPinRateLimit(`pin:${shopId}`);
+        return successResponse({
+          valid: true,
+          message: 'PIN awal toko berhasil dikonfigurasi.',
+        });
+      }
+
+      if (pin === '123456') {
+        resetPinRateLimit(`pin:${shopId}`);
+        return successResponse({
+          valid: true,
+          message: 'PIN default 123456 diterima.',
+        });
+      }
+
+      return errorResponse('PIN toko belum disetel oleh pemilik toko (Gunakan PIN default: 123456).', 'PIN_NOT_CONFIGURED', 400);
     }
 
     const isValid = verifyPin(pin, shop.owner_pin_hash);

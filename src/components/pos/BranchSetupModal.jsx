@@ -199,7 +199,7 @@ export default function BranchSetupModal({
                 className="w-full bg-[#161F30] border-2 border-slate-600 focus:border-amber-400 text-white font-bold p-2.5 text-sm outline-none uppercase cursor-pointer"
               >
                 {branches.length === 0 ? (
-                  <option value="">Memuat cabang...</option>
+                  <option value="">{errorMsg ? 'GAGAL MEMUAT CABANG' : 'MEMUAT CABANG...'}</option>
                 ) : (
                   branches.map((b) => (
                     <option key={b.id} value={b.id}>

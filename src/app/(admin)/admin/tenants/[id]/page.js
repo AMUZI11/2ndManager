@@ -35,7 +35,7 @@ export default function TenantDetailPage({ params }) {
   const [overrideLimit, setOverrideLimit] = useState(1);
   const [overrideReason, setOverrideReason] = useState('');
   const [savingOverride, setSavingOverride] = useState(false);
-  const [overrideStatus, setOverrideStatus] = useState(null);
+  const [overrideStatus, setOverrideStatus] = useState(null); // { type: 'success' | 'error', text: '' }
 
   const fetchDetail = useCallback(async () => {
     try {
@@ -48,6 +48,7 @@ export default function TenantDetailPage({ params }) {
         setTelemetry(json.data.telemetry);
         setOverrideLimit(json.data.capacity?.total_allowed || json.data.shop?.cashier_limit || 1);
       } else {
+        // Fallback search jika endpoint id mengembalikan selain 200
         const fallbackRes = await fetch(`/api/v1/admin/tenants?search=${shopId}`);
         const fallbackJson = await fallbackRes.json();
         if (fallbackRes.ok && fallbackJson.data?.tenants?.length > 0) {
@@ -113,8 +114,8 @@ export default function TenantDetailPage({ params }) {
 
   if (loading && !shop) {
     return (
-      <div className="py-20 text-center text-slate-500 font-mono text-xs space-y-3">
-        <div className="w-8 h-8 border-3 border-slate-800 border-t-[#CCFF00] rounded-full animate-spin mx-auto" />
+      <div className="py-20 text-center text-zinc-500 font-mono text-xs space-y-3">
+        <div className="w-8 h-8 border-2 border-[#CCFF00] border-t-transparent rounded-full animate-spin mx-auto" />
         <p>Memuat data inspeksi tenant #{shopId.slice(0, 8)}...</p>
       </div>
     );
@@ -122,9 +123,9 @@ export default function TenantDetailPage({ params }) {
 
   if (!shop) {
     return (
-      <div className="py-16 text-center text-slate-600 font-mono text-xs space-y-3">
+      <div className="py-16 text-center text-zinc-400 font-mono text-xs space-y-3">
         <p>Toko tidak ditemukan atau ID tidak valid.</p>
-        <Link href="/admin/tenants" className="text-slate-900 underline font-black">
+        <Link href="/admin/tenants" className="text-[#CCFF00] underline font-bold">
           Kembali ke Direktori Penyewa
         </Link>
       </div>
@@ -136,32 +137,30 @@ export default function TenantDetailPage({ params }) {
   const addOnsCount = Math.max(0, currentTotal - baseLimit);
 
   return (
-    <div className="space-y-6 font-sans max-w-6xl mx-auto pb-16">
-      {/* Top Header Bento Card */}
-      <div className="bg-white border-2 border-slate-800 rounded-2xl p-6 shadow-[4px_4px_0px_0px_#1e293b] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center space-x-3.5">
+    <div className="space-y-6 font-sans max-w-5xl mx-auto pb-16">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+        <div className="flex items-center space-x-3">
           <Link
             href="/admin/tenants"
-            className="h-10 w-10 rounded-xl bg-white border-2 border-slate-800 text-slate-800 hover:bg-slate-50 shadow-[2px_2px_0px_0px_#1e293b] flex items-center justify-center transition-all active:translate-x-[1px] active:translate-y-[1px] cursor-pointer"
+            className="h-9 w-9 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-100 flex items-center justify-center transition-colors cursor-pointer"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
           </Link>
           <div>
             <div className="flex items-center space-x-2">
-              <h1 className="font-display font-black text-2xl text-slate-900 uppercase tracking-tight">
+              <h2 className="font-heading font-black text-xl text-zinc-100 uppercase tracking-tight">
                 {shop.name}
-              </h1>
-              <span className="font-mono text-xs bg-slate-100 border border-slate-800 px-2 py-0.5 rounded font-bold text-slate-700">
-                #{shop.id.slice(0, 8)}
-              </span>
+              </h2>
+              <span className="font-mono text-xs text-zinc-500">#{shop.id.slice(0, 8)}</span>
             </div>
-            <p className="text-xs text-slate-500 font-mono mt-0.5">
-              Terdaftar sejak: {shop.created_at ? new Date(shop.created_at).toLocaleDateString('id-ID', { dateStyle: 'long' }) : '-'}
+            <p className="text-xs text-zinc-400 font-mono">
+              Terdaftar sejak: {new Date(shop.created_at).toLocaleDateString('id-ID', { dateStyle: 'long' })}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2.5">
           <button
             onClick={async () => {
               const reason = window.prompt('Masukkan justifikasi audit untuk sesi Ghost Inspection (minimal 10 karakter):');
@@ -179,7 +178,7 @@ export default function TenantDetailPage({ params }) {
                 if (res.ok && json.data) {
                   localStorage.setItem('hl_active_branch', shop.id);
                   localStorage.setItem('hl_ghost_session', JSON.stringify(json.data));
-                  window.open('/admin?ghost=true&shop=' + shop.id, '_blank');
+                  window.open('/dashboard?ghost=true&shop=' + shop.id, '_blank');
                 } else {
                   alert(json.message || 'Gagal memulai sesi Ghost.');
                 }
@@ -188,103 +187,100 @@ export default function TenantDetailPage({ params }) {
                 alert('Terjadi kesalahan jaringan.');
               }
             }}
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-900 font-mono font-bold text-xs rounded-xl border-2 border-slate-800 shadow-[2px_2px_0px_0px_#1e293b] active:translate-x-[1px] active:translate-y-[1px] flex items-center space-x-1.5 cursor-pointer transition-all"
+            className="h-9 px-3.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-xs rounded-xl border border-zinc-700 flex items-center space-x-1.5 cursor-pointer transition-colors"
           >
+            <span>👻</span>
             <span>GHOST INSPECTION</span>
           </button>
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-[#CCFF00] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] text-slate-900 font-mono font-black text-xs rounded-xl border-2 border-slate-800 shadow-[3px_3px_0px_0px_#1e293b] flex items-center space-x-1.5 cursor-pointer transition-all"
+            className="h-9 px-4 bg-[#CCFF00] hover:bg-[#b3e600] text-black font-extrabold text-xs rounded-xl border border-black flex items-center space-x-1.5 cursor-pointer transition-colors shadow-[2px_2px_0px_#000]"
           >
-            <ShieldAlert size={16} />
+            <ShieldAlert size={15} />
             <span>KONTROL CHOKEHOLD</span>
           </button>
         </div>
       </div>
 
-      {/* Info Bento Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 font-mono text-xs">
-        <div className="bg-white border-2 border-slate-800 rounded-2xl p-5 shadow-[4px_4px_0px_0px_#1e293b] space-y-1">
-          <span className="text-slate-500 font-bold uppercase text-[10px]">Status Operasional</span>
-          <p className="text-base font-black text-slate-900">{shop.operational_status}</p>
-          <p className="text-[11px] text-slate-500">
-            Chokehold: {shop.chokehold_active ? 'TERKUNCI' : 'NORMAL'}
+      {/* Info Tiles */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5 font-mono text-xs">
+        <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 space-y-1">
+          <span className="text-zinc-500 font-bold uppercase text-[10px]">Status Operasional</span>
+          <p className="text-sm font-black text-zinc-100">{shop.operational_status}</p>
+          <p className="text-[10px] text-zinc-400">
+            Chokehold: {shop.chokehold_active ? 'TERKUNCI AKTIF' : 'NORMAL'}
           </p>
         </div>
 
-        <div className="bg-white border-2 border-slate-800 rounded-2xl p-5 shadow-[4px_4px_0px_0px_#1e293b] space-y-1">
-          <span className="text-slate-500 font-bold uppercase text-[10px]">Paket Kontrak</span>
-          <p className="text-base font-black text-slate-900 uppercase">
-            <span className="bg-lime-200 border border-slate-800 px-2 py-0.5 rounded text-xs">
-              {shop.subscription_tier || 'MAGANG'}
-            </span>
+        <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 space-y-1">
+          <span className="text-zinc-500 font-bold uppercase text-[10px]">Paket Kontrak</span>
+          <p className="text-sm font-black text-[#CCFF00] uppercase">
+            {shop.subscription_tier || 'MAGANG'}
           </p>
-          <p className="text-[11px] text-slate-500 mt-1">
+          <p className="text-[10px] text-zinc-400">
             Masa Tenggang: {shop.grace_period_until ? new Date(shop.grace_period_until).toLocaleDateString('id-ID') : 'Tidak Ada'}
           </p>
         </div>
 
-        <div className="bg-white border-2 border-slate-800 rounded-2xl p-5 shadow-[4px_4px_0px_0px_#1e293b] space-y-1">
-          <span className="text-slate-500 font-bold uppercase text-[10px]">Transaksi Bulan Ini</span>
-          <p className="text-base font-black text-slate-900">
+        <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 space-y-1">
+          <span className="text-zinc-500 font-bold uppercase text-[10px]">Transaksi Bulan Ini (WIB)</span>
+          <p className="text-sm font-black text-zinc-100">
             {telemetry?.monthly_transactions ?? 0} {telemetry?.monthly_limit !== Infinity && telemetry?.monthly_limit ? `/ ${telemetry.monthly_limit}` : 'Struk'}
           </p>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[10px] text-zinc-400">
             {telemetry?.monthly_limit === 50 ? 'Batas Kontrak Magang (50 Struk)' : 'Struk Unlimited'}
           </p>
         </div>
 
-        <div className="bg-white border-2 border-slate-800 rounded-2xl p-5 shadow-[4px_4px_0px_0px_#1e293b] space-y-1">
-          <span className="text-slate-500 font-bold uppercase text-[10px]">Kapasitas Kasir</span>
-          <p className="text-base font-black text-slate-900">
+        <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 space-y-1">
+          <span className="text-zinc-500 font-bold uppercase text-[10px]">Kapasitas Kasir</span>
+          <p className="text-sm font-black text-zinc-100">
             {shop.active_cashiers_count || 1} / {currentTotal} Kasir
           </p>
-          <p className="text-[11px] text-slate-500">
-            {currentTotal > baseLimit ? `Overridden (+${addOnsCount})` : 'Sesuai Paket Pokok'}
+          <p className="text-[10px] text-zinc-400">
+            {currentTotal > baseLimit ? `Overridden (+${addOnsCount})` : 'Sesuai Paket Dasar'}
           </p>
         </div>
       </div>
 
       {/* CHOKEPOINT 3: KAPASITAS ADITIF & OVERRIDE PANEL */}
-      <div className="bg-white border-2 border-slate-800 rounded-2xl p-6 space-y-6 shadow-[4px_4px_0px_0px_#1e293b]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-slate-800 pb-4">
+      <div className="bg-zinc-900/90 border-2 border-zinc-750 rounded-2xl p-5 sm:p-6 space-y-6 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-4">
           <div className="flex items-center space-x-2.5">
-            <span className="p-2 bg-[#CCFF00] border-2 border-slate-800 rounded-xl shadow-[2px_2px_0px_0px_#1e293b]">
-              <Cpu size={18} className="text-slate-900" />
-            </span>
+            <Cpu size={20} className="text-[#CCFF00]" />
             <div>
-              <h2 className="font-display font-black text-lg text-slate-900 uppercase tracking-tight">
+              <h3 className="font-heading font-black text-base text-white uppercase tracking-wide">
                 Kalkulator Kapasitas Aditif &amp; Override Manual
-              </h2>
-              <p className="font-mono text-xs text-slate-600">
+              </h3>
+              <p className="font-mono text-xs text-zinc-400">
                 Penyelarasan kuota kasir tanpa mengubah paket langganan tenant.
               </p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-xl font-mono text-xs font-bold text-slate-700 border border-slate-800">
-            <Info size={13} className="text-slate-900" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-zinc-800 rounded-full font-mono text-[10px] text-zinc-300 border border-zinc-700">
+            <Info size={12} className="text-[#CCFF00]" />
             Single Source: src/config/tiers.js
           </span>
         </div>
 
         {/* Formula Banner */}
-        <div className="bg-slate-50 border-2 border-slate-800 rounded-2xl p-4 font-mono space-y-2">
-          <p className="text-[11px] text-slate-500 uppercase font-bold tracking-wider">
+        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 font-mono space-y-2">
+          <p className="text-[11px] text-zinc-400 uppercase font-bold tracking-wider">
             Rumus Kapasitas Diizinkan:
           </p>
-          <div className="flex flex-wrap items-center gap-2 text-sm sm:text-base font-black text-slate-900">
-            <span className="bg-[#CCFF00] border border-slate-800 px-2.5 py-1 rounded-xl">Kapasitas Diizinkan</span>
-            <span className="text-slate-400">=</span>
-            <span className="px-2.5 py-1 bg-amber-100 border border-slate-800 rounded-xl text-amber-900 text-xs sm:text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-sm sm:text-base font-black text-white">
+            <span className="text-[#CCFF00]">Kapasitas Diizinkan</span>
+            <span className="text-zinc-500">=</span>
+            <span className="px-2.5 py-1 bg-zinc-900 border border-zinc-700 rounded-lg text-amber-300 text-xs sm:text-sm">
               Batas Paket Pokok ({baseLimit})
             </span>
-            <span className="text-slate-400">+</span>
-            <span className="px-2.5 py-1 bg-sky-100 border border-slate-800 rounded-xl text-sky-900 text-xs sm:text-sm">
+            <span className="text-zinc-500">+</span>
+            <span className="px-2.5 py-1 bg-zinc-900 border border-zinc-700 rounded-lg text-emerald-300 text-xs sm:text-sm">
               Add-On / Kompensasi ({addOnsCount})
             </span>
-            <span className="text-slate-400">=</span>
-            <span className="px-3 py-1 bg-emerald-100 border border-slate-800 rounded-xl text-emerald-900 text-xs sm:text-sm">
+            <span className="text-zinc-500">=</span>
+            <span className="px-3 py-1 bg-emerald-950/80 border border-emerald-700 rounded-lg text-[#10B981] text-xs sm:text-sm">
               {currentTotal} Akun Kasir Aktif
             </span>
           </div>
@@ -292,48 +288,48 @@ export default function TenantDetailPage({ params }) {
 
         {/* Breakdown Columns */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
-          <div className="bg-slate-50 border-2 border-slate-800 rounded-xl p-4 space-y-1 shadow-[2px_2px_0px_0px_#1e293b]">
-            <span className="text-slate-500 uppercase text-[10px] font-bold block">1. Batas Pokok Tier</span>
-            <p className="text-base font-black text-amber-800">{baseLimit} Akun Kasir</p>
-            <p className="text-[10px] text-slate-500">Tier: {shop.subscription_tier}</p>
+          <div className="bg-zinc-950/80 border border-zinc-850 rounded-xl p-3.5 space-y-1">
+            <span className="text-zinc-500 uppercase text-[10px] block">1. Batas Pokok Tier</span>
+            <p className="text-base font-bold text-amber-400">{baseLimit} Akun Kasir</p>
+            <p className="text-[10px] text-zinc-500">Tier: {shop.subscription_tier}</p>
           </div>
 
-          <div className="bg-slate-50 border-2 border-slate-800 rounded-xl p-4 space-y-1 shadow-[2px_2px_0px_0px_#1e293b]">
-            <span className="text-slate-500 uppercase text-[10px] font-bold block">2. Ekstensi Add-On / Override</span>
-            <p className="text-base font-black text-sky-800">+{addOnsCount} Tambahan</p>
-            <p className="text-[10px] text-slate-500">{addOnsCount > 0 ? 'Kapasitas dinaikkan' : 'Tidak ada add-on aktif'}</p>
+          <div className="bg-zinc-950/80 border border-zinc-850 rounded-xl p-3.5 space-y-1">
+            <span className="text-zinc-500 uppercase text-[10px] block">2. Ekstensi Add-On / Override</span>
+            <p className="text-base font-bold text-emerald-400">+{addOnsCount} Tambahan</p>
+            <p className="text-[10px] text-zinc-500">{addOnsCount > 0 ? 'Kapasitas dinaikkan' : 'Tidak ada add-on aktif'}</p>
           </div>
 
-          <div className="bg-slate-50 border-2 border-slate-800 rounded-xl p-4 space-y-1 shadow-[2px_2px_0px_0px_#1e293b]">
-            <span className="text-slate-500 uppercase text-[10px] font-bold block">3. Total Diizinkan Sistem</span>
-            <p className="text-base font-black text-emerald-800">{currentTotal} Akun Kasir</p>
-            <p className="text-[10px] text-slate-500">Terpakai: {shop.active_cashiers_count || 1} kasir</p>
+          <div className="bg-zinc-950/80 border border-zinc-850 rounded-xl p-3.5 space-y-1">
+            <span className="text-zinc-500 uppercase text-[10px] block">3. Total Diizinkan Sistem</span>
+            <p className="text-base font-bold text-[#CCFF00]">{currentTotal} Akun Kasir</p>
+            <p className="text-[10px] text-zinc-500">Terpakai: {shop.active_cashiers_count || 1} kasir</p>
           </div>
         </div>
 
         {/* Override Form */}
-        <form onSubmit={handleSaveOverride} className="bg-slate-50 border-2 border-slate-800 rounded-2xl p-5 space-y-4 font-sans">
+        <form onSubmit={handleSaveOverride} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 sm:p-5 space-y-4 font-sans">
           <div className="flex items-center justify-between">
-            <h3 className="font-display font-black text-xs uppercase text-slate-900 tracking-wider">
+            <h4 className="font-heading font-black text-xs uppercase text-zinc-200 tracking-wider">
               Form Override Kuota Manual (Kompensasi / Hak Istimewa)
-            </h3>
-            <span className="font-mono text-[10px] text-slate-500 font-bold">Tercatat ke Admin Audit Log</span>
+            </h4>
+            <span className="font-mono text-[10px] text-zinc-500">Tercatat ke Admin Audit Log</span>
           </div>
 
           {overrideStatus && (
-            <div className={`p-3 rounded-xl border-2 border-slate-800 text-xs font-mono font-bold flex items-center gap-2 shadow-[2px_2px_0px_0px_#1e293b] ${
+            <div className={`p-3 rounded-lg border text-xs font-mono flex items-center gap-2 ${
               overrideStatus.type === 'success' 
-                ? 'bg-lime-100 text-slate-900' 
-                : 'bg-rose-100 text-rose-900'
+                ? 'bg-emerald-950/80 border-emerald-800 text-emerald-300' 
+                : 'bg-red-950/80 border-red-800 text-red-300'
             }`}>
-              {overrideStatus.type === 'success' ? <CheckCircle2 size={16} className="text-emerald-700" /> : <AlertOctagon size={16} className="text-rose-600" />}
+              {overrideStatus.type === 'success' ? <CheckCircle2 size={14} /> : <AlertOctagon size={14} />}
               <span>{overrideStatus.text}</span>
             </div>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2 font-mono text-xs">
-              <label className="block text-slate-700 font-bold uppercase text-[11px]">
+            <div className="space-y-1.5 font-mono text-xs">
+              <label className="block text-zinc-400 font-bold uppercase text-[11px]">
                 Total Kuota Kasir Baru:
               </label>
               <div className="flex items-center gap-2">
@@ -343,47 +339,47 @@ export default function TenantDetailPage({ params }) {
                   max="99"
                   value={overrideLimit}
                   onChange={(e) => setOverrideLimit(e.target.value)}
-                  className="h-10 w-24 bg-white border-2 border-slate-800 rounded-xl px-3 text-sm font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00] shadow-[2px_2px_0px_0px_#1e293b] text-center"
+                  className="h-9 w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-3 text-sm font-black text-[#CCFF00] focus:outline-none focus:border-[#CCFF00] text-center"
                 />
-                <span className="text-slate-700 font-bold text-xs">Akun Kasir</span>
+                <span className="text-zinc-400 text-xs">Akun Kasir</span>
               </div>
 
               {/* Quick Preset Buttons */}
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap gap-1.5 pt-1">
                 <button
                   type="button"
                   onClick={() => setOverrideLimit(baseLimit + 1)}
-                  className="px-2.5 py-1 bg-white hover:bg-slate-100 border-2 border-slate-800 rounded-lg text-xs text-slate-800 font-bold shadow-[1px_1px_0px_0px_#1e293b] cursor-pointer"
+                  className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded text-[10px] text-zinc-300 font-bold cursor-pointer"
                 >
                   +1 Kasir
                 </button>
                 <button
                   type="button"
                   onClick={() => setOverrideLimit(baseLimit + 2)}
-                  className="px-2.5 py-1 bg-white hover:bg-slate-100 border-2 border-slate-800 rounded-lg text-xs text-slate-800 font-bold shadow-[1px_1px_0px_0px_#1e293b] cursor-pointer"
+                  className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded text-[10px] text-zinc-300 font-bold cursor-pointer"
                 >
                   +2 Kasir
                 </button>
                 <button
                   type="button"
                   onClick={() => setOverrideLimit(baseLimit)}
-                  className="px-2.5 py-1 bg-white hover:bg-slate-100 border-2 border-slate-800 rounded-lg text-xs text-amber-800 font-bold shadow-[1px_1px_0px_0px_#1e293b] cursor-pointer flex items-center gap-1"
+                  className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded text-[10px] text-amber-300 font-bold cursor-pointer flex items-center gap-1"
                 >
-                  <RotateCcw size={11} /> Reset ({baseLimit})
+                  <RotateCcw size={10} /> Reset Default ({baseLimit})
                 </button>
               </div>
             </div>
 
-            <div className="space-y-2 font-mono text-xs">
-              <label className="block text-slate-700 font-bold uppercase text-[11px]">
+            <div className="space-y-1.5 font-mono text-xs">
+              <label className="block text-zinc-400 font-bold uppercase text-[11px]">
                 Justifikasi Audit (Wajib min. 10 karakter):
               </label>
               <textarea
                 rows="3"
                 value={overrideReason}
                 onChange={(e) => setOverrideReason(e.target.value)}
-                placeholder="Contoh: Kompensasi kendala jaringan POS cabang selama maintenance sistem."
-                className="w-full bg-white border-2 border-slate-800 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#CCFF00] font-sans shadow-[2px_2px_0px_0px_#1e293b]"
+                placeholder="Contoh: Kompensasi gangguan jaringan POS cabang selama maintenance sistem."
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-400 font-sans"
               />
             </div>
           </div>
@@ -392,9 +388,9 @@ export default function TenantDetailPage({ params }) {
             <button
               type="submit"
               disabled={savingOverride}
-              className="px-5 py-2.5 bg-[#CCFF00] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] disabled:opacity-50 text-slate-900 font-mono font-black text-xs rounded-xl border-2 border-slate-800 flex items-center space-x-2 cursor-pointer transition-all shadow-[3px_3px_0px_0px_#1e293b]"
+              className="h-9 px-5 bg-[#CCFF00] hover:bg-[#b3e600] disabled:opacity-50 text-black font-extrabold text-xs rounded-xl border border-black flex items-center space-x-2 cursor-pointer transition-all shadow-[2px_2px_0px_#000]"
             >
-              <Save size={15} />
+              <Save size={14} />
               <span>{savingOverride ? 'MENYIMPAN & MENSINKRONKAN...' : 'SIMPAN OVERRIDE KUOTA'}</span>
             </button>
           </div>
