@@ -12,7 +12,8 @@ import {
   RefreshCw, 
   ShieldCheck, 
   ArrowLeft,
-  ExternalLink
+  ExternalLink,
+  Sparkles
 } from 'lucide-react';
 import KurDossierPrintView from '@/components/reports/KurDossierPrintView';
 import { printFinancialSummarySlip } from '@/utils/escposPrinter';
@@ -144,125 +145,124 @@ export default function KurDossierPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-[#0B0F17] p-4 md:p-8 text-[#0B0F17] dark:text-white">
+    <div className="space-y-6 pb-32 font-sans">
       {/* Toast Notification */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 p-4 border-2 border-[#0B0F17] shadow-[4px_4px_0px_#0B0F17] font-mono text-xs font-bold ${
-          toast.type === 'error' ? 'bg-rose-500 text-white' : 'bg-[#CCFF00] text-[#0B0F17]'
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] font-mono text-xs font-bold animate-fade-in ${
+          toast.type === 'error' ? 'bg-rose-500 text-white' : 'bg-[#CCFF00] text-slate-950'
         }`}>
           {toast.message}
         </div>
       )}
 
-      {/* Header Halaman (no-print) */}
-      <div className="no-print max-w-6xl mx-auto mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 border-[#0B0F17] dark:border-[#334155] pb-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Link
-                href="/reports/financials"
-                className="text-xs font-mono font-bold hover:underline flex items-center gap-1 text-gray-600 dark:text-gray-400"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Kembali ke Laporan SAK EMKM
-              </Link>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight">
-              Pusat Berkas KUR Perbankan & Stempel Digital
-            </h1>
-            <p className="text-xs md:text-sm font-mono text-gray-600 dark:text-gray-400 mt-1">
-              Dokumen pengajuan resmi kredit usaha (KUR BRI/Mandiri/BNI/BSI) berstandar presisi A4 dengan QR Seal.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={handleCopyVerificationUrl}
-              className="px-4 py-2.5 bg-white dark:bg-[#1E293B] border-2 border-[#0B0F17] dark:border-gray-600 font-bold text-xs uppercase tracking-wider hover:bg-gray-100 transition shadow-[2px_2px_0px_#0B0F17] flex items-center gap-1.5 cursor-pointer"
+      {/* HEADER UTAMA: Light Neo-Brutalist Card (no-print) */}
+      <div className="no-print bg-white p-6 sm:p-7 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/reports/financials"
+              className="text-xs font-mono font-bold text-slate-600 hover:text-slate-950 flex items-center gap-1 transition-colors"
             >
-              <Copy className="w-4 h-4" strokeWidth={2.5} />
-              {copiedLink ? 'Link Tersalin!' : 'Salin Link Verifikasi Bank'}
-            </button>
-
-            {dossierData?.seal?.verificationUrl && (
-              <a
-                href={dossierData.seal.verificationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-2.5 bg-gray-200 dark:bg-gray-700 border-2 border-[#0B0F17] dark:border-gray-600 font-bold text-xs hover:bg-gray-300 transition flex items-center gap-1"
-                title="Buka Portal Verifikasi Publik"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            )}
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Kembali ke Laporan SAK EMKM</span>
+            </Link>
           </div>
+          <h1 className="text-2xl sm:text-3xl font-black font-display text-slate-900 tracking-tight">
+            Pusat Berkas KUR Perbankan &amp; Stempel Digital
+          </h1>
+          <p className="text-xs sm:text-sm font-sans text-slate-600 max-w-2xl leading-relaxed">
+            Dokumen pengajuan resmi kredit usaha (KUR BRI, Mandiri, BNI, BSI) berstandar formal A4 dengan QR Seal Kriptografis SHA-256.
+          </p>
         </div>
 
-        {/* Toolbar Parameter Berkas */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mt-4 bg-white dark:bg-[#1E293B] border-2 border-[#0B0F17] dark:border-gray-700 p-3 shadow-[3px_3px_0px_#0B0F17]">
-          <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
-            {/* Filter Cabang */}
-            <div className="flex items-center gap-1.5">
-              <Building2 className="w-4 h-4 text-gray-500" strokeWidth={2.5} />
-              <select
-                value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
-                className="p-1.5 border border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-xs font-bold focus:outline-hidden"
-              >
-                <option value="">Seluruh Cabang (Konsolidasi)</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    Cabang: {b.branch_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Filter Bulan */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500 uppercase">Bulan:</span>
-              <select
-                value={month}
-                onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-                className="p-1.5 border border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-xs font-bold focus:outline-hidden"
-              >
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {new Date(0, i).toLocaleString('id-ID', { month: 'long' })}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Filter Tahun */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500 uppercase">Tahun:</span>
-              <select
-                value={year}
-                onChange={(e) => setYear(parseInt(e.target.value, 10))}
-                className="p-1.5 border border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-xs font-bold focus:outline-hidden"
-              >
-                {[2024, 2025, 2026].map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           <button
-            onClick={loadDossier}
-            className="p-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 transition text-xs font-mono flex items-center gap-1 cursor-pointer"
+            onClick={handleCopyVerificationUrl}
+            className="btn-arcade px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-900 border-2 border-slate-800 rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition shadow-[2px_2px_0px_#1E293B] flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Perbarui Dokumen
+            <Copy className="w-4 h-4 text-slate-700" strokeWidth={2.5} />
+            <span>{copiedLink ? 'Link Tersalin!' : 'Salin Link Bank'}</span>
           </button>
+
+          {dossierData?.seal?.verificationUrl && (
+            <a
+              href={dossierData.seal.verificationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-arcade p-2.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-950 border-2 border-slate-800 rounded-xl font-bold text-xs transition shadow-[2px_2px_0px_#1E293B] flex items-center justify-center active:translate-x-0.5 active:translate-y-0.5"
+              title="Buka Portal Verifikasi Publik"
+            >
+              <ExternalLink className="w-4 h-4 text-slate-950" strokeWidth={2.5} />
+            </a>
+          )}
         </div>
       </div>
 
-      {/* Konten Berkas A4 Presisi */}
+      {/* PARAMETER TOOLBAR (no-print) */}
+      <div className="no-print flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B]">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+          {/* Filter Cabang */}
+          <div className="flex items-center gap-1.5">
+            <Building2 className="w-4 h-4 text-slate-500" strokeWidth={2.5} />
+            <select
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+            >
+              <option value="">Seluruh Cabang (Konsolidasi)</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  Cabang: {b.branch_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Bulan */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-500 uppercase font-bold">Bulan:</span>
+            <select
+              value={month}
+              onChange={(e) => setMonth(parseInt(e.target.value, 10))}
+              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+            >
+              {Array.from({ length: 12 }, (_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {new Date(0, i).toLocaleString('id-ID', { month: 'long' })}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Tahun */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-500 uppercase font-bold">Tahun:</span>
+            <select
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value, 10))}
+              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+            >
+              {[2024, 2025, 2026].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <button
+          onClick={loadDossier}
+          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border-2 border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-800 shadow-[2px_2px_0px_#1E293B] flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span>Perbarui Dokumen</span>
+        </button>
+      </div>
+
+      {/* KONTEN BERKAS A4 PRESISI */}
       {loading ? (
-        <div className="max-w-4xl mx-auto p-16 text-center font-mono text-sm text-gray-500">
-          Membangun Berkas Standar Bank & Menghitung SHA-256 Checksum...
+        <div className="bg-white rounded-2xl border-2 border-slate-800 p-12 text-center font-mono text-xs text-slate-500 shadow-[4px_4px_0px_#1E293B] flex flex-col items-center justify-center space-y-3">
+          <div className="w-8 h-8 border-3 border-slate-900 border-t-[#CCFF00] rounded-full animate-spin" />
+          <span className="font-bold text-slate-700">Membangun Berkas Standar Bank &amp; Menghitung SHA-256 Checksum...</span>
         </div>
       ) : (
         <div className="flex justify-center pb-12">

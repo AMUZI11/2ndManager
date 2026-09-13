@@ -115,150 +115,151 @@ export default function FinancialsReportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0B0F17] p-4 md:p-8 text-[#0B0F17] dark:text-white">
+    <div className="space-y-6 pb-32 font-sans">
       {/* Toast Notification */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 p-4 border-2 border-[#0B0F17] shadow-[4px_4px_0px_#0B0F17] font-mono text-xs font-bold ${
-          toast.type === 'error' ? 'bg-rose-500 text-white' : 'bg-[#CCFF00] text-[#0B0F17]'
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] font-mono text-xs font-bold animate-fade-in ${
+          toast.type === 'error' ? 'bg-rose-500 text-white' : 'bg-[#CCFF00] text-slate-950'
         }`}>
           {toast.message}
         </div>
       )}
 
-      {/* Header Halaman */}
-      <div className="max-w-6xl mx-auto mb-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 border-[#0B0F17] dark:border-[#334155] pb-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2.5 py-0.5 bg-[#0B0F17] text-[#CCFF00] font-mono text-xs font-black uppercase tracking-widest">
-                STANDAR AKUNTANSI SAK EMKM
-              </span>
-              <span className="text-xs font-mono text-gray-500">
-                Triple-Statement Reporting
-              </span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight">
-              Laporan Keuangan & Posisi Neraca Seimbang
-            </h1>
-            <p className="text-xs md:text-sm font-mono text-gray-600 dark:text-gray-400 mt-1">
-              Laporan Posisi Keuangan (Neraca Seimbang 100%), Laba Rugi Komparatif, dan Arus Kas Langsung.
-            </p>
+      {/* HEADER UTAMA: Light Neo-Brutalist Card */}
+      <div className="bg-white p-6 sm:p-7 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 bg-slate-900 text-[#CCFF00] font-mono text-[10px] font-black uppercase tracking-widest rounded-md border border-slate-800">
+              STANDAR AKUNTANSI SAK EMKM
+            </span>
+            <span className="text-xs font-mono font-bold text-slate-500">
+              Triple-Statement Reporting
+            </span>
           </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={handlePrintThermal}
-              disabled={printingSlip}
-              className="px-4 py-2.5 bg-white dark:bg-[#1E293B] border-2 border-[#0B0F17] dark:border-gray-600 font-bold text-xs uppercase tracking-wider hover:bg-gray-100 transition shadow-[2px_2px_0px_#0B0F17] flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <Printer className="w-4 h-4" strokeWidth={2.5} />
-              {printingSlip ? 'Mencetak...' : 'Slip Ringkasan Thermal'}
-            </button>
-
-            <Link
-              href="/reports/kur-dossier"
-              className="px-4 py-2.5 bg-[#CCFF00] text-[#0B0F17] border-2 border-[#0B0F17] font-black text-xs uppercase tracking-wider hover:bg-[#b8e600] transition shadow-[2px_2px_0px_#0B0F17] flex items-center gap-1.5"
-            >
-              <FileText className="w-4 h-4" strokeWidth={2.5} />
-              Buka Berkas KUR Lengkap
-            </Link>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-black font-display text-slate-900 tracking-tight">
+            Laporan Keuangan &amp; Posisi Neraca Seimbang
+          </h1>
+          <p className="text-xs sm:text-sm font-sans text-slate-600 max-w-2xl leading-relaxed">
+            Laporan Posisi Keuangan (Neraca Seimbang 100%), Laba Rugi Komparatif, dan Arus Kas Langsung berbasis kaidah akuntansi resmi.
+          </p>
         </div>
 
-        {/* Filter Toolbar: Cabang, Bulan, Tahun */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mt-4 bg-white dark:bg-[#1E293B] border-2 border-[#0B0F17] dark:border-gray-700 p-3">
-          <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
-            {/* Filter Cabang */}
-            <div className="flex items-center gap-1.5">
-              <Building2 className="w-4 h-4 text-gray-500" strokeWidth={2.5} />
-              <select
-                value={selectedBranchId}
-                onChange={(e) => setSelectedBranchId(e.target.value)}
-                className="p-1.5 border border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-xs font-bold focus:outline-hidden"
-              >
-                <option value="ALL">Seluruh Cabang (Konsolidasi)</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    Cabang: {b.branch_name} ({b.branch_code})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Filter Bulan */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500 uppercase">Bulan:</span>
-              <select
-                value={month}
-                onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-                className="p-1.5 border border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-xs font-bold focus:outline-hidden"
-              >
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {new Date(0, i).toLocaleString('id-ID', { month: 'long' })}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Filter Tahun */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500 uppercase">Tahun:</span>
-              <select
-                value={year}
-                onChange={(e) => setYear(parseInt(e.target.value, 10))}
-                className="p-1.5 border border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-xs font-bold focus:outline-hidden"
-              >
-                {[2024, 2025, 2026].map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           <button
-            onClick={loadFinancialData}
-            className="p-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 transition text-xs font-mono flex items-center gap-1 cursor-pointer"
+            onClick={handlePrintThermal}
+            disabled={printingSlip}
+            className="btn-arcade px-3.5 py-2.5 bg-white hover:bg-slate-100 text-slate-900 border-2 border-slate-800 rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition shadow-[2px_2px_0px_#1E293B] flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:translate-x-0.5 active:translate-y-0.5"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <Printer className="w-4 h-4 text-slate-700" strokeWidth={2.5} />
+            {printingSlip ? 'Mencetak...' : 'Slip Ringkasan Thermal'}
           </button>
+
+          <Link
+            href="/reports/kur-dossier"
+            className="btn-arcade px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-950 border-2 border-slate-800 rounded-xl font-mono text-xs font-black uppercase tracking-wider transition shadow-[2px_2px_0px_#1E293B] flex items-center gap-1.5 active:translate-x-0.5 active:translate-y-0.5"
+          >
+            <FileText className="w-4 h-4 text-slate-950" strokeWidth={2.5} />
+            Buka Berkas KUR Lengkap
+          </Link>
         </div>
       </div>
 
+      {/* FILTER TOOLBAR: Cabang, Bulan, Tahun, Refresh */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B]">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+          {/* Filter Cabang */}
+          <div className="flex items-center gap-1.5">
+            <Building2 className="w-4 h-4 text-slate-500" strokeWidth={2.5} />
+            <select
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+            >
+              <option value="ALL">Seluruh Cabang (Konsolidasi)</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  Cabang: {b.branch_name} ({b.branch_code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Bulan */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-500 uppercase font-bold">Bulan:</span>
+            <select
+              value={month}
+              onChange={(e) => setMonth(parseInt(e.target.value, 10))}
+              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+            >
+              {Array.from({ length: 12 }, (_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {new Date(0, i).toLocaleString('id-ID', { month: 'long' })}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Tahun */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-500 uppercase font-bold">Tahun:</span>
+            <select
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value, 10))}
+              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+            >
+              {[2024, 2025, 2026].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <button
+          onClick={loadFinancialData}
+          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border-2 border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-800 shadow-[2px_2px_0px_#1E293B] flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span>Perbarui Data</span>
+        </button>
+      </div>
+
       {loading ? (
-        <div className="max-w-6xl mx-auto p-12 text-center font-mono text-sm text-gray-500">
-          Menyusun Laporan Triple-Statement SAK EMKM...
+        <div className="bg-white rounded-2xl border-2 border-slate-800 p-12 text-center font-mono text-xs text-slate-500 shadow-[4px_4px_0px_#1E293B] flex flex-col items-center justify-center space-y-3">
+          <div className="w-8 h-8 border-3 border-slate-900 border-t-[#CCFF00] rounded-full animate-spin" />
+          <span className="font-bold text-slate-700">Menyusun Laporan Triple-Statement SAK EMKM...</span>
         </div>
       ) : (
-        <div className="max-w-6xl mx-auto space-y-6">
+        <div className="space-y-6">
           
           {/* BANNER STATUS NERACA SEIMBANG */}
-          <div className={`p-4 border-4 border-[#0B0F17] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[4px_4px_0px_#0B0F17] ${
-            bs.is_balanced ? 'bg-[#CCFF00] text-[#0B0F17]' : 'bg-amber-400 text-[#0B0F17]'
+          <div className={`p-5 rounded-2xl border-2 border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[4px_4px_0px_#1E293B] ${
+            bs.is_balanced ? 'bg-[#CCFF00] text-slate-950' : 'bg-amber-300 text-slate-950'
           }`}>
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-6 h-6 text-[#0B0F17] flex-shrink-0" strokeWidth={2.5} />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-950 text-[#CCFF00] flex items-center justify-center border-2 border-slate-900 shrink-0">
+                <CheckCircle2 className="w-6 h-6" strokeWidth={2.5} />
+              </div>
               <div>
-                <h3 className="font-black uppercase text-sm tracking-wide">
+                <h3 className="font-black font-display uppercase text-sm tracking-wide">
                   {bs.is_balanced ? 'NERACA SEIMBANG (100% BALANCE)' : 'NERACA DALAM KALIBRASI'}
                 </h3>
-                <p className="text-xs font-mono opacity-90">
+                <p className="text-xs font-mono font-bold opacity-90">
                   {bs.balance_verification_text || 'TOTAL ASET = TOTAL LIABILITAS + TOTAL EKUITAS'}
                 </p>
               </div>
             </div>
 
-            <div className="text-right font-mono text-xs font-black">
-              <span>Total Aset: {formatAccountingRupiah(bs.total_assets || 0)}</span>
-              <span className="block text-[10px] font-normal opacity-80">
+            <div className="text-left sm:text-right font-mono text-xs font-black bg-white/70 backdrop-blur-xs border-2 border-slate-900 p-2.5 rounded-xl shadow-[2px_2px_0px_#1E293B]">
+              <span className="block text-sm">Total Aset: {formatAccountingRupiah(bs.total_assets || 0)}</span>
+              <span className="block text-[11px] font-normal text-slate-700">
                 Liabilitas: {formatAccountingRupiah(liabilities.total_liabilities || 0)} + Ekuitas: {formatAccountingRupiah(equity.total_equity || 0)}
               </span>
             </div>
           </div>
 
-          {/* TAB NAVIGASI TRIPLE-STATEMENT */}
-          <div className="flex items-center gap-2 border-b-2 border-[#0B0F17] dark:border-gray-700 overflow-x-auto pb-1">
+          {/* TAB NAVIGASI TRIPLE-STATEMENT (Pop-Art Capsule Buttons) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             {[
               { id: 'BALANCE_SHEET', label: '1. Posisi Keuangan (Neraca)', icon: Scale },
               { id: 'INCOME', label: '2. Laba Rugi 12 Bulan', icon: TrendingUp },
@@ -271,14 +272,14 @@ export default function FinancialsReportPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition cursor-pointer border-t-2 border-l-2 border-r-2 ${
+                  className={`btn-arcade px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer rounded-xl border-2 border-slate-800 whitespace-nowrap active:scale-95 ${
                     isActive
-                      ? 'bg-white dark:bg-[#1E293B] border-[#0B0F17] dark:border-gray-600 text-[#0B0F17] dark:text-[#CCFF00] shadow-[2px_-2px_0px_#0B0F17]'
-                      : 'bg-gray-100 dark:bg-gray-800/40 border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                      ? 'bg-slate-900 text-[#CCFF00] shadow-[2px_2px_0px_#1E293B]'
+                      : 'bg-white text-slate-700 hover:bg-slate-100 shadow-[1px_1px_0px_#1E293B]'
                   }`}
                 >
                   <Icon className="w-4 h-4" strokeWidth={2.5} />
-                  {tab.label}
+                  <span>{tab.label}</span>
                 </button>
               );
             })}
@@ -286,35 +287,36 @@ export default function FinancialsReportPage() {
 
           {/* TAB 1: POSISI KEUANGAN (NERACA) */}
           {activeTab === 'BALANCE_SHEET' && (
-            <div className="bg-white dark:bg-[#1E293B] border-2 border-[#0B0F17] dark:border-gray-700 p-6 shadow-[4px_4px_0px_#0B0F17]">
+            <div className="bg-white rounded-2xl border-2 border-slate-800 p-6 shadow-[4px_4px_0px_#1E293B]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* SISI KIRI: ASET (AKTIVA) */}
-                <div className="border-2 border-[#0B0F17] dark:border-gray-700 flex flex-col justify-between">
+                <div className="border-2 border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between shadow-[2px_2px_0px_#1E293B]">
                   <div>
-                    <div className="bg-[#0B0F17] text-white p-3 font-black text-xs uppercase tracking-wider">
-                      ASET (AKTIVA)
+                    <div className="bg-slate-900 text-[#CCFF00] p-3 font-mono font-black text-xs uppercase tracking-wider flex items-center justify-between">
+                      <span>ASET (AKTIVA)</span>
+                      <span className="text-[10px] text-slate-400">SAK EMKM</span>
                     </div>
 
                     <div className="p-4 space-y-4 text-xs font-mono">
                       <div>
-                        <span className="font-bold uppercase text-[#0B0F17] dark:text-[#CCFF00] block border-b border-gray-200 dark:border-gray-700 pb-1 mb-2">
+                        <span className="font-bold uppercase text-slate-900 block border-b-2 border-slate-100 pb-1 mb-2">
                           Aset Lancar (Current Assets):
                         </span>
-                        <div className="space-y-1.5 pl-2">
+                        <div className="space-y-2 pl-2">
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Kas & Setara Kas</span>
-                            <span className="font-bold">{formatAccountingRupiah(currentAssets.cash_and_equivalents || 0)}</span>
+                            <span className="text-slate-600">Kas &amp; Setara Kas</span>
+                            <span className="font-bold text-slate-900">{formatAccountingRupiah(currentAssets.cash_and_equivalents || 0)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Piutang Dagang (Kasbon)</span>
-                            <span className="font-bold">{formatAccountingRupiah(currentAssets.accounts_receivable || 0)}</span>
+                            <span className="text-slate-600">Piutang Dagang (Kasbon)</span>
+                            <span className="font-bold text-slate-900">{formatAccountingRupiah(currentAssets.accounts_receivable || 0)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Persediaan Barang Dagangan</span>
-                            <span className="font-bold">{formatAccountingRupiah(currentAssets.merchandise_inventory || 0)}</span>
+                            <span className="text-slate-600">Persediaan Barang Dagangan</span>
+                            <span className="font-bold text-slate-900">{formatAccountingRupiah(currentAssets.merchandise_inventory || 0)}</span>
                           </div>
-                          <div className="flex justify-between pt-1.5 border-t border-dashed border-gray-300 dark:border-gray-700 font-bold text-[#0B0F17] dark:text-white">
+                          <div className="flex justify-between pt-2 border-t-2 border-dashed border-slate-200 font-black text-slate-900">
                             <span>Subtotal Aset Lancar</span>
                             <span>{formatAccountingRupiah(currentAssets.total_current_assets || 0)}</span>
                           </div>
@@ -322,15 +324,15 @@ export default function FinancialsReportPage() {
                       </div>
 
                       <div>
-                        <span className="font-bold uppercase text-[#0B0F17] dark:text-[#CCFF00] block border-b border-gray-200 dark:border-gray-700 pb-1 mb-2">
+                        <span className="font-bold uppercase text-slate-900 block border-b-2 border-slate-100 pb-1 mb-2">
                           Aset Tidak Lancar (Non-Current Assets):
                         </span>
-                        <div className="space-y-1.5 pl-2">
+                        <div className="space-y-2 pl-2">
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Aset Rolling Wadah (Gas 3kg & Galon)</span>
-                            <span className="font-bold">{formatAccountingRupiah(nonCurrentAssets.rolling_assets_containers || 0)}</span>
+                            <span className="text-slate-600">Aset Rolling Wadah (Gas 3kg &amp; Galon)</span>
+                            <span className="font-bold text-slate-900">{formatAccountingRupiah(nonCurrentAssets.rolling_assets_containers || 0)}</span>
                           </div>
-                          <div className="flex justify-between pt-1.5 border-t border-dashed border-gray-300 dark:border-gray-700 font-bold text-[#0B0F17] dark:text-white">
+                          <div className="flex justify-between pt-2 border-t-2 border-dashed border-slate-200 font-black text-slate-900">
                             <span>Subtotal Aset Tetap</span>
                             <span>{formatAccountingRupiah(nonCurrentAssets.total_non_current_assets || 0)}</span>
                           </div>
@@ -339,34 +341,35 @@ export default function FinancialsReportPage() {
                     </div>
                   </div>
 
-                  <div className="p-3 bg-gray-100 dark:bg-gray-800 border-t-2 border-[#0B0F17] dark:border-gray-700 flex justify-between items-center text-xs font-black font-mono">
-                    <span className="uppercase">TOTAL ASET</span>
-                    <span className="text-base text-emerald-700 dark:text-[#CCFF00]">{formatAccountingRupiah(bs.total_assets || 0)}</span>
+                  <div className="p-3 bg-slate-50 border-t-2 border-slate-800 flex justify-between items-center text-xs font-black font-mono">
+                    <span className="uppercase text-slate-700">TOTAL ASET</span>
+                    <span className="text-base text-emerald-700 font-display">{formatAccountingRupiah(bs.total_assets || 0)}</span>
                   </div>
                 </div>
 
                 {/* SISI KANAN: LIABILITAS & EKUITAS (PASIVA) */}
-                <div className="border-2 border-[#0B0F17] dark:border-gray-700 flex flex-col justify-between">
+                <div className="border-2 border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between shadow-[2px_2px_0px_#1E293B]">
                   <div>
-                    <div className="bg-[#0B0F17] text-white p-3 font-black text-xs uppercase tracking-wider">
-                      LIABILITAS & EKUITAS (PASIVA)
+                    <div className="bg-slate-900 text-[#CCFF00] p-3 font-mono font-black text-xs uppercase tracking-wider flex items-center justify-between">
+                      <span>LIABILITAS &amp; EKUITAS (PASIVA)</span>
+                      <span className="text-[10px] text-slate-400">SAK EMKM</span>
                     </div>
 
                     <div className="p-4 space-y-4 text-xs font-mono">
                       <div>
-                        <span className="font-bold uppercase text-[#0B0F17] dark:text-[#CCFF00] block border-b border-gray-200 dark:border-gray-700 pb-1 mb-2">
+                        <span className="font-bold uppercase text-slate-900 block border-b-2 border-slate-100 pb-1 mb-2">
                           Liabilitas Jangka Pendek:
                         </span>
-                        <div className="space-y-1.5 pl-2">
+                        <div className="space-y-2 pl-2">
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Utang Titipan Konsinyasi</span>
-                            <span className="font-bold">{formatAccountingRupiah(liabilities.consignment_payables || 0)}</span>
+                            <span className="text-slate-600">Utang Titipan Konsinyasi</span>
+                            <span className="font-bold text-slate-900">{formatAccountingRupiah(liabilities.consignment_payables || 0)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Jaminan Escrow Wadah Pelanggan</span>
-                            <span className="font-bold">{formatAccountingRupiah(liabilities.customer_escrow_deposits || 0)}</span>
+                            <span className="text-slate-600">Jaminan Escrow Wadah Pelanggan</span>
+                            <span className="font-bold text-slate-900">{formatAccountingRupiah(liabilities.customer_escrow_deposits || 0)}</span>
                           </div>
-                          <div className="flex justify-between pt-1.5 border-t border-dashed border-gray-300 dark:border-gray-700 font-bold text-[#0B0F17] dark:text-white">
+                          <div className="flex justify-between pt-2 border-t-2 border-dashed border-slate-200 font-black text-slate-900">
                             <span>Subtotal Liabilitas</span>
                             <span>{formatAccountingRupiah(liabilities.total_liabilities || 0)}</span>
                           </div>
@@ -374,21 +377,21 @@ export default function FinancialsReportPage() {
                       </div>
 
                       <div>
-                        <span className="font-bold uppercase text-[#0B0F17] dark:text-[#CCFF00] block border-b border-gray-200 dark:border-gray-700 pb-1 mb-2">
+                        <span className="font-bold uppercase text-slate-900 block border-b-2 border-slate-100 pb-1 mb-2">
                           Ekuitas (Modal):
                         </span>
-                        <div className="space-y-1.5 pl-2">
+                        <div className="space-y-2 pl-2">
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Modal Awal Disetor</span>
-                            <span className="font-bold">{formatAccountingRupiah(equity.initial_capital || 10000000)}</span>
+                            <span className="text-slate-600">Modal Awal Disetor</span>
+                            <span className="font-bold text-slate-900">{formatAccountingRupiah(equity.initial_capital || 10000000)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Saldo Laba Ditahan</span>
-                            <span className="font-bold text-emerald-700 dark:text-[#CCFF00]">
+                            <span className="text-slate-600">Saldo Laba Ditahan</span>
+                            <span className="font-bold text-emerald-700">
                               {formatAccountingRupiah(equity.retained_earnings || 0)}
                             </span>
                           </div>
-                          <div className="flex justify-between pt-1.5 border-t border-dashed border-gray-300 dark:border-gray-700 font-bold text-[#0B0F17] dark:text-white">
+                          <div className="flex justify-between pt-2 border-t-2 border-dashed border-slate-200 font-black text-slate-900">
                             <span>Subtotal Ekuitas</span>
                             <span>{formatAccountingRupiah(equity.total_equity || 0)}</span>
                           </div>
@@ -397,9 +400,9 @@ export default function FinancialsReportPage() {
                     </div>
                   </div>
 
-                  <div className="p-3 bg-gray-100 dark:bg-gray-800 border-t-2 border-[#0B0F17] dark:border-gray-700 flex justify-between items-center text-xs font-black font-mono">
-                    <span className="uppercase">TOTAL LIABILITAS & EKUITAS</span>
-                    <span className="text-base text-emerald-700 dark:text-[#CCFF00]">
+                  <div className="p-3 bg-slate-50 border-t-2 border-slate-800 flex justify-between items-center text-xs font-black font-mono">
+                    <span className="uppercase text-slate-700">TOTAL LIABILITAS &amp; EKUITAS</span>
+                    <span className="text-base text-emerald-700 font-display">
                       {formatAccountingRupiah((liabilities.total_liabilities || 0) + (equity.total_equity || 0))}
                     </span>
                   </div>
@@ -411,50 +414,50 @@ export default function FinancialsReportPage() {
 
           {/* TAB 2: LABA RUGI KOMPARATIF */}
           {activeTab === 'INCOME' && (
-            <div className="bg-white dark:bg-[#1E293B] border-2 border-[#0B0F17] dark:border-gray-700 p-6 shadow-[4px_4px_0px_#0B0F17]">
-              <div className="border-2 border-[#0B0F17] dark:border-gray-700">
+            <div className="bg-white rounded-2xl border-2 border-slate-800 p-6 shadow-[4px_4px_0px_#1E293B]">
+              <div className="overflow-hidden rounded-xl border-2 border-slate-800">
                 <table className="w-full text-xs font-mono border-collapse">
                   <thead>
-                    <tr className="bg-[#0B0F17] text-white">
-                      <th className="p-3 text-left uppercase">Pos Laba Rugi</th>
-                      <th className="p-3 text-right uppercase w-48">Jumlah</th>
+                    <tr className="bg-slate-900 text-white">
+                      <th className="p-3 text-left uppercase tracking-wider">Pos Laba Rugi SAK EMKM</th>
+                      <th className="p-3 text-right uppercase tracking-wider w-48">Jumlah (Rupiah)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    <tr className="bg-gray-50 dark:bg-gray-800 font-bold">
-                      <td className="p-2.5 text-[#0B0F17] dark:text-[#CCFF00]" colSpan={2}>PENDAPATAN USAHA</td>
+                  <tbody className="divide-y divide-slate-200 bg-white">
+                    <tr className="bg-slate-100 font-bold">
+                      <td className="p-2.5 text-slate-900 uppercase font-black" colSpan={2}>PENDAPATAN USAHA</td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 pl-6">Penjualan Bersih Toko (Net Sales Turnover)</td>
-                      <td className="p-2.5 text-right font-bold">{formatAccountingRupiah(inc.net_sales_turnover || 0)}</td>
+                      <td className="p-2.5 pl-6 text-slate-700">Penjualan Bersih Toko (Net Sales Turnover)</td>
+                      <td className="p-2.5 text-right font-bold text-slate-900">{formatAccountingRupiah(inc.net_sales_turnover || 0)}</td>
                     </tr>
-                    <tr className="bg-gray-50 dark:bg-gray-800 font-bold">
-                      <td className="p-2.5 text-[#0B0F17] dark:text-[#CCFF00]" colSpan={2}>BEBAN POKOK PENJUALAN</td>
+                    <tr className="bg-slate-100 font-bold">
+                      <td className="p-2.5 text-slate-900 uppercase font-black" colSpan={2}>BEBAN POKOK PENJUALAN</td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 pl-6">Harga Pokok Penjualan (HPP)</td>
-                      <td className="p-2.5 text-right text-rose-600 dark:text-rose-400">{formatAccountingRupiah(inc.cost_of_goods_sold || 0)}</td>
+                      <td className="p-2.5 pl-6 text-slate-700">Harga Pokok Penjualan (HPP)</td>
+                      <td className="p-2.5 text-right text-rose-600 font-bold">{formatAccountingRupiah(inc.cost_of_goods_sold || 0)}</td>
                     </tr>
-                    <tr className="bg-gray-100 dark:bg-gray-800/80 font-bold">
-                      <td className="p-2.5">LABA KOTOR (GROSS PROFIT)</td>
-                      <td className="p-2.5 text-right text-emerald-700 dark:text-emerald-400 font-black">
+                    <tr className="bg-emerald-50 font-black border-t-2 border-b-2 border-slate-800">
+                      <td className="p-3 text-emerald-950 font-display uppercase">LABA KOTOR (GROSS PROFIT)</td>
+                      <td className="p-3 text-right text-emerald-800 font-black text-sm">
                         {formatAccountingRupiah(inc.gross_profit || 0)}
                       </td>
                     </tr>
-                    <tr className="bg-gray-50 dark:bg-gray-800 font-bold">
-                      <td className="p-2.5 text-[#0B0F17] dark:text-[#CCFF00]" colSpan={2}>BEBAN OPERASIONAL & SUSUT</td>
+                    <tr className="bg-slate-100 font-bold">
+                      <td className="p-2.5 text-slate-900 uppercase font-black" colSpan={2}>BEBAN OPERASIONAL &amp; SUSUT</td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 pl-6">Beban Operasional Rutin (Gaji, Listrik, Operasional)</td>
-                      <td className="p-2.5 text-right text-rose-600 dark:text-rose-400">{formatAccountingRupiah(inc.operating_expenses || 0)}</td>
+                      <td className="p-2.5 pl-6 text-slate-700">Beban Operasional Rutin (Gaji, Listrik, Operasional)</td>
+                      <td className="p-2.5 text-right text-rose-600 font-bold">{formatAccountingRupiah(inc.operating_expenses || 0)}</td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 pl-6">Beban Susut Barang di Jalan (Transit Shrinkage)</td>
-                      <td className="p-2.5 text-right text-rose-600 dark:text-rose-400">{formatAccountingRupiah(inc.transit_shrinkage_expense || 0)}</td>
+                      <td className="p-2.5 pl-6 text-slate-700">Beban Susut Barang di Jalan (Transit Shrinkage)</td>
+                      <td className="p-2.5 text-right text-rose-600 font-bold">{formatAccountingRupiah(inc.transit_shrinkage_expense || 0)}</td>
                     </tr>
-                    <tr className="bg-[#CCFF00]/40 font-black border-t-2 border-b-2 border-[#0B0F17] dark:border-gray-500">
-                      <td className="p-3 text-sm text-[#0B0F17]">LABA BERSIH OPERASIONAL (NET PROFIT)</td>
-                      <td className="p-3 text-right text-base text-[#0B0F17]">
+                    <tr className="bg-[#CCFF00]/50 font-black border-t-2 border-slate-900">
+                      <td className="p-3.5 text-sm text-slate-950 font-display uppercase">LABA BERSIH OPERASIONAL (NET PROFIT)</td>
+                      <td className="p-3.5 text-right text-base text-slate-950 font-black font-display">
                         {formatAccountingRupiah(inc.net_operating_profit || 0)}
                       </td>
                     </tr>
@@ -466,34 +469,34 @@ export default function FinancialsReportPage() {
 
           {/* TAB 3: ARUS KAS LANGSUNG */}
           {activeTab === 'CASH_FLOW' && (
-            <div className="bg-white dark:bg-[#1E293B] border-2 border-[#0B0F17] dark:border-gray-700 p-6 shadow-[4px_4px_0px_#0B0F17]">
-              <div className="border-2 border-[#0B0F17] dark:border-gray-700">
+            <div className="bg-white rounded-2xl border-2 border-slate-800 p-6 shadow-[4px_4px_0px_#1E293B]">
+              <div className="overflow-hidden rounded-xl border-2 border-slate-800">
                 <table className="w-full text-xs font-mono border-collapse">
                   <thead>
-                    <tr className="bg-[#0B0F17] text-white">
-                      <th className="p-3 text-left uppercase">Aktivitas Arus Kas (Metode Langsung)</th>
-                      <th className="p-3 text-right uppercase w-48">Jumlah (Rupiah)</th>
+                    <tr className="bg-slate-900 text-white">
+                      <th className="p-3 text-left uppercase tracking-wider">Aktivitas Arus Kas (Metode Langsung)</th>
+                      <th className="p-3 text-right uppercase tracking-wider w-48">Jumlah (Rupiah)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    <tr className="bg-gray-50 dark:bg-gray-800 font-bold">
-                      <td className="p-2.5 text-[#0B0F17] dark:text-[#CCFF00]" colSpan={2}>ARUS KAS OPERASI</td>
+                  <tbody className="divide-y divide-slate-200 bg-white">
+                    <tr className="bg-slate-100 font-bold">
+                      <td className="p-2.5 text-slate-900 uppercase font-black" colSpan={2}>ARUS KAS OPERASI</td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 pl-6">Penerimaan Kas dari Pelanggan Toko</td>
-                      <td className="p-2.5 text-right font-bold text-emerald-700 dark:text-emerald-400">
+                      <td className="p-2.5 pl-6 text-slate-700">Penerimaan Kas dari Pelanggan Toko</td>
+                      <td className="p-2.5 text-right font-bold text-emerald-700">
                         {formatAccountingRupiah(cf.operating_cash_inflow || 0)}
                       </td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 pl-6">Pembayaran Kas untuk Pasokan & Beban Operasional</td>
-                      <td className="p-2.5 text-right text-rose-600 dark:text-rose-400 font-bold">
+                      <td className="p-2.5 pl-6 text-slate-700">Pembayaran Kas untuk Pasokan &amp; Beban Operasional</td>
+                      <td className="p-2.5 text-right text-rose-600 font-bold">
                         {formatAccountingRupiah(cf.operating_cash_outflow || 0)}
                       </td>
                     </tr>
-                    <tr className="bg-gray-100 dark:bg-gray-800/80 font-black border-t-2 border-b-2 border-[#0B0F17]">
-                      <td className="p-3 text-sm">ARUS KAS BERSIH DARI AKTIVITAS OPERASI</td>
-                      <td className="p-3 text-right text-base text-emerald-700 dark:text-[#CCFF00]">
+                    <tr className="bg-[#CCFF00]/50 font-black border-t-2 border-slate-900">
+                      <td className="p-3.5 text-sm text-slate-950 font-display uppercase">ARUS KAS BERSIH DARI AKTIVITAS OPERASI</td>
+                      <td className="p-3.5 text-right text-base text-slate-950 font-black font-display">
                         {formatAccountingRupiah(cf.net_cash_from_operations || 0)}
                       </td>
                     </tr>
@@ -505,78 +508,78 @@ export default function FinancialsReportPage() {
 
           {/* TAB 4: RASIO KELAYAKAN BANK & KUR */}
           {activeTab === 'BANK_RATIOS' && (
-            <div className="bg-white dark:bg-[#1E293B] border-2 border-[#0B0F17] dark:border-gray-700 p-6 shadow-[4px_4px_0px_#0B0F17] space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-gray-200 dark:border-gray-700 pb-4">
+            <div className="bg-white rounded-2xl border-2 border-slate-800 p-6 shadow-[4px_4px_0px_#1E293B] space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-slate-200 pb-4">
                 <div>
-                  <span className="text-[10px] font-mono text-gray-500 uppercase block">Predikat Kelayakan Kredit:</span>
+                  <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block mb-1">Predikat Kelayakan Kredit:</span>
                   <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 font-mono text-sm font-black uppercase tracking-wider border-2 border-[#0B0F17] ${
-                      bankRatios.kurScore === 'HIJAU' ? 'bg-[#CCFF00] text-[#0B0F17]' :
-                      bankRatios.kurScore === 'KUNING' ? 'bg-amber-400 text-[#0B0F17]' : 'bg-rose-500 text-white'
+                    <span className={`px-3 py-1 font-mono text-xs font-black uppercase tracking-wider rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_#1E293B] ${
+                      bankRatios.kurScore === 'HIJAU' ? 'bg-[#CCFF00] text-slate-950' :
+                      bankRatios.kurScore === 'KUNING' ? 'bg-amber-400 text-slate-950' : 'bg-rose-500 text-white'
                     }`}>
                       SKOR: {bankRatios.kurScore || 'HIJAU'} - {bankRatios.bankabilityStatus || 'SANGAT LAYAK (PRIMA)'}
                     </span>
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <span className="text-[10px] font-mono text-gray-500 uppercase block">Rekomendasi Plafon Bank:</span>
-                  <span className="text-xl font-black font-mono text-emerald-700 dark:text-[#CCFF00]">
+                <div className="text-left sm:text-right bg-slate-50 border-2 border-slate-800 p-3 rounded-xl shadow-[2px_2px_0px_#1E293B]">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Rekomendasi Plafon Bank:</span>
+                  <span className="text-xl font-black font-display text-emerald-700 block">
                     {formatAccountingRupiah(bankRatios.recommendedCeiling || 50000000)}
                   </span>
-                  <span className="block text-xs font-mono text-gray-500">{bankRatios.kurTier || 'KUR Mikro 6%'}</span>
+                  <span className="block text-xs font-mono text-slate-500 font-bold">{bankRatios.kurTier || 'KUR Mikro 6%'}</span>
                 </div>
               </div>
 
               {/* 3 Indikator Rasio Utama */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 border-2 border-[#0B0F17] dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                  <span className="text-[10px] font-mono text-gray-500 uppercase block">Rasio Lancar (Current Ratio)</span>
-                  <div className="text-2xl font-black font-mono text-[#0B0F17] dark:text-white my-1">
+                <div className="p-5 border-2 border-slate-800 rounded-2xl bg-white shadow-[3px_3px_0px_#1E293B] space-y-2">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase font-extrabold block">Rasio Lancar (Current Ratio)</span>
+                  <div className="text-2xl font-black font-display text-slate-900">
                     {bankRatios.currentRatio || 1.0}x
                   </div>
-                  <p className="text-[10px] font-mono text-gray-500">
+                  <p className="text-[11px] font-mono text-slate-500 leading-snug">
                     Kapasitas aset likuid menutup kewajiban jangka pendek. Standar bank: &ge; 1.2x.
                   </p>
                 </div>
 
-                <div className="p-4 border-2 border-[#0B0F17] dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                  <span className="text-[10px] font-mono text-gray-500 uppercase block">Net Profit Margin (NPM)</span>
-                  <div className="text-2xl font-black font-mono text-[#0B0F17] dark:text-white my-1">
+                <div className="p-5 border-2 border-slate-800 rounded-2xl bg-white shadow-[3px_3px_0px_#1E293B] space-y-2">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase font-extrabold block">Net Profit Margin (NPM)</span>
+                  <div className="text-2xl font-black font-display text-slate-900">
                     {bankRatios.netMarginPct || 0}%
                   </div>
-                  <p className="text-[10px] font-mono text-gray-500">
-                    Margin profitabilitas bersih atas penjualan retail. Standar bank: &ge; 8%.
+                  <p className="text-[11px] font-mono text-slate-500 leading-snug">
+                    Margin profitabilitas bersih atas omzet penjualan retail. Standar bank: &ge; 8%.
                   </p>
                 </div>
 
-                <div className="p-4 border-2 border-[#0B0F17] dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                  <span className="text-[10px] font-mono text-gray-500 uppercase block">Debt Service Coverage (DSCR)</span>
-                  <div className="text-2xl font-black font-mono text-[#0B0F17] dark:text-white my-1">
+                <div className="p-5 border-2 border-slate-800 rounded-2xl bg-white shadow-[3px_3px_0px_#1E293B] space-y-2">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase font-extrabold block">Debt Service Coverage (DSCR)</span>
+                  <div className="text-2xl font-black font-display text-slate-900">
                     {bankRatios.dscrRatio || 2.0}x
                   </div>
-                  <p className="text-[10px] font-mono text-gray-500">
+                  <p className="text-[11px] font-mono text-slate-500 leading-snug">
                     Cakupan laba operasional terhadap angsuran kredit bulanan. Standar bank: &ge; 1.3x.
                   </p>
                 </div>
               </div>
 
               {/* Tombol Menuju Berkas KUR */}
-              <div className="p-4 bg-[#CCFF00]/30 border-2 border-[#0B0F17] flex items-center justify-between">
+              <div className="p-5 bg-[#CCFF00]/40 border-2 border-slate-800 rounded-2xl shadow-[3px_3px_0px_#1E293B] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h4 className="font-black text-xs uppercase text-[#0B0F17]">
+                  <h4 className="font-black text-sm uppercase text-slate-950 font-display">
                     Cetak Berkas Pengajuan KUR 4-Halaman Resmi
                   </h4>
-                  <p className="text-xs font-mono text-gray-700">
+                  <p className="text-xs font-mono text-slate-700 mt-0.5">
                     Format cetak formal presisi A4 dengan stempel digital QR untuk diserahkan ke Relationship Manager Bank.
                   </p>
                 </div>
 
                 <Link
                   href="/reports/kur-dossier"
-                  className="px-4 py-2 bg-[#0B0F17] text-[#CCFF00] font-black text-xs uppercase tracking-wider hover:bg-black transition flex items-center gap-1.5"
+                  className="btn-arcade px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-[#CCFF00] font-black text-xs uppercase tracking-wider rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_#1E293B] flex items-center justify-center gap-2 shrink-0 active:translate-x-0.5 active:translate-y-0.5"
                 >
-                  Buka Berkas
+                  <span>Buka Berkas</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
