@@ -75,25 +75,27 @@ export default function KurDossierPrintView({
   return (
     <div className="w-full flex flex-col items-center">
       {/* Tombol Aksi Layar (Disembunyikan saat cetak) */}
-      <div className="no-print w-full max-w-4xl mb-6 flex flex-wrap items-center justify-between gap-4 p-4 bg-[#CCFF00] border-2 border-[#0B0F17] shadow-[4px_4px_0px_#0B0F17]">
+      <div className="no-print w-full max-w-4xl mb-6 flex flex-wrap items-center justify-between gap-4 p-5 bg-[#CCFF00] border-2 border-slate-900 rounded-2xl shadow-[4px_4px_0px_#1E293B]">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="w-6 h-6 text-[#0B0F17]" strokeWidth={2.5} />
+          <div className="w-10 h-10 rounded-xl bg-slate-900 text-[#CCFF00] flex items-center justify-center border-2 border-slate-900 shrink-0">
+            <ShieldCheck className="w-6 h-6" strokeWidth={2.5} />
+          </div>
           <div>
-            <h3 className="font-black text-[#0B0F17] uppercase tracking-wide text-sm">
+            <h3 className="font-black text-slate-900 uppercase tracking-wide text-sm font-display">
               Bank-Grade KUR Dossier: Siap Cetak A4 (4 Halaman)
             </h3>
-            <p className="text-xs text-[#0B0F17]/80 font-mono">
-              Dilengkapi Stempel Audit Kriptografis SHA-256 & QR Verifikasi Bank
+            <p className="text-xs text-slate-800 font-mono font-medium">
+              Dilengkapi Stempel Audit Kriptografis SHA-256 &amp; QR Verifikasi Bank
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {onPrintThermal && (
             <button
               onClick={onPrintThermal}
               disabled={isThermalPrinting}
-              className="px-4 py-2 bg-white text-[#0B0F17] border-2 border-[#0B0F17] font-bold text-xs uppercase tracking-wider hover:bg-gray-100 transition-all shadow-[2px_2px_0px_#0B0F17] flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="btn-arcade px-4 py-2.5 bg-white text-slate-900 border-2 border-slate-900 font-mono font-bold text-xs uppercase tracking-wider hover:bg-slate-100 transition-all rounded-xl shadow-[3px_3px_0px_#1E293B] flex items-center gap-2 cursor-pointer disabled:opacity-50 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
               <Receipt className="w-4 h-4" strokeWidth={2.5} />
               {isThermalPrinting ? 'Mencetak Slip...' : 'Cetak Slip Thermal'}
@@ -102,7 +104,7 @@ export default function KurDossierPrintView({
 
           <button
             onClick={handleBrowserPrint}
-            className="px-5 py-2 bg-[#0B0F17] text-[#CCFF00] border-2 border-[#0B0F17] font-black text-xs uppercase tracking-wider hover:bg-black transition-all shadow-[2px_2px_0px_#CCFF00] flex items-center gap-2 cursor-pointer"
+            className="btn-arcade px-5 py-2.5 bg-slate-900 text-[#CCFF00] border-2 border-slate-900 font-mono font-black text-xs uppercase tracking-wider hover:bg-slate-800 transition-all rounded-xl shadow-[3px_3px_0px_#1E293B] flex items-center gap-2 cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             <Printer className="w-4 h-4" strokeWidth={2.5} />
             Cetak Berkas / Simpan PDF
@@ -111,7 +113,7 @@ export default function KurDossierPrintView({
       </div>
 
       {/* Kontainer Dokumen A4 */}
-      <div className="a4-container w-full max-w-[210mm] bg-white text-[#0B0F17] font-sans text-[11pt] leading-normal shadow-2xl p-0">
+      <div className="a4-container w-full max-w-[210mm] bg-white text-[#0B0F17] font-sans text-[11pt] leading-normal rounded-2xl border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B] print:shadow-none print:border-none print:rounded-none overflow-hidden p-0">
         
         {/* ========================================================================= */}
         {/* HALAMAN 1: PROFIL USAHA & INTEGRITAS TATA KELOLA                         */}

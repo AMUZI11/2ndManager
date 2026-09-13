@@ -145,7 +145,7 @@ export default function KurDossierPage() {
   };
 
   return (
-    <div className="space-y-6 pb-32 font-sans">
+    <div className="space-y-6 pb-32 max-w-7xl mx-auto font-sans">
       {/* Toast Notification */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] font-mono text-xs font-bold animate-fade-in ${
@@ -155,17 +155,24 @@ export default function KurDossierPage() {
         </div>
       )}
 
-      {/* HEADER UTAMA: Light Neo-Brutalist Card (no-print) */}
-      <div className="no-print bg-white p-6 sm:p-7 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] flex flex-col md:flex-row md:items-center justify-between gap-5">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
+      {/* HEADER UTAMA: Light Neo-Brutalist Master Card (no-print) */}
+      <div className="no-print bg-white p-6 sm:p-8 rounded-3xl border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B] flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 flex-wrap">
             <Link
               href="/reports/financials"
-              className="text-xs font-mono font-bold text-slate-600 hover:text-slate-950 flex items-center gap-1 transition-colors"
+              className="btn-arcade flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-mono text-xs font-bold border-2 border-slate-800 rounded-xl shadow-[2px_2px_0px_#1E293B] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Kembali ke Laporan SAK EMKM</span>
+              <ArrowLeft size={13} strokeWidth={2.5} />
+              <span>LAPORAN SAK EMKM</span>
             </Link>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-lime-200 text-slate-900 border border-slate-800 text-[11px] font-mono font-bold">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-lime-600"></span>
+              </span>
+              <span>BERKAS KUR PERBANKAN • STEMPEL DIGITAL QR SHA-256</span>
+            </div>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black font-display text-slate-900 tracking-tight">
             Pusat Berkas KUR Perbankan &amp; Stempel Digital
@@ -175,10 +182,10 @@ export default function KurDossierPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
+        <div className="flex items-center gap-3 flex-wrap shrink-0">
           <button
             onClick={handleCopyVerificationUrl}
-            className="btn-arcade px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-900 border-2 border-slate-800 rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition shadow-[2px_2px_0px_#1E293B] flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+            className="btn-arcade px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-800 border-2 border-slate-800 rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition shadow-[3px_3px_0px_#1E293B] flex items-center gap-2 cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             <Copy className="w-4 h-4 text-slate-700" strokeWidth={2.5} />
             <span>{copiedLink ? 'Link Tersalin!' : 'Salin Link Bank'}</span>
@@ -189,25 +196,26 @@ export default function KurDossierPage() {
               href={dossierData.seal.verificationUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-arcade p-2.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-950 border-2 border-slate-800 rounded-xl font-bold text-xs transition shadow-[2px_2px_0px_#1E293B] flex items-center justify-center active:translate-x-0.5 active:translate-y-0.5"
+              className="btn-arcade px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b8e600] text-slate-950 border-2 border-slate-800 rounded-xl font-mono text-xs font-black uppercase tracking-wider transition shadow-[3px_3px_0px_#1E293B] flex items-center gap-2 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
               title="Buka Portal Verifikasi Publik"
             >
               <ExternalLink className="w-4 h-4 text-slate-950" strokeWidth={2.5} />
+              <span>Portal Publik</span>
             </a>
           )}
         </div>
       </div>
 
       {/* PARAMETER TOOLBAR (no-print) */}
-      <div className="no-print flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B]">
-        <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+      <div className="no-print flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B]">
+        <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
           {/* Filter Cabang */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-slate-500" strokeWidth={2.5} />
             <select
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
-              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+              className="px-3 py-2 rounded-xl border-2 border-slate-800 bg-slate-50 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-0 focus:border-slate-950 shadow-[2px_2px_0px_#1E293B]"
             >
               <option value="">Seluruh Cabang (Konsolidasi)</option>
               {branches.map((b) => (
@@ -219,12 +227,12 @@ export default function KurDossierPage() {
           </div>
 
           {/* Filter Bulan */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <span className="text-slate-500 uppercase font-bold">Bulan:</span>
             <select
               value={month}
               onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+              className="px-3 py-2 rounded-xl border-2 border-slate-800 bg-slate-50 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-0 focus:border-slate-950 shadow-[2px_2px_0px_#1E293B]"
             >
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -235,12 +243,12 @@ export default function KurDossierPage() {
           </div>
 
           {/* Filter Tahun */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <span className="text-slate-500 uppercase font-bold">Tahun:</span>
             <select
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value, 10))}
-              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+              className="px-3 py-2 rounded-xl border-2 border-slate-800 bg-slate-50 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-0 focus:border-slate-950 shadow-[2px_2px_0px_#1E293B]"
             >
               {[2024, 2025, 2026].map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -251,18 +259,18 @@ export default function KurDossierPage() {
 
         <button
           onClick={loadDossier}
-          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border-2 border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-800 shadow-[2px_2px_0px_#1E293B] flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+          className="btn-arcade px-4 py-2 bg-white hover:bg-slate-100 border-2 border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-800 shadow-[2px_2px_0px_#1E293B] flex items-center gap-2 cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} strokeWidth={2.5} />
           <span>Perbarui Dokumen</span>
         </button>
       </div>
 
       {/* KONTEN BERKAS A4 PRESISI */}
       {loading ? (
-        <div className="bg-white rounded-2xl border-2 border-slate-800 p-12 text-center font-mono text-xs text-slate-500 shadow-[4px_4px_0px_#1E293B] flex flex-col items-center justify-center space-y-3">
-          <div className="w-8 h-8 border-3 border-slate-900 border-t-[#CCFF00] rounded-full animate-spin" />
-          <span className="font-bold text-slate-700">Membangun Berkas Standar Bank &amp; Menghitung SHA-256 Checksum...</span>
+        <div className="space-y-6">
+          <div className="animate-pulse bg-slate-100 border-2 border-slate-800 rounded-2xl h-24 w-full shadow-[4px_4px_0px_#1E293B]" />
+          <div className="animate-pulse bg-slate-100 border-2 border-slate-800 rounded-3xl h-[600px] w-full max-w-4xl mx-auto shadow-[6px_6px_0px_#1E293B]" />
         </div>
       ) : (
         <div className="flex justify-center pb-12">

@@ -115,7 +115,7 @@ export default function FinancialsReportPage() {
   };
 
   return (
-    <div className="space-y-6 pb-32 font-sans">
+    <div className="space-y-6 pb-32 max-w-7xl mx-auto font-sans">
       {/* Toast Notification */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] font-mono text-xs font-bold animate-fade-in ${
@@ -125,16 +125,15 @@ export default function FinancialsReportPage() {
         </div>
       )}
 
-      {/* HEADER UTAMA: Light Neo-Brutalist Card */}
-      <div className="bg-white p-6 sm:p-7 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B] flex flex-col md:flex-row md:items-center justify-between gap-5">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 bg-slate-900 text-[#CCFF00] font-mono text-[10px] font-black uppercase tracking-widest rounded-md border border-slate-800">
-              STANDAR AKUNTANSI SAK EMKM
+      {/* HEADER UTAMA: Light Neo-Brutalist Master Card */}
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B] flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-lime-200 text-slate-900 border border-slate-800 text-[11px] font-mono font-bold">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-lime-600"></span>
             </span>
-            <span className="text-xs font-mono font-bold text-slate-500">
-              Triple-Statement Reporting
-            </span>
+            <span>STANDAR AKUNTANSI SAK EMKM • TRIPLE-STATEMENT REPORTING</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black font-display text-slate-900 tracking-tight">
             Laporan Keuangan &amp; Posisi Neraca Seimbang
@@ -144,11 +143,11 @@ export default function FinancialsReportPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
+        <div className="flex items-center gap-3 flex-wrap shrink-0">
           <button
             onClick={handlePrintThermal}
             disabled={printingSlip}
-            className="btn-arcade px-3.5 py-2.5 bg-white hover:bg-slate-100 text-slate-900 border-2 border-slate-800 rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition shadow-[2px_2px_0px_#1E293B] flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:translate-x-0.5 active:translate-y-0.5"
+            className="btn-arcade px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-800 border-2 border-slate-800 rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition shadow-[3px_3px_0px_#1E293B] flex items-center gap-2 cursor-pointer disabled:opacity-50 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             <Printer className="w-4 h-4 text-slate-700" strokeWidth={2.5} />
             {printingSlip ? 'Mencetak...' : 'Slip Ringkasan Thermal'}
@@ -156,7 +155,7 @@ export default function FinancialsReportPage() {
 
           <Link
             href="/reports/kur-dossier"
-            className="btn-arcade px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-950 border-2 border-slate-800 rounded-xl font-mono text-xs font-black uppercase tracking-wider transition shadow-[2px_2px_0px_#1E293B] flex items-center gap-1.5 active:translate-x-0.5 active:translate-y-0.5"
+            className="btn-arcade px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b8e600] text-slate-950 border-2 border-slate-800 rounded-xl font-mono text-xs font-black uppercase tracking-wider transition shadow-[3px_3px_0px_#1E293B] flex items-center gap-2 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             <FileText className="w-4 h-4 text-slate-950" strokeWidth={2.5} />
             Buka Berkas KUR Lengkap
@@ -165,15 +164,15 @@ export default function FinancialsReportPage() {
       </div>
 
       {/* FILTER TOOLBAR: Cabang, Bulan, Tahun, Refresh */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B]">
-        <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B]">
+        <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
           {/* Filter Cabang */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-slate-500" strokeWidth={2.5} />
             <select
               value={selectedBranchId}
               onChange={(e) => setSelectedBranchId(e.target.value)}
-              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+              className="px-3 py-2 rounded-xl border-2 border-slate-800 bg-slate-50 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-0 focus:border-slate-950 shadow-[2px_2px_0px_#1E293B]"
             >
               <option value="ALL">Seluruh Cabang (Konsolidasi)</option>
               {branches.map((b) => (
@@ -185,12 +184,12 @@ export default function FinancialsReportPage() {
           </div>
 
           {/* Filter Bulan */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <span className="text-slate-500 uppercase font-bold">Bulan:</span>
             <select
               value={month}
               onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+              className="px-3 py-2 rounded-xl border-2 border-slate-800 bg-slate-50 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-0 focus:border-slate-950 shadow-[2px_2px_0px_#1E293B]"
             >
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -201,12 +200,12 @@ export default function FinancialsReportPage() {
           </div>
 
           {/* Filter Tahun */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <span className="text-slate-500 uppercase font-bold">Tahun:</span>
             <select
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value, 10))}
-              className="p-1.5 rounded-lg border-2 border-slate-800 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]"
+              className="px-3 py-2 rounded-xl border-2 border-slate-800 bg-slate-50 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-0 focus:border-slate-950 shadow-[2px_2px_0px_#1E293B]"
             >
               {[2024, 2025, 2026].map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -217,17 +216,21 @@ export default function FinancialsReportPage() {
 
         <button
           onClick={loadFinancialData}
-          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border-2 border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-800 shadow-[2px_2px_0px_#1E293B] flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+          className="btn-arcade px-4 py-2 bg-white hover:bg-slate-100 border-2 border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-800 shadow-[2px_2px_0px_#1E293B] flex items-center gap-2 cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} strokeWidth={2.5} />
           <span>Perbarui Data</span>
         </button>
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-2xl border-2 border-slate-800 p-12 text-center font-mono text-xs text-slate-500 shadow-[4px_4px_0px_#1E293B] flex flex-col items-center justify-center space-y-3">
-          <div className="w-8 h-8 border-3 border-slate-900 border-t-[#CCFF00] rounded-full animate-spin" />
-          <span className="font-bold text-slate-700">Menyusun Laporan Triple-Statement SAK EMKM...</span>
+        <div className="space-y-6">
+          <div className="animate-pulse bg-slate-100 border-2 border-slate-800 rounded-2xl h-24 w-full shadow-[4px_4px_0px_#1E293B]" />
+          <div className="inline-flex p-1.5 bg-slate-100 border-2 border-slate-800 rounded-2xl gap-1.5 w-full max-w-xl h-14 animate-pulse shadow-[3px_3px_0px_#1E293B]" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="animate-pulse bg-slate-100 border-2 border-slate-800 rounded-2xl h-96 w-full shadow-[4px_4px_0px_#1E293B]" />
+            <div className="animate-pulse bg-slate-100 border-2 border-slate-800 rounded-2xl h-96 w-full shadow-[4px_4px_0px_#1E293B]" />
+          </div>
         </div>
       ) : (
         <div className="space-y-6">
@@ -250,7 +253,7 @@ export default function FinancialsReportPage() {
               </div>
             </div>
 
-            <div className="text-left sm:text-right font-mono text-xs font-black bg-white/70 backdrop-blur-xs border-2 border-slate-900 p-2.5 rounded-xl shadow-[2px_2px_0px_#1E293B]">
+            <div className="text-left sm:text-right font-mono text-xs font-black bg-white/80 backdrop-blur-xs border-2 border-slate-900 p-2.5 rounded-xl shadow-[2px_2px_0px_#1E293B]">
               <span className="block text-sm">Total Aset: {formatAccountingRupiah(bs.total_assets || 0)}</span>
               <span className="block text-[11px] font-normal text-slate-700">
                 Liabilitas: {formatAccountingRupiah(liabilities.total_liabilities || 0)} + Ekuitas: {formatAccountingRupiah(equity.total_equity || 0)}
@@ -258,8 +261,8 @@ export default function FinancialsReportPage() {
             </div>
           </div>
 
-          {/* TAB NAVIGASI TRIPLE-STATEMENT (Pop-Art Capsule Buttons) */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {/* TAB NAVIGASI TRIPLE-STATEMENT (Standardized Neo-Brutalist Pill Container) */}
+          <div className="inline-flex p-1.5 bg-slate-100 border-2 border-slate-800 rounded-2xl gap-1.5 overflow-x-auto max-w-full shadow-[3px_3px_0px_#1E293B] no-scrollbar">
             {[
               { id: 'BALANCE_SHEET', label: '1. Posisi Keuangan (Neraca)', icon: Scale },
               { id: 'INCOME', label: '2. Laba Rugi 12 Bulan', icon: TrendingUp },
@@ -272,10 +275,10 @@ export default function FinancialsReportPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`btn-arcade px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer rounded-xl border-2 border-slate-800 whitespace-nowrap active:scale-95 ${
+                  className={`px-4 py-2 rounded-xl font-mono text-xs sm:text-sm font-black flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
                     isActive
                       ? 'bg-slate-900 text-[#CCFF00] shadow-[2px_2px_0px_#1E293B]'
-                      : 'bg-white text-slate-700 hover:bg-slate-100 shadow-[1px_1px_0px_#1E293B]'
+                      : 'bg-transparent text-slate-600 hover:text-slate-900 font-bold'
                   }`}
                 >
                   <Icon className="w-4 h-4" strokeWidth={2.5} />
@@ -577,7 +580,7 @@ export default function FinancialsReportPage() {
 
                 <Link
                   href="/reports/kur-dossier"
-                  className="btn-arcade px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-[#CCFF00] font-black text-xs uppercase tracking-wider rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_#1E293B] flex items-center justify-center gap-2 shrink-0 active:translate-x-0.5 active:translate-y-0.5"
+                  className="btn-arcade px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-[#CCFF00] font-mono font-black text-xs uppercase tracking-wider rounded-xl border-2 border-slate-900 shadow-[3px_3px_0px_#1E293B] flex items-center justify-center gap-2 shrink-0 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
                 >
                   <span>Buka Berkas</span>
                   <ArrowRight className="w-4 h-4" />

@@ -406,13 +406,13 @@ export default function BillingPage() {
   );
 
   return (
-    <div className="space-y-8 pb-32 font-sans">
+    <div className="space-y-6 pb-32 max-w-7xl mx-auto font-sans">
       {/* Navigation & Header Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[3px_3px_0px_#1E293B]">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border-2 border-slate-800 shadow-[4px_4px_0px_#1E293B]">
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard"
-            className="btn-arcade flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-800 font-mono text-xs font-bold border-2 border-slate-800 rounded-xl shadow-[2px_2px_0px_#1E293B] transition-all"
+            className="btn-arcade flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-800 font-mono text-xs font-bold border-2 border-slate-800 rounded-xl shadow-[2px_2px_0px_#1E293B] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
           >
             <ArrowLeft size={14} strokeWidth={2.5} />
             <span>DASHBOARD</span>
@@ -425,174 +425,190 @@ export default function BillingPage() {
         <button
           onClick={fetchSubscriptionStatus}
           disabled={loading}
-          className="btn-arcade flex items-center gap-2 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-[#CCFF00] font-mono text-xs font-bold rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_#1E293B] transition-all cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+          className="btn-arcade flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-[#CCFF00] font-mono text-xs font-bold rounded-xl border-2 border-slate-900 shadow-[3px_3px_0px_#1E293B] transition-all cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
         >
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} strokeWidth={2.5} />
           <span>SINKRONKAN STATUS</span>
         </button>
       </div>
 
-      {/* Arcade Brutalist Master Banner */}
-      <div className="relative bg-white rounded-3xl border-2 border-slate-800 p-6 lg:p-8 shadow-[6px_6px_0px_#1E293B] overflow-hidden space-y-6">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border-2 border-amber-400 text-amber-900 font-mono text-xs font-black uppercase tracking-widest rounded-xl">
-              <Sparkles size={13} className="text-[#F59E0B]" strokeWidth={2.5} />
-              MONETISASI MANDIRI &amp; AUTO-APPROVE INSTAN
-            </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 uppercase font-display">
-              PUSAT LISENSI &amp; PEMBAYARAN JURAGAN
-            </h1>
-            <p className="text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed">
-              Aktivasi instan tanpa menunggu verifikasi manual! Unggah bukti transfer atau gunakan kode voucher
-              16-digit. Langganan langsung aktif seketika untuk mendukung kelancaran operasional warung Anda.
-            </p>
+      {loading && !subStatus ? (
+        <div className="space-y-6">
+          <div className="animate-pulse bg-slate-100 border-2 border-slate-800 rounded-3xl h-64 w-full shadow-[6px_6px_0px_#1E293B]" />
+          <div className="animate-pulse bg-slate-100 border-2 border-slate-800 rounded-3xl h-48 w-full shadow-[4px_4px_0px_#1E293B]" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse bg-slate-100 border-2 border-slate-800 rounded-3xl h-80 w-full shadow-[4px_4px_0px_#1E293B]" />
+            ))}
           </div>
-
-          {/* Speedometer Status Card */}
-          <div className="w-full lg:w-auto bg-slate-50 border-2 border-slate-800 rounded-2xl p-5 shadow-[4px_4px_0px_#1E293B] min-w-[280px]">
-            <div className="text-xs font-mono font-bold text-slate-500 uppercase">STATUS LANGGANAN ANDA</div>
-            <div className="mt-2 flex items-center gap-3">
-              <div
-                className={`px-3 py-1 font-mono text-sm font-black rounded-xl border-2 ${
-                  currentTier === 'EKSEKUTIF'
-                    ? 'bg-[#CCFF00] text-slate-950 border-slate-900 shadow-[2px_2px_0px_#1E293B]'
-                    : currentTier === 'MANAJER'
-                    ? 'bg-amber-400 text-slate-950 border-slate-900 shadow-[2px_2px_0px_#1E293B]'
-                    : currentTier === 'SUPERVISOR'
-                    ? 'bg-sky-400 text-slate-950 border-slate-900 shadow-[2px_2px_0px_#1E293B]'
-                    : 'bg-slate-200 text-slate-800 border-slate-700'
-                }`}
-              >
-                [ 🏆 TIER {currentTier} ]
-              </div>
-            </div>
-
-            <div className="mt-4 pt-3 border-t-2 border-slate-200 space-y-1 font-mono text-xs">
-              <div className="flex justify-between text-slate-600">
-                <span>Masa Aktif:</span>
-                <span className="font-bold text-slate-900">
-                  {isExpired ? 'Kedaluwarsa' : `Sisa ${daysRemaining} Hari`}
-                </span>
-              </div>
-              {subStatus?.expires_at && (
-                <div className="flex justify-between text-slate-500">
-                  <span>Berlaku Hingga:</span>
-                  <span className="font-bold">{new Date(subStatus.expires_at).toLocaleDateString('id-ID')}</span>
+          <div className="animate-pulse bg-slate-100 border-2 border-slate-800 rounded-3xl h-96 w-full shadow-[4px_4px_0px_#1E293B]" />
+        </div>
+      ) : (
+        <>
+          {/* Arcade Brutalist Master Banner */}
+          <div className="relative bg-white rounded-3xl border-2 border-slate-800 p-6 lg:p-8 shadow-[6px_6px_0px_#1E293B] overflow-hidden space-y-6">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-lime-200 text-slate-900 border border-slate-800 text-[11px] font-mono font-bold">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-500 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-lime-600"></span>
+                  </span>
+                  <span>MONETISASI MANDIRI &amp; AUTO-APPROVE INSTAN</span>
                 </div>
-              )}
-              <div className="flex justify-between text-slate-600">
-                <span>Cabang Aktif:</span>
-                <span className="font-black text-slate-900">
-                  Maks {subStatus?.active_branches_allowed || 1} Cabang
-                </span>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 uppercase font-display">
+                  PUSAT LISENSI &amp; PEMBAYARAN JURAGAN
+                </h1>
+                <p className="text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed">
+                  Aktivasi instan tanpa menunggu verifikasi manual! Unggah bukti transfer atau gunakan kode voucher
+                  16-digit. Langganan langsung aktif seketika untuk mendukung kelancaran operasional warung Anda.
+                </p>
+              </div>
+
+              {/* Speedometer Status Card */}
+              <div className="w-full lg:w-auto bg-slate-50 border-2 border-slate-800 rounded-2xl p-5 shadow-[4px_4px_0px_#1E293B] min-w-[280px]">
+                <div className="text-xs font-mono font-bold text-slate-500 uppercase">STATUS LANGGANAN ANDA</div>
+                <div className="mt-2 flex items-center gap-3">
+                  <div
+                    className={`px-3 py-1 font-mono text-sm font-black rounded-xl border-2 ${
+                      currentTier === 'EKSEKUTIF'
+                        ? 'bg-[#CCFF00] text-slate-950 border-slate-900 shadow-[2px_2px_0px_#1E293B]'
+                        : currentTier === 'MANAJER'
+                        ? 'bg-amber-400 text-slate-950 border-slate-900 shadow-[2px_2px_0px_#1E293B]'
+                        : currentTier === 'SUPERVISOR'
+                        ? 'bg-sky-400 text-slate-950 border-slate-900 shadow-[2px_2px_0px_#1E293B]'
+                        : 'bg-slate-200 text-slate-800 border-slate-700'
+                    }`}
+                  >
+                    [ 🏆 TIER {currentTier} ]
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t-2 border-slate-200 space-y-1 font-mono text-xs">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Masa Aktif:</span>
+                    <span className="font-bold text-slate-900">
+                      {isExpired ? 'Kedaluwarsa' : `Sisa ${daysRemaining} Hari`}
+                    </span>
+                  </div>
+                  {subStatus?.expires_at && (
+                    <div className="flex justify-between text-slate-500">
+                      <span>Berlaku Hingga:</span>
+                      <span className="font-bold">{new Date(subStatus.expires_at).toLocaleDateString('id-ID')}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-slate-600">
+                    <span>Cabang Aktif:</span>
+                    <span className="font-black text-slate-900">
+                      Maks {subStatus?.active_branches_allowed || 1} Cabang
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Grace Period Warning Banner */}
-        {isInGrace && (
-          <div className="p-4 bg-amber-50 border-2 border-amber-500 text-amber-950 font-mono text-xs sm:text-sm font-bold flex items-center gap-3 rounded-2xl shadow-[4px_4px_0px_#B45309]">
-            <AlertTriangle size={20} className="text-amber-600 shrink-0" strokeWidth={2.5} />
-            <div>
-              <span className="font-black">[ ⚠️ PERINGATAN: MASA TENGGANG AKTIF - SEGERA AKTIFKAN VOUCHER ]</span>
-              <p className="font-sans font-normal text-amber-900 text-xs mt-0.5">
-                Langganan Anda telah melewati batas waktu normal. Segera lakukan perpanjangan sebelum fitur
-                multi-cabang dan radar dibekukan otomatis ke tier Magang (H+3).
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 4x4 Segmented Voucher Activation Box */}
-      <div className="bg-white rounded-3xl border-2 border-slate-800 p-6 lg:p-8 shadow-[4px_4px_0px_#1E293B] space-y-6">
-        <div className="flex items-center gap-3 border-b-2 border-slate-100 pb-4">
-          <div className="p-2.5 bg-slate-900 text-[#CCFF00] border-2 border-slate-900 rounded-xl shadow-[2px_2px_0px_#1E293B]">
-            <Key size={20} strokeWidth={2.5} />
-          </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-display font-black uppercase text-slate-900 tracking-wide">
-              AKTIVASI VOUCHER LISENSI 16-DIGIT
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Punya voucher fisik atau kode digital? Masukkan kode 16-digit untuk aktivasi seketika tanpa transfer.
-            </p>
-          </div>
-        </div>
-
-        {redeemSuccess && (
-          <div className="p-4 bg-emerald-50 border-2 border-emerald-500 text-emerald-950 font-mono text-sm flex items-start gap-3 rounded-2xl shadow-[3px_3px_0px_#10B981]">
-            <CheckCircle2 size={20} className="text-emerald-700 shrink-0 mt-0.5" strokeWidth={2.5} />
-            <div>
-              <span className="font-black text-emerald-900">
-                [ ⚡ AKTIVASI BERHASIL: TIER {redeemSuccess.tier} AKTIF ]
-              </span>
-              <p className="font-sans text-xs text-emerald-800 mt-1">
-                {redeemSuccess.message || 'Masa aktif langganan Anda berhasil diperpanjang.'}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {redeemError && (
-          <div className="p-4 bg-rose-50 border-2 border-rose-500 text-rose-950 font-mono text-sm flex items-start gap-3 rounded-2xl shadow-[3px_3px_0px_#F43F5E]">
-            <AlertCircle size={20} className="text-rose-600 shrink-0 mt-0.5" strokeWidth={2.5} />
-            <div>
-              <span className="font-black text-rose-900">[ ❌ GAGAL AKTIVASI ]</span>
-              <p className="font-sans text-xs text-rose-800 mt-1">{redeemError}</p>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleRedeem} className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-xs font-mono font-bold text-slate-700 uppercase tracking-wider">
-              KODE VOUCHER (4 KOTAK MONOSPACE - AUTO ADVANCE &amp; PASTE READY)
-            </label>
-
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3" onPaste={handlePaste}>
-              {segments.map((seg, idx) => (
-                <React.Fragment key={idx}>
-                  <input
-                    ref={inputRefs[idx]}
-                    type="text"
-                    maxLength={4}
-                    value={seg}
-                    onChange={(e) => handleSegmentChange(idx, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(idx, e)}
-                    placeholder={idx === 0 ? '2NDM' : 'XXXX'}
-                    className="w-20 sm:w-28 h-14 bg-slate-50 border-2 border-slate-800 focus:border-slate-950 focus:ring-4 focus:ring-[#CCFF00]/40 rounded-xl text-center font-mono text-xl sm:text-2xl font-black text-slate-900 tracking-widest uppercase outline-none shadow-[2px_2px_0px_#1E293B] transition-all"
-                  />
-                  {idx < 3 && <span className="font-mono text-2xl font-black text-slate-400">-</span>}
-                </React.Fragment>
-              ))}
-            </div>
-            <p className="text-[11px] font-mono text-slate-500">
-              Tips: Anda dapat langsung menekan tombol Paste (Ctrl+V) kode lengkap 16 karakter ke kotak mana saja.
-            </p>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isRedeeming}
-            className="btn-arcade px-6 py-3.5 bg-[#CCFF00] hover:bg-[#b3e600] active:translate-x-[2px] active:translate-y-[2px] text-slate-950 font-mono text-sm font-black rounded-xl border-2 border-slate-900 shadow-[4px_4px_0px_#1E293B] flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase"
-          >
-            {isRedeeming ? (
-              <>
-                <RefreshCw size={16} className="animate-spin" strokeWidth={2.5} />
-                <span>MEMVALIDASI KRIPTOGRAFI...</span>
-              </>
-            ) : (
-              <>
-                <Zap size={16} strokeWidth={2.5} />
-                <span>[ ⚡ AKTIFKAN VOUCHER SEKARANG ]</span>
-              </>
+            {/* Grace Period Warning Banner */}
+            {isInGrace && (
+              <div className="p-4 bg-amber-50 border-2 border-amber-500 text-amber-950 font-mono text-xs sm:text-sm font-bold flex items-center gap-3 rounded-2xl shadow-[4px_4px_0px_#B45309]">
+                <AlertTriangle size={20} className="text-amber-600 shrink-0" strokeWidth={2.5} />
+                <div>
+                  <span className="font-black">[ ⚠️ PERINGATAN: MASA TENGGANG AKTIF - SEGERA AKTIFKAN VOUCHER ]</span>
+                  <p className="font-sans font-normal text-amber-900 text-xs mt-0.5">
+                    Langganan Anda telah melewati batas waktu normal. Segera lakukan perpanjangan sebelum fitur
+                    multi-cabang dan radar dibekukan otomatis ke tier Magang (H+3).
+                  </p>
+                </div>
+              </div>
             )}
-          </button>
-        </form>
-      </div>
+          </div>
+
+          {/* 4x4 Segmented Voucher Activation Box */}
+          <div className="bg-white rounded-3xl border-2 border-slate-800 p-6 lg:p-8 shadow-[4px_4px_0px_#1E293B] space-y-6">
+            <div className="flex items-center gap-3 border-b-2 border-slate-100 pb-4">
+              <div className="p-2.5 bg-slate-900 text-[#CCFF00] border-2 border-slate-900 rounded-xl shadow-[2px_2px_0px_#1E293B]">
+                <Key size={20} strokeWidth={2.5} />
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl font-display font-black uppercase text-slate-900 tracking-wide">
+                  AKTIVASI VOUCHER LISENSI 16-DIGIT
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Punya voucher fisik atau kode digital? Masukkan kode 16-digit untuk aktivasi seketika tanpa transfer.
+                </p>
+              </div>
+            </div>
+
+            {redeemSuccess && (
+              <div className="p-4 bg-emerald-50 border-2 border-emerald-500 text-emerald-950 font-mono text-sm flex items-start gap-3 rounded-2xl shadow-[3px_3px_0px_#10B981]">
+                <CheckCircle2 size={20} className="text-emerald-700 shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div>
+                  <span className="font-black text-emerald-900">
+                    [ ⚡ AKTIVASI BERHASIL: TIER {redeemSuccess.tier} AKTIF ]
+                  </span>
+                  <p className="font-sans text-xs text-emerald-800 mt-1">
+                    {redeemSuccess.message || 'Masa aktif langganan Anda berhasil diperpanjang.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {redeemError && (
+              <div className="p-4 bg-rose-50 border-2 border-rose-500 text-rose-950 font-mono text-sm flex items-start gap-3 rounded-2xl shadow-[3px_3px_0px_#F43F5E]">
+                <AlertCircle size={20} className="text-rose-600 shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div>
+                  <span className="font-black text-rose-900">[ ❌ GAGAL AKTIVASI ]</span>
+                  <p className="font-sans text-xs text-rose-800 mt-1">{redeemError}</p>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleRedeem} className="space-y-6">
+              <div className="space-y-2">
+                <label className="block text-xs font-mono font-bold text-slate-700 uppercase tracking-wider">
+                  KODE VOUCHER (4 KOTAK MONOSPACE - AUTO ADVANCE &amp; PASTE READY)
+                </label>
+
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3" onPaste={handlePaste}>
+                  {segments.map((seg, idx) => (
+                    <React.Fragment key={idx}>
+                      <input
+                        ref={inputRefs[idx]}
+                        type="text"
+                        maxLength={4}
+                        value={seg}
+                        onChange={(e) => handleSegmentChange(idx, e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(idx, e)}
+                        placeholder={idx === 0 ? '2NDM' : 'XXXX'}
+                        className="w-20 sm:w-28 h-14 bg-slate-50 border-2 border-slate-800 focus:border-slate-950 focus:bg-lime-50 rounded-xl text-center font-mono text-xl sm:text-2xl font-black text-slate-900 tracking-widest uppercase outline-none shadow-[2px_2px_0px_#1E293B] transition-all"
+                      />
+                      {idx < 3 && <span className="font-mono text-2xl font-black text-slate-400">-</span>}
+                    </React.Fragment>
+                  ))}
+                </div>
+                <p className="text-[11px] font-mono text-slate-500">
+                  Tips: Anda dapat langsung menekan tombol Paste (Ctrl+V) kode lengkap 16 karakter ke kotak mana saja.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isRedeeming}
+                className="btn-arcade px-6 py-3.5 bg-[#CCFF00] hover:bg-[#b8e600] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none text-slate-950 font-mono text-sm font-black rounded-xl border-2 border-slate-900 shadow-[3px_3px_0px_#1E293B] flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+              >
+                {isRedeeming ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" strokeWidth={2.5} />
+                    <span>MEMVALIDASI KRIPTOGRAFI...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap size={16} strokeWidth={2.5} />
+                    <span>[ ⚡ AKTIFKAN VOUCHER SEKARANG ]</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
 
       {/* Subscription Packages Catalog */}
       <div className="space-y-4">
@@ -662,10 +678,10 @@ export default function BillingPage() {
                 <div className="mt-6 pt-4 border-t-2 border-slate-100">
                   <button
                     type="button"
-                    className={`btn-arcade w-full py-2.5 rounded-xl font-mono text-xs font-bold border-2 transition-all cursor-pointer ${
+                    className={`btn-arcade w-full py-2.5 rounded-xl font-mono text-xs font-bold border-2 transition-all cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
                       isSelected
                         ? 'bg-[#CCFF00] text-slate-950 border-slate-900 shadow-[3px_3px_0px_#1E293B] font-black'
-                        : 'bg-slate-50 text-slate-700 border-slate-300 hover:border-slate-800 hover:bg-slate-100'
+                        : 'bg-slate-50 text-slate-700 border-slate-800 hover:border-slate-900 hover:bg-slate-100 shadow-[2px_2px_0px_#1E293B]'
                     }`}
                   >
                     {isSelected ? '[ PAKET TERPILIH ]' : 'PILIH PAKET INI'}
@@ -708,10 +724,10 @@ export default function BillingPage() {
                     setDurationMonths(opt.months);
                     if (appliedPromo) setAppliedPromo(null);
                   }}
-                  className={`btn-arcade py-3 px-2 font-mono text-xs font-black rounded-xl border-2 text-center transition-all cursor-pointer ${
+                  className={`btn-arcade py-3 px-2 font-mono text-xs font-black rounded-xl border-2 text-center transition-all cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
                     durationMonths === opt.months
                       ? 'bg-[#CCFF00] text-slate-950 border-slate-900 shadow-[3px_3px_0px_#1E293B]'
-                      : 'bg-slate-50 text-slate-600 border-slate-300 hover:border-slate-800 hover:bg-slate-100'
+                      : 'bg-slate-50 text-slate-600 border-slate-800 hover:border-slate-900 hover:bg-slate-100 shadow-[2px_2px_0px_#1E293B]'
                   }`}
                 >
                   {opt.label}
@@ -765,12 +781,12 @@ export default function BillingPage() {
                     setPromoError('');
                   }}
                   placeholder="MASUKKAN KODE PROMO..."
-                  className="flex-1 bg-slate-50 border-2 border-slate-800 focus:border-slate-950 px-4 py-2.5 rounded-xl font-mono text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider outline-none transition-all shadow-[2px_2px_0px_#1E293B]"
+                  className="flex-1 bg-slate-50 border-2 border-slate-800 focus:border-slate-950 focus:bg-lime-50 px-4 py-2.5 rounded-xl font-mono text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider outline-none transition-all shadow-[2px_2px_0px_#1E293B]"
                 />
                 <button
                   type="submit"
                   disabled={isValidatingPromo || !promoInput.trim()}
-                  className="btn-arcade px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b3e600] disabled:opacity-50 text-slate-950 font-mono text-xs font-black rounded-xl border-2 border-slate-900 shadow-[3px_3px_0px_#1E293B] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer shrink-0"
+                  className="btn-arcade px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b8e600] disabled:opacity-50 text-slate-950 font-mono text-xs font-black rounded-xl border-2 border-slate-900 shadow-[3px_3px_0px_#1E293B] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer shrink-0"
                 >
                   {isValidatingPromo ? (
                     <RefreshCw size={14} className="animate-spin" />
@@ -985,7 +1001,7 @@ export default function BillingPage() {
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-6 sm:p-8 bg-white border-2 border-dashed border-slate-400 hover:border-slate-900 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors space-y-2 group shadow-[2px_2px_0px_#1E293B]"
+                  className="p-6 sm:p-8 bg-slate-50/60 border-2 border-dashed border-slate-800 hover:border-lime-500 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors space-y-2 group shadow-[2px_2px_0px_#1E293B]"
                 >
                   <UploadCloud
                     size={32}
@@ -1008,7 +1024,7 @@ export default function BillingPage() {
                 href={`https://wa.me/6281234567890?text=${waMessage}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-950 font-mono text-xs font-bold border-2 border-slate-800 rounded-xl shadow-[2px_2px_0px_#1E293B] transition-all text-center"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-950 font-mono text-xs font-bold border-2 border-slate-800 rounded-xl shadow-[2px_2px_0px_#1E293B] transition-all text-center active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
               >
                 <MessageSquare size={14} />
                 <span>Bantuan Pembayaran via WhatsApp</span>
@@ -1017,7 +1033,7 @@ export default function BillingPage() {
               <button
                 type="submit"
                 disabled={isSubmittingClaim || !proofFile}
-                className="btn-arcade w-full sm:w-auto px-8 py-3.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-950 font-mono text-sm font-black rounded-xl border-2 border-slate-900 shadow-[4px_4px_0px_#1E293B] flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase active:translate-x-0.5 active:translate-y-0.5"
+                className="btn-arcade w-full sm:w-auto px-8 py-3.5 bg-[#CCFF00] hover:bg-[#b8e600] text-slate-950 font-mono text-sm font-black rounded-xl border-2 border-slate-900 shadow-[4px_4px_0px_#1E293B] flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
               >
                 {isSubmittingClaim ? (
                   <>
@@ -1072,14 +1088,16 @@ export default function BillingPage() {
           </div>
         </div>
       )}
+        </>
+      )}
 
       {/* Optimistic Activation Success Modal */}
       {optimisticModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in font-sans">
-          <div className="bg-white border-2 border-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-[8px_8px_0px_#1E293B] space-y-6 relative animate-in fade-in zoom-in duration-200">
+          <div className="bg-white border-2 border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-[8px_8px_0px_#1E293B] space-y-6 relative animate-in fade-in zoom-in duration-200 text-slate-900">
             <button
               onClick={() => setOptimisticModal(null)}
-              className="absolute top-4 right-4 p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg border-2 border-slate-800 transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl border-2 border-slate-800 transition-colors cursor-pointer active:translate-x-[1px] active:translate-y-[1px]"
             >
               <X size={16} />
             </button>
@@ -1136,7 +1154,7 @@ export default function BillingPage() {
               <button
                 type="button"
                 onClick={() => setOptimisticModal(null)}
-                className="btn-arcade w-full py-3.5 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-950 font-mono text-xs sm:text-sm font-black rounded-xl border-2 border-slate-900 shadow-[4px_4px_0px_#1E293B] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer uppercase"
+                className="btn-arcade w-full py-3.5 bg-[#CCFF00] hover:bg-[#b8e600] text-slate-950 font-mono text-xs sm:text-sm font-black rounded-xl border-2 border-slate-900 shadow-[4px_4px_0px_#1E293B] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer uppercase"
               >
                 [ ⚡ TERIMA KASIH, LANJUTKAN BERJUALAN ]
               </button>
