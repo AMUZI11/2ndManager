@@ -24,11 +24,7 @@ export const GET = withAdminAuth(async (request, context, adminContext) => {
         grace_period_until,
         cashier_limit,
         active_cashiers_count,
-        owner:owner_id (
-          id,
-          email,
-          raw_user_meta_data
-        ),
+        owner_id,
         subscriptions (
           id,
           plan,
@@ -41,7 +37,23 @@ export const GET = withAdminAuth(async (request, context, adminContext) => {
       .single();
 
     if (shopErr || !shop) {
+      console.warn('[GET /api/v1/admin/tenants/:id] Shop not found or query error:', shopErr);
       return errorResponse('Toko tidak ditemukan.', 'NOT_FOUND', 404);
+    }
+
+    // Enrich owner data from auth.admin
+    let owner = null;
+    if (shop.owner_id) {
+      try {
+        const { data: u } = await supabaseAdmin.auth.admin.getUserById(shop.owner_id);
+        if (u?.user) {
+          owner = {
+            id: u.user.id,
+            email: u.user.email,
+            raw_user_meta_data: u.user.user_metadata || {},
+          };
+        }
+      } catch {}
     }
 
     const tier = normalizeTier(shop.subscription_tier);
@@ -61,6 +73,7 @@ export const GET = withAdminAuth(async (request, context, adminContext) => {
     return successResponse({
       shop: {
         ...shop,
+        owner,
         subscription_tier: tier,
       },
       capacity: {

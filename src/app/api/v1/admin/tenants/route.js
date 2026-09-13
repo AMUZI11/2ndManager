@@ -38,7 +38,13 @@ export const GET = withAdminAuth(async (request, context, adminContext) => {
     }
 
     if (search.trim()) {
-      query = query.ilike('name', `%${search.trim()}%`);
+      const s = search.trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+      if (isUuid) {
+        query = query.or(`id.eq.${s},name.ilike.%${s}%`);
+      } else {
+        query = query.ilike('name', `%${s}%`);
+      }
     }
 
     const { data: shops, count, error } = await query
