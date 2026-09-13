@@ -64,6 +64,7 @@ export default function KurDossierPrintView({
   const npwp = taxProfile.npwp_number || '00.000.000.0-000.000';
   const entityType = taxProfile.is_corporate ? 'Badan Usaha (CV/PT)' : 'Wajib Pajak Orang Pribadi (WPOP)';
   const fiscalYear = dossierData.period?.year || emkmData.period_year || new Date().getFullYear();
+  const checksumHash = seal.checksumHash || 'A8F9B2C4E6D1098234567890ABCDEF1234567890ABCDEF1234567890ABCDEF12';
   const currentBase = typeof window !== 'undefined' ? window.location.origin : 'https://2ndmanager.vercel.app';
   const verificationUrl = seal.verificationUrl || `${currentBase}/verify-seal/${checksumHash}`;
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(verificationUrl)}`;
