@@ -65,7 +65,7 @@ export async function proxy(request) {
       return new NextResponse(null, {
         status: 204,
         headers: {
-          'Access-Control-Allow-Origin': origin && allowed ? origin : 'https://2ndmanager.com',
+          'Access-Control-Allow-Origin': origin && allowed ? origin : 'https://2ndmanager.vercel.app',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
           'Access-Control-Allow-Credentials': 'true',

@@ -136,7 +136,7 @@ export default function PrivacyPolicyPage() {
             Untuk mendukung operasi kasir saat listrik padam atau jaringan internet terputus, 2ndManager menyimpan data katalog dan antrean transaksi secara terenkripsi pada <strong>IndexedDB browser lokal</strong> perangkat Anda.
           </p>
           <p>
-            Cookie yang digunakan pada domain <code>2ndmanager.com</code> adalah murni <em>Strictly Necessary Session Cookies</em> (HTTP-Only, Secure) yang dikelola oleh Supabase Auth untuk menjaga sesi login tetap aman.
+            Cookie yang digunakan pada domain <code>2ndmanager.vercel.app</code> adalah murni <em>Strictly Necessary Session Cookies</em> (HTTP-Only, Secure) yang dikelola oleh Supabase Auth untuk menjaga sesi login tetap aman.
           </p>
         </section>
 

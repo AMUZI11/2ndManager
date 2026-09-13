@@ -1,5 +1,5 @@
 export default function sitemap() {
-  const baseUrl = 'https://2ndmanager.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://2ndmanager.vercel.app';
   const now = new Date();
 
   return [

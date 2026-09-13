@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { ChevronRight, Home } from 'lucide-react';
 
-const BASE_URL = 'https://2ndmanager.com';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://2ndmanager.vercel.app';
 
 /**
  * Semantic Breadcrumbs with Schema.org BreadcrumbList JSON-LD

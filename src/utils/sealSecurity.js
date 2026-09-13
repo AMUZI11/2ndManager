@@ -43,8 +43,21 @@ export async function generateDocumentSealHash(payload) {
  * @param {string} [baseUrl] 
  * @returns {string} URL absolut verifikasi
  */
-export function buildVerificationUrl(checksumHash, baseUrl = 'https://2ndmanager.com') {
-  const cleanBase = (baseUrl || 'https://2ndmanager.com').replace(/\/$/, '');
+export function buildVerificationUrl(checksumHash, baseUrl = '') {
+  let domain = baseUrl;
+  if (!domain && typeof window !== 'undefined' && window.location?.origin) {
+    domain = window.location.origin;
+  }
+  if (!domain && process.env.NEXT_PUBLIC_APP_URL) {
+    domain = process.env.NEXT_PUBLIC_APP_URL;
+  }
+  if (!domain && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    domain = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (!domain) {
+    domain = 'https://2ndmanager.vercel.app';
+  }
+  const cleanBase = domain.replace(/\/$/, '');
   return `${cleanBase}/verify-seal/${checksumHash}`;
 }
 

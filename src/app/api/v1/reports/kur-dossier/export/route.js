@@ -112,7 +112,12 @@ export const POST = withAuth(async (request, context, { user, profile, supabase 
       console.warn('[Seal Insert Warning]', sealError);
     }
 
-    const verificationUrl = buildVerificationUrl(checksumHash);
+    const origin = request.headers.get('origin');
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const proto = request.headers.get('x-forwarded-proto') || 'https';
+    const reqBaseUrl = origin || (host ? `${proto}://${host}` : null);
+
+    const verificationUrl = buildVerificationUrl(checksumHash, reqBaseUrl);
 
     return successResponse({
       seal: {

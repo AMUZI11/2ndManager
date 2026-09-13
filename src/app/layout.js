@@ -71,7 +71,7 @@ export const viewport = {
 };
 
 export const metadata = {
-  metadataBase: new URL('https://2ndmanager.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://2ndmanager.vercel.app'),
   title: {
     template: '%s | 2ndManager - OS Kasir Warung Anti-Bocor',
     default: '2ndManager | Software Kasir & Operasional Warung Kelontong Anti-Bocor',
@@ -92,7 +92,7 @@ export const metadata = {
   openGraph: {
     title: '2ndManager - Kelola Warung Tanpa Kebocoran Kas',
     description: 'Amankan uang laci kasir dan otomatisasi kulakan pasar subuh. Tanpa biaya API WhatsApp.',
-    url: 'https://2ndmanager.com',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://2ndmanager.vercel.app',
     siteName: '2ndManager',
     locale: 'id_ID',
     type: 'website',

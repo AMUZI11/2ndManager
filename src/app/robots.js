@@ -20,6 +20,6 @@ export default function robots() {
         ],
       },
     ],
-    sitemap: 'https://2ndmanager.com/sitemap.xml',
+    sitemap: `${process.env.NEXT_PUBLIC_APP_URL || 'https://2ndmanager.vercel.app'}/sitemap.xml`,
   };
 }

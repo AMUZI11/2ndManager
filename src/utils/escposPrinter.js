@@ -624,7 +624,7 @@ export function buildFinancialSummaryBuffer(summaryData, cols = 32) {
     CMD.BOLD_ON,
     textToBytes(`[ ${checksumSnippet}... ]\n`),
     CMD.BOLD_OFF,
-    textToBytes('Verifikasi di: 2ndmanager.com\n'),
+    textToBytes('Verifikasi di: 2ndmanager.vercel.app\n'),
     textToBytes(lineSeparator),
     textToBytes(`Dicetak pada: ${new Date().toLocaleString('id-ID')}\n`),
     textToBytes('Arsip Sah Pembukuan Warung\n'),
