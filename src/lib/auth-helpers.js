@@ -26,8 +26,8 @@ export async function resolveShopContext(supabase, user, profile, requestedShopI
   let shopIds = [];
   let activeShopId = null;
 
-  // 1. Jika user adalah BOSS (atau Superadmin/tanpa role khusus)
-  if (profile?.role === 'BOSS' || !profile?.role) {
+  // 1. Jika user adalah BOSS atau OWNER (atau Superadmin/tanpa role khusus)
+  if (profile?.role === 'BOSS' || profile?.role === 'OWNER' || !profile?.role) {
     // Ambil seluruh toko yang dimiliki boss ini (termasuk semua cabang)
     const { data: ownedShops } = await supabase
       .from('shops')
@@ -260,8 +260,9 @@ export const withAuth = withAuthSupabase;
  */
 export function withBossOnly(handler) {
   return withAuthSupabase(async (request, context, authContext) => {
-    if (authContext.profile.role !== 'BOSS') {
-      return errorResponse('Akses ditolak. Hanya Bos yang dapat mengakses fitur ini.', 'FORBIDDEN', 403);
+    const role = authContext.profile?.role;
+    if (role !== 'BOSS' && role !== 'OWNER') {
+      return errorResponse('Akses ditolak. Hanya Bos/Owner yang dapat mengakses fitur ini.', 'FORBIDDEN', 403);
     }
     return handler(request, context, authContext);
   });

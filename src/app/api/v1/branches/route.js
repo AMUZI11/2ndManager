@@ -1,5 +1,4 @@
-import { withAuth, withBossOnly, errorResponse, successResponse, checkSubscriptionActive, resolveOrganization } from '@/lib/auth-helpers';
-import { checkQuotaLimit } from '@/lib/subscription';
+import { withAuth, withBossOnly, errorResponse, successResponse, resolveOrganization } from '@/lib/auth-helpers';
 
 export const GET = withAuth(async (request, context, { user, profile, supabase }) => {
   try {
@@ -15,9 +14,11 @@ export const GET = withAuth(async (request, context, { user, profile, supabase }
           id,
           organization_id,
           shop_id,
+          name,
           branch_name,
           branch_code,
           is_main_branch,
+          parent_branch_id,
           address,
           phone_number,
           is_active,
@@ -48,9 +49,11 @@ export const GET = withAuth(async (request, context, { user, profile, supabase }
             id,
             organization_id,
             shop_id,
+            name,
             branch_name,
             branch_code,
             is_main_branch,
+            parent_branch_id,
             address,
             phone_number,
             is_active,
@@ -85,9 +88,11 @@ export const GET = withAuth(async (request, context, { user, profile, supabase }
             id,
             organization_id,
             shop_id,
+            name,
             branch_name,
             branch_code,
             is_main_branch,
+            parent_branch_id,
             address,
             phone_number,
             is_active,
@@ -107,15 +112,21 @@ export const GET = withAuth(async (request, context, { user, profile, supabase }
       }
     }
 
-    // Normalisasi struktur output
+    // Dapatkan nama Toko Utama (Root Genesis Toko A)
+    const rootStore = branches.find((b) => b.is_main_branch === true);
+    const rootStoreName = rootStore ? (rootStore.branch_name || rootStore.name || 'Toko Utama (Pusat)') : 'Toko Utama';
+
+    // Normalisasi struktur output hierarki
     const formatted = branches.map((b) => ({
       id: b.id,
       shop_id: b.shop_id,
       organization_id: b.organization_id,
-      name: b.branch_name,
-      branch_name: b.branch_name,
+      name: b.branch_name || b.name,
+      branch_name: b.branch_name || b.name,
       branch_code: b.branch_code,
-      is_main_branch: b.is_main_branch,
+      is_main_branch: Boolean(b.is_main_branch),
+      parent_branch_id: b.parent_branch_id,
+      parent_store_name: b.is_main_branch ? null : rootStoreName,
       address: b.address,
       phone_number: b.phone_number,
       is_active: b.is_active,
@@ -133,117 +144,94 @@ export const GET = withAuth(async (request, context, { user, profile, supabase }
 export const POST = withBossOnly(async (request, context, { user, profile, supabase }) => {
   try {
     const body = await request.json();
-    const { name, address, phone_number } = body;
+    const branchName = body.branch_name || body.name;
+    const address = body.address || null;
+    const phone = body.phone || body.phone_number || null;
 
-    if (!name || name.trim().length === 0) {
+    if (!branchName || branchName.trim().length === 0) {
       return errorResponse('Nama cabang wajib diisi.', 'VALIDATION_ERROR', 422);
     }
 
-    // 1. Get main shop owned by user
-    const { data: mainShop } = await supabase
-      .from('shops')
-      .select('id, name')
-      .eq('owner_id', user.id)
-      .is('parent_shop_id', null)
-      .limit(1)
-      .maybeSingle();
-
-    const mainShopId = mainShop ? mainShop.id : user.id;
-
-    // 2. Check max_branches limit
-    const { plan } = await checkSubscriptionActive(supabase, mainShopId);
-
-    // Hitung cabang yang sudah terdaftar
-    const { count } = await supabase
-      .from('shops')
-      .select('id', { count: 'exact', head: true })
-      .eq('owner_id', user.id);
-
-    const currentCount = (count || 0) + 1;
-    const quotaCheck = checkQuotaLimit(plan, currentCount, 'max_branches');
-
-    if (!quotaCheck.allowed) {
-      return errorResponse(quotaCheck.message, 'LIMIT_EXCEEDED', 403);
-    }
-
-    // 3. Pastikan Organisasi ada menggunakan resolveOrganization
+    // 1. Dapatkan organisasi aktif
     let org = await resolveOrganization(supabase, user, profile);
-
-    if (!org) {
-      const { data: newOrg } = await supabase
-        .from('organizations')
-        .insert({
-          owner_id: user.id,
-          name: `${mainShop?.name || name} Group`,
-          tier_id: 'EKSEKUTIF',
-        })
-        .select()
-        .single();
-      org = newOrg;
+    if (!org?.id) {
+      return errorResponse('Organisasi bisnis tidak ditemukan.', 'ORGANIZATION_NOT_FOUND', 404);
     }
 
-    // 4. Create branch shop di tabel shops
-    const { data: newShop, error: createShopErr } = await supabase
-      .from('shops')
-      .insert({
-        name: name.trim(),
-        owner_id: user.id,
-        parent_shop_id: mainShopId,
-        subscription_tier: plan,
-      })
-      .select()
-      .single();
-
-    if (createShopErr) throw createShopErr;
-
-    // 5. Add boss to user_shops for this branch
-    await supabase.from('user_shops').insert({
-      user_id: user.id,
-      shop_id: newShop.id,
+    // 2. Gunakan Stored Procedure atomik create_child_branch untuk validasi kuota tier & relasi root Toko A
+    const { data: rpcResult, error: rpcErr } = await supabase.rpc('create_child_branch', {
+      p_org_id: org.id,
+      p_branch_name: branchName.trim(),
+      p_address: address ? address.trim() : null,
+      p_phone: phone ? phone.trim() : null,
     });
 
-    // 6. Daftarkan di tabel branches
-    const nextBranchCode = `CBG-0${currentCount}`;
-    const { data: newBranch, error: createBranchErr } = await supabase
-      .from('branches')
-      .insert({
-        organization_id: org.id,
-        shop_id: newShop.id,
-        branch_name: name.trim(),
-        branch_code: nextBranchCode,
-        is_main_branch: false,
-        address: address ? address.trim() : null,
-        phone_number: phone_number ? phone_number.trim() : null,
-      })
-      .select()
-      .single();
-
-    if (createBranchErr) throw createBranchErr;
-
-    // 7. Inisialisasi baris stok di branch_product_stocks untuk seluruh produk organisasi
-    const { data: existingProducts } = await supabase
-      .from('products')
-      .select('id, reorder_threshold')
-      .or(`shop_id.eq.${mainShopId},shop_id.eq.${newShop.id}`);
-
-    if (existingProducts && existingProducts.length > 0) {
-      const initRows = existingProducts.map((p) => ({
-        branch_id: newBranch.id,
-        product_id: p.id,
-        available_stock: 0,
-        in_transit_stock: 0,
-        safety_stock: Number(p.reorder_threshold || 5),
-      }));
-
-      await supabase.from('branch_product_stocks').upsert(initRows, { onConflict: 'branch_id,product_id' });
+    if (rpcErr) {
+      return errorResponse(rpcErr.message, 'BRANCH_CREATION_FAILED', 400);
     }
 
-    return successResponse({
-      ...newBranch,
-      shop: newShop,
-    }, 201);
+    // 3. Inisialisasi baris stok di branch_product_stocks untuk seluruh produk toko induk
+    if (rpcResult?.branch_id && rpcResult?.shop_id) {
+      const { data: rootBranch } = await supabase
+        .from('branches')
+        .select('shop_id')
+        .eq('organization_id', org.id)
+        .eq('is_main_branch', true)
+        .maybeSingle();
+
+      const mainShopId = rootBranch?.shop_id;
+      if (mainShopId) {
+        const { data: existingProducts } = await supabase
+          .from('products')
+          .select('id, reorder_threshold')
+          .eq('shop_id', mainShopId);
+
+        if (existingProducts && existingProducts.length > 0) {
+          const initRows = existingProducts.map((p) => ({
+            branch_id: rpcResult.branch_id,
+            product_id: p.id,
+            available_stock: 0,
+            in_transit_stock: 0,
+            safety_stock: Number(p.reorder_threshold || 5),
+          }));
+
+          await supabase.from('branch_product_stocks').upsert(initRows, { onConflict: 'branch_id,product_id' });
+        }
+      }
+    }
+
+    return successResponse(rpcResult, 201);
   } catch (error) {
     console.error('[POST /branches]', error);
     return errorResponse(`Gagal membuat cabang baru: ${error.message}`, 'SERVER_ERROR', 500);
+  }
+});
+
+export const DELETE = withBossOnly(async (request, context, { supabase }) => {
+  try {
+    const url = new URL(request.url);
+    const branchId = url.searchParams.get('id');
+
+    if (!branchId) {
+      return errorResponse('Parameter branch ID wajib disertakan.', 'VALIDATION_ERROR', 422);
+    }
+
+    // Upaya menghapus cabang dari tabel branches
+    const { error: delErr } = await supabase
+      .from('branches')
+      .delete()
+      .eq('id', branchId);
+
+    if (delErr) {
+      if (delErr.message?.includes('2NDM-40301')) {
+        return errorResponse(delErr.message, 'FORBIDDEN_IMMUTABLE_ROOT', 403);
+      }
+      return errorResponse(delErr.message, 'DELETE_ERROR', 400);
+    }
+
+    return successResponse({ success: true, message: 'Cabang berhasil dihapus.' });
+  } catch (error) {
+    console.error('[DELETE /branches]', error);
+    return errorResponse(`Gagal menghapus cabang: ${error.message}`, 'SERVER_ERROR', 500);
   }
 });
