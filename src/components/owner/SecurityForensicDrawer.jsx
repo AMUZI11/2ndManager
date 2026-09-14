@@ -37,9 +37,11 @@ export default function SecurityForensicDrawer({ isOpen, onClose, shopId }) {
         unreadOnly: unreadOnly || undefined,
         limit: 50,
       });
-      setAnomalies(data || []);
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.anomalies) ? data.anomalies : []);
+      setAnomalies(list);
     } catch (err) {
       console.error('[SecurityForensicDrawer Fetch Error]', err);
+      setAnomalies([]);
     } finally {
       setLoading(false);
     }
@@ -75,10 +77,13 @@ export default function SecurityForensicDrawer({ isOpen, onClose, shopId }) {
 
   const handleToggleRead = async (anomaly) => {
     setMarkingId(anomaly.id);
+    const currentStatus = Boolean(anomaly.is_read || anomaly.is_read_by_owner);
     try {
-      await api.markSecurityAnomalyRead(anomaly.id, !anomaly.is_read);
+      await api.markSecurityAnomalyRead(anomaly.id, !currentStatus);
       setAnomalies((prev) =>
-        prev.map((a) => (a.id === anomaly.id ? { ...a, is_read: !a.is_read } : a))
+        (Array.isArray(prev) ? prev : []).map((a) =>
+          a.id === anomaly.id ? { ...a, is_read: !currentStatus, is_read_by_owner: !currentStatus } : a
+        )
       );
     } catch (err) {
       console.error('[Mark Read Error]', err);
@@ -88,7 +93,8 @@ export default function SecurityForensicDrawer({ isOpen, onClose, shopId }) {
   };
 
   const handleMarkAllRead = async () => {
-    const unreadList = anomalies.filter((a) => !a.is_read);
+    const currentAnomalies = Array.isArray(anomalies) ? anomalies : [];
+    const unreadList = currentAnomalies.filter((a) => !a.is_read && !a.is_read_by_owner);
     for (const a of unreadList) {
       try {
         await api.markSecurityAnomalyRead(a.id, true);
@@ -96,7 +102,9 @@ export default function SecurityForensicDrawer({ isOpen, onClose, shopId }) {
         // Continue marking others
       }
     }
-    setAnomalies((prev) => prev.map((a) => ({ ...a, is_read: true })));
+    setAnomalies((prev) =>
+      (Array.isArray(prev) ? prev : []).map((a) => ({ ...a, is_read: true, is_read_by_owner: true }))
+    );
   };
 
   return (
@@ -188,7 +196,7 @@ export default function SecurityForensicDrawer({ isOpen, onClose, shopId }) {
                 Belum Dibaca
               </label>
 
-              {anomalies.some((a) => !a.is_read) && (
+              {Array.isArray(anomalies) && anomalies.some((a) => !a.is_read && !a.is_read_by_owner) && (
                 <button
                   type="button"
                   onClick={handleMarkAllRead}
@@ -202,12 +210,12 @@ export default function SecurityForensicDrawer({ isOpen, onClose, shopId }) {
 
           {/* List Area */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-            {loading && anomalies.length === 0 ? (
+            {loading && (!Array.isArray(anomalies) || anomalies.length === 0) ? (
               <div className="py-20 text-center space-y-3">
                 <RefreshCw size={28} className="animate-spin text-slate-400 mx-auto" />
                 <p className="text-sm font-mono text-slate-500 font-bold">Memuat data log forensik...</p>
               </div>
-            ) : anomalies.length === 0 ? (
+            ) : !Array.isArray(anomalies) || anomalies.length === 0 ? (
               <div className="py-20 text-center space-y-2 border-2 border-dashed border-slate-300 rounded-2xl p-6 bg-slate-50">
                 <Shield size={36} className="text-emerald-600 mx-auto" />
                 <h4 className="font-display font-black text-slate-900 text-base">Tidak Ada Anomali Tercatat</h4>

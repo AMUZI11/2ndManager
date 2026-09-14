@@ -271,7 +271,8 @@ function AuthenticatedLayoutInner({ children }) {
     async function loadUnreadAnomalies() {
       try {
         const list = await api.getSecurityAnomalies({ unreadOnly: true, limit: 100 });
-        setUnreadAnomaliesCount(list?.length || 0);
+        const count = Array.isArray(list) ? list.length : (list?.unread_count || list?.anomalies?.length || 0);
+        setUnreadAnomaliesCount(count);
       } catch {
         // silent
       }

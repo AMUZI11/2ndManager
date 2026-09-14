@@ -10,13 +10,12 @@ async function run() {
     ssl: { rejectUnauthorized: false, servername: 'aws-0-ap-southeast-1.pooler.supabase.com' }
   });
   await client.connect();
-  const tables = ['organizations', 'branches', 'branch_product_stocks', 'stock_transfers'];
   const resCols = await client.query(`
-    SELECT table_name, column_name, data_type 
+    SELECT column_name, data_type 
     FROM information_schema.columns 
-    WHERE table_schema = 'public' AND table_name = ANY($1)
-    ORDER BY table_name, ordinal_position;
-  `, [tables]);
+    WHERE table_name = 'security_anomaly_events'
+    ORDER BY ordinal_position;
+  `);
   console.log('Columns:', resCols.rows);
   await client.end();
 }

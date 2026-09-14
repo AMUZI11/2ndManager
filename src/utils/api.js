@@ -969,19 +969,34 @@ export const api = {
     const q = new URLSearchParams();
     if (params.severity) q.set('severity', params.severity);
     if (params.eventType) q.set('eventType', params.eventType);
-    if (params.unreadOnly) q.set('unreadOnly', 'true');
+    if (params.unreadOnly) {
+      q.set('unread_only', 'true');
+      q.set('unreadOnly', 'true');
+    }
     if (params.limit) q.set('limit', params.limit);
     const queryString = q.toString() ? `?${q.toString()}` : '';
     const res = await fetchAPI(`/security/anomalies${queryString}`);
-    return res?.data?.data || [];
+
+    // Ekstraksi aman array dari berbagai kemungkinan bentuk respon
+    const payload = res?.data?.data;
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.anomalies)) return payload.anomalies;
+    if (Array.isArray(res?.data?.anomalies)) return res.data.anomalies;
+    if (Array.isArray(res?.data)) return res.data;
+    return [];
   },
 
   markSecurityAnomalyRead: async (anomalyId, readStatus = true) => {
     const res = await fetchAPI('/security/anomalies', {
       method: 'PATCH',
-      body: JSON.stringify({ anomaly_id: anomalyId, is_read: readStatus }),
+      body: JSON.stringify({
+        event_id: anomalyId,
+        anomaly_id: anomalyId,
+        is_read: readStatus,
+        mark_all_read: !anomalyId,
+      }),
     });
-    if (res?.ok) return res.data.data;
+    if (res?.ok) return res?.data?.data || res?.data;
     throw new Error(res?.data?.message || 'Gagal memperbarui status anomali');
   },
 

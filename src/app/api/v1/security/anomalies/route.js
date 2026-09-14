@@ -13,7 +13,7 @@ export const GET = withAuthSupabase(async (request, context, { profile, shopId, 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const severity = searchParams.get('severity');
-    const unreadOnly = searchParams.get('unread_only') === 'true';
+    const unreadOnly = searchParams.get('unread_only') === 'true' || searchParams.get('unreadOnly') === 'true';
 
     let query = supabase
       .from('security_anomaly_events')
@@ -40,8 +40,14 @@ export const GET = withAuthSupabase(async (request, context, { profile, shopId, 
       .eq('shop_id', shopId)
       .eq('is_read_by_owner', false);
 
+    const formattedAnomalies = (anomalies || []).map((a) => ({
+      ...a,
+      is_read: Boolean(a.is_read_by_owner),
+      is_read_by_owner: Boolean(a.is_read_by_owner),
+    }));
+
     return successResponse({
-      anomalies: anomalies || [],
+      anomalies: formattedAnomalies,
       unread_count: unreadCount || 0,
     });
   } catch (err) {
@@ -63,17 +69,19 @@ export const PATCH = withAuthSupabase(async (request, context, { profile, shopId
       body = await request.json();
     } catch {}
 
-    const { event_id, mark_all_read = false } = body;
+    const targetId = body.event_id || body.anomaly_id;
+    const isMarkAll = Boolean(body.mark_all_read || body.markAllRead);
+    const readStatus = body.is_read !== undefined ? Boolean(body.is_read) : true;
 
     let updateQuery = supabase
       .from('security_anomaly_events')
-      .update({ is_read_by_owner: true })
+      .update({ is_read_by_owner: readStatus })
       .eq('shop_id', shopId);
 
-    if (mark_all_read) {
+    if (isMarkAll) {
       updateQuery = updateQuery.eq('is_read_by_owner', false);
-    } else if (event_id) {
-      updateQuery = updateQuery.eq('id', event_id);
+    } else if (targetId) {
+      updateQuery = updateQuery.eq('id', targetId);
     } else {
       return errorResponse('ID anomali atau opsi mark_all_read wajib disertakan.', 'INVALID_INPUT', 400);
     }
