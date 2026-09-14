@@ -93,7 +93,7 @@ export default function RefundPolicyPage() {
         {/* CTA Direct Link */}
         <div className="pt-4 border-t border-slate-200">
           <a
-            href="https://wa.me/6281234567890?text=Halo%20Admin%202ndManager,%20saya%20ingin%20mengajukan%20klaim%20garansi%20refund%207%20hari"
+            href="https://wa.me/6285188789773?text=Halo%20Admin%202ndManager,%20saya%20ingin%20mengajukan%20klaim%20garansi%20refund%207%20hari"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-black text-sm border-2 border-[#0B0F17] shadow-[4px_4px_0px_#0B0F17] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"

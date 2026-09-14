@@ -33,4 +33,9 @@ export function normalizeIndonesianPhone(phone) {
   return cleaned;
 }
 
+// Nomor WhatsApp Resmi Layanan & Bantuan 2ndManager (+62 851-8878-9773)
+export const OFFICIAL_WA_NUMBER = '6285188789773';
+export const OFFICIAL_WA_DISPLAY = '+62 851-8878-9773';
+
 export default normalizeIndonesianPhone;
+

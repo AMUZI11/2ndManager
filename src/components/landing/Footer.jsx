@@ -31,7 +31,7 @@ export function Footer() {
             <ul className="space-y-4 text-vault-cream/70 text-sm md:text-base">
               <li className="flex items-start gap-3">
                 <Phone className="w-5 h-5 text-vault-gold shrink-0 mt-0.5" />
-                <span>0812-3456-7890 (WA)</span>
+                <span>0851-8878-9773 (WA)</span>
               </li>
               <li className="flex items-start gap-3">
                 <Mail className="w-5 h-5 text-vault-gold shrink-0 mt-0.5" />
@@ -68,7 +68,7 @@ export function Footer() {
 
       {/* Floating WA CTA */}
       <a 
-        href="https://wa.me/6281234567890" 
+        href="https://wa.me/6285188789773" 
         target="_blank" 
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 bg-vault-gold text-vault-midnight pl-4 pr-6 py-3 md:py-4 rounded-full font-heading font-bold tracking-wide shadow-vault-btn border-2 border-vault-gold/80 hover:scale-105 transition-transform flex items-center gap-3"

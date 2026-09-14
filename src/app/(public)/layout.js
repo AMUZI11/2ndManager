@@ -48,7 +48,7 @@ export default function PublicLayout({ children }) {
               Garansi 7 Hari
             </Link>
             <a
-              href="https://wa.me/6281234567890?text=Halo%20Admin%202ndManager,%20saya%20ingin%20tanya%20seputar%20software%20kasir"
+              href="https://wa.me/6285188789773?text=Halo%20Admin%202ndManager,%20saya%20ingin%20tanya%20seputar%20software%20kasir"
               target="_blank"
               rel="noopener noreferrer"
               className="text-slate-700 hover:text-slate-900 transition-colors py-1 flex items-center gap-1"
@@ -165,7 +165,7 @@ export default function PublicLayout({ children }) {
               </li>
               <li>
                 <a
-                  href="https://wa.me/6281234567890?text=Halo%202ndManager,%20saya%20butuh%20bantuan%20support"
+                  href="https://wa.me/6285188789773?text=Halo%202ndManager,%20saya%20butuh%20bantuan%20support"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-emerald-700 transition-colors text-emerald-600 flex items-center gap-1"

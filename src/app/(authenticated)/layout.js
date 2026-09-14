@@ -968,7 +968,7 @@ function AuthenticatedLayoutInner({ children }) {
                 SELESAIKAN TAGIHAN LANGGANAN
               </Link>
               <a
-                href="https://wa.me/6281234567890?text=Halo%20Admin%2C%20toko%20saya%20terkunci%20Chokehold.%20Mohon%20bantuannya."
+                href="https://wa.me/6285188789773?text=Halo%20Admin%2C%20toko%20saya%20terkunci%20Chokehold.%20Mohon%20bantuannya."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs transition-colors flex items-center justify-center"

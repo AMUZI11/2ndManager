@@ -49,7 +49,7 @@ ${customNote.trim() ? `📝 Catatan: ${customNote.trim()}\n` : ''}⏰ Waktu: ${n
 Mohon panduan dan tindak lanjutnya segera. Terima kasih!`;
 
     const encoded = encodeURIComponent(messageText);
-    const waUrl = `https://wa.me/6281234567890?text=${encoded}`;
+    const waUrl = `https://wa.me/6285188789773?text=${encoded}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
     onClose();
   };

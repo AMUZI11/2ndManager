@@ -1010,7 +1010,7 @@ export default function BillingPage() {
                     Klik di sini atau seret foto bukti transfer ke kotak ini
                   </div>
                   <p className="text-[11px] font-mono text-slate-500">
-                    Mendukung tangkapan layar m-banking (BCA, Mandiri, BRI, BSI) &amp; struk ATM
+                    Mendukung tangkapan layar m-banking (BNI, BSI, BCA, Mandiri, BRI) &amp; struk ATM
                   </p>
                 </div>
               )}
@@ -1019,7 +1019,7 @@ export default function BillingPage() {
             {/* Submit Button */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
               <a
-                href={`https://wa.me/6281234567890?text=${waMessage}`}
+                href={`https://wa.me/6285188789773?text=${waMessage}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-950 font-mono text-xs font-bold border-2 border-slate-800 rounded-xl shadow-[2px_2px_0px_#1E293B] transition-all text-center active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"

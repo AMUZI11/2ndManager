@@ -13,7 +13,7 @@ export function FloatingWhatsApp() {
     >
       <VaultGlass tier={1} className="rounded-full shadow-vault-heavy group overflow-visible">
         <a 
-          href="https://wa.me/6281234567890?text=Halo%20Klola%20OS,%20saya%20tertarik%20dengan%20layanan%20brankas%20operasional%20warung."
+          href="https://wa.me/6285188789773?text=Halo%202ndManager,%20saya%20tertarik%20dengan%20layanan%20software%20kasir%20warung."
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center w-14 h-14 bg-vault-oxblood rounded-full relative"
