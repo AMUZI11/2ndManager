@@ -89,10 +89,8 @@ const CATALOG_PLANS = [
 ];
 
 const BANK_ACCOUNTS = [
-  { bank: 'BCA', number: '8010-8899-22', holder: 'PT 2NDMANAGER TEKNOLOGI' },
-  { bank: 'MANDIRI', number: '137-00-998877-1', holder: 'PT 2NDMANAGER TEKNOLOGI' },
-  { bank: 'BRI', number: '0341-01-002233-50-9', holder: 'PT 2NDMANAGER TEKNOLOGI' },
-  { bank: 'BSI', number: '7199-8822-01', holder: 'PT 2NDMANAGER TEKNOLOGI' },
+  { bank: 'BNI', number: '909688846', holder: 'PT KLOLA WARUNG TEKNOLOGI NUSANTARA' },
+  { bank: 'BSI', number: '7278774141', holder: 'PT KLOLA WARUNG TEKNOLOGI NUSANTARA' },
 ];
 
 const DURATION_OPTIONS = [
@@ -123,7 +121,7 @@ export default function BillingPage() {
   // Payment Claim State
   const [proofFile, setProofFile] = useState(null);
   const [proofPreview, setProofPreview] = useState(null);
-  const [senderBank, setSenderBank] = useState('BCA');
+  const [senderBank, setSenderBank] = useState('BNI');
   const [senderAccountName, setSenderAccountName] = useState('');
   const [isSubmittingClaim, setIsSubmittingClaim] = useState(false);
   const [claimError, setClaimError] = useState('');
@@ -933,11 +931,11 @@ export default function BillingPage() {
                   onChange={(e) => setSenderBank(e.target.value)}
                   className="w-full bg-white border-2 border-slate-800 focus:border-slate-950 focus:ring-2 focus:ring-[#CCFF00] rounded-xl px-3 py-2 font-mono text-xs text-slate-900 outline-none cursor-pointer shadow-[2px_2px_0px_#1E293B]"
                 >
+                  <option value="BNI">BNI (Bank Negara Indonesia)</option>
+                  <option value="BSI">BSI (Bank Syariah Indonesia)</option>
                   <option value="BCA">BCA (Bank Central Asia)</option>
                   <option value="MANDIRI">Bank Mandiri</option>
                   <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
-                  <option value="BNI">BNI (Bank Negara Indonesia)</option>
-                  <option value="BSI">BSI (Bank Syariah Indonesia)</option>
                   <option value="QRIS">QRIS / E-Wallet (GoPay/OVO/ShopeePay)</option>
                   <option value="LAINNYA">Bank Lainnya</option>
                 </select>
