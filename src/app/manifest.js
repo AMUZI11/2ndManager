@@ -3,9 +3,9 @@
 
 export default function manifest() {
   return {
-    name: 'Klola OS - Smart POS & Finance OS',
-    short_name: 'Klola POS',
-    description: 'Sistem POS Offline-First & Keuangan Warung Autopilot',
+    name: '2ndManager - OS Kasir Warung Anti-Bocor',
+    short_name: '2ndManager',
+    description: 'Sistem POS Offline-First & Keuangan Warung Anti-Bocor',
     start_url: '/pos',
     display: 'standalone',
     background_color: '#0B0F17',
