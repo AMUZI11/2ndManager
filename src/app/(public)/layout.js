@@ -94,11 +94,11 @@ export default function PublicLayout({ children }) {
                 2M
               </div>
               <span className="font-display font-black text-lg text-[#0B0F17] tracking-tight">
-                2ndManager (KlolaWarung)
+                2ndManager • PT Klola Warung Teknologi Nusantara
               </span>
             </div>
             <p className="text-xs text-slate-600 font-sans max-w-md leading-relaxed">
-              Platform operasional kasir &amp; logistik warung sembako offline-first di Indonesia. 
+              Platform resmi operasional kasir &amp; logistik warung kelontong offline-first di Indonesia oleh PT Klola Warung Teknologi Nusantara. 
               Mengeliminasi kebocoran kas laci melalui audit double-blind estafet, pelacak tabung rolling, dan asisten belanja pasar subuh tanpa biaya API pihak ketiga.
             </p>
             <div className="flex items-center gap-2 pt-2">

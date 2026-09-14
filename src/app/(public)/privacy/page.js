@@ -71,11 +71,11 @@ export default function PrivacyPolicyPage() {
             Kepatuhan terhadap UU PDP No. 27 Tahun 2022
           </h2>
           <p>
-            Platform <strong>2ndManager</strong> (dioperasikan oleh PT Klola Warung Teknologi Nusantara) mematuhi secara penuh amanat Undang-Undang Republik Indonesia Nomor 27 Tahun 2022 tentang Pelindungan Data Pribadi (UU PDP). Dalam arsitektur sistem kami:
+            Platform <strong>2ndManager</strong> (dioperasikan secara resmi oleh <strong>PT Klola Warung Teknologi Nusantara</strong>) mematuhi secara penuh amanat Undang-Undang Republik Indonesia Nomor 27 Tahun 2022 tentang Pelindungan Data Pribadi (UU PDP). Dalam arsitektur sistem kami:
           </p>
           <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
-            <li>Pemilik Toko (Merchant) berkedudukan sebagai <strong>Pengendali Data Pribadi (Data Controller)</strong> atas data pelanggan warungnya.</li>
-            <li>2ndManager bertindak semata-mata sebagai <strong>Prosesor Data Pribadi (Data Processor)</strong> yang mengamankan dan memproses data sesuai instruksi tertulis dan operasional merchant.</li>
+            <li>Pemilik Toko (Juragan / Merchant) berkedudukan hukum sebagai <strong>Pengendali Data Pribadi (Data Controller)</strong> atas seluruh data transaksi dan profil pelanggan tokonya.</li>
+            <li>2ndManager bertindak semata-mata sebagai <strong>Prosesor Data Pribadi (Data Processor)</strong> yang mengamankan, menyimpan, dan memproses data sesuai instruksi sah merchant tanpa mengklaim kepemilikan.</li>
           </ul>
         </section>
 
@@ -85,19 +85,24 @@ export default function PrivacyPolicyPage() {
             <span className="w-7 h-7 rounded-lg bg-amber-400 text-slate-900 font-mono font-black text-sm flex items-center justify-center border border-slate-900">
               2
             </span>
-            Data yang Kami Kumpulkan &amp; Batasan Pemrosesan
+            Data yang Kami Proses &amp; Penegasan Anti-Jual Data
           </h2>
           <p>
-            Kami hanya mengumpulkan data yang mutlak diperlukan untuk keberlangsungan aplikasi kasir:
+            Kami hanya mengumpulkan dan memproses data yang mutlak esensial bagi operasional kasir, kepatuhan fiskal, dan logistik warung:
           </p>
           <div className="space-y-2 text-sm bg-slate-50 border border-slate-200 rounded-xl p-4">
-            <p><strong>A. Data Akun Pemilik Warung:</strong> Nama lengkap, alamat email, nomor WhatsApp untuk notifikasi dan pemulihan akun, serta nama toko/warung.</p>
-            <p><strong>B. Data Operasional Kasir:</strong> Riwayat transaksi kas, harga modal, harga jual, stok produk, deposit tabung gas/galon rolling, dan rekonsiliasi kasir estafet.</p>
-            <p><strong>C. Data Buku Kasbon Warga:</strong> Nama panggilan/identitas pelanggan lokal, batas limit piutang, dan saldo kembalian receh yang dititipkan.</p>
+            <p><strong>A. Identitas Pemilik &amp; Akun Usaha:</strong> Nama pemilik usaha, alamat email terverifikasi, nomor WhatsApp aktif, serta nama dan alamat cabang usaha toko kelontong.</p>
+            <p><strong>B. Data Transaksi &amp; Rekonsiliasi Fiskal (PP No. 55/2022):</strong> Riwayat penjualan kasir, harga pokok penjualan (HPP), omzet harian, dan ringkasan peredaran bruto untuk mempermudah pemenuhan kewajiban perpajakan UMKM (PP 55/2022 / NIK-NPWP integrasi bila relevan). Seluruh transmisi diamankan dengan enkripsi TLS 1.3 dan tersimpan dengan enkripsi AES-256 (encryption at rest).</p>
+            <p><strong>C. Data Buku Kasbon &amp; Piutang Warga:</strong> Catatan utang kasbon pelanggan warung (nama panggilan/identitas lokal yang diinput kasir), limit piutang, dan riwayat cicilan pelunasan.</p>
           </div>
-          <div className="p-3 bg-red-50 border-2 border-red-300 rounded-lg text-red-900 text-xs font-mono font-bold flex items-center gap-2">
-            <ShieldAlert size={16} strokeWidth={2.5} className="text-red-700 shrink-0" />
-            <span>PERNYATAAN MUTLAK: Kami TIDAK PERNAH mengumpulkan NIK KTP warga, foto buku tabungan, atau data biometrik untuk fitur buku kasbon.</span>
+          <div className="p-3.5 bg-red-50 border-2 border-red-400 rounded-xl text-red-950 text-xs font-mono font-bold flex items-start gap-2.5">
+            <ShieldAlert size={18} strokeWidth={2.5} className="text-red-700 shrink-0 mt-0.5" />
+            <div>
+              <p className="uppercase tracking-wide font-black text-red-900">Jaminan Mutlak Perlindungan Hak:</p>
+              <p className="mt-0.5 text-red-800 font-sans font-medium text-xs">
+                2ndManager TIDAK AKAN PERNAH memperjualbelikan, menyewakan, atau mendistribusikan data transaksi, buku kasbon warga, nomor telepon, atau data omzet toko Anda kepada lembaga pembiayaan pinjaman online (pinjol), pialang periklanan, atau pihak ketiga manapun.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -107,19 +112,19 @@ export default function PrivacyPolicyPage() {
             <span className="w-7 h-7 rounded-lg bg-amber-400 text-slate-900 font-mono font-black text-sm flex items-center justify-center border border-slate-900">
               3
             </span>
-            Klausul Keamanan Buku Kasbon &amp; Nomor WhatsApp
+            Klausul Keamanan Buku Kasbon &amp; Pengiriman Struk
           </h2>
           <p>
-            Kami memahami bahwa hubungan utang-piutang antara pemilik warung dan warga sekitar adalah hal yang sangat privat dan sensitif. Oleh karena itu:
+            Kami memahami bahwa hubungan utang-piutang antara pemilik warung dan warga sekitar adalah hal yang sangat privat, kekeluargaan, dan sensitif. Oleh karena itu:
           </p>
           <ul className="space-y-2 text-sm">
             <li className="flex items-start gap-2">
               <CheckCircle2 size={18} className="text-emerald-600 shrink-0 mt-0.5" />
-              <span><strong>Tidak Ada Pihak Ketiga Penagih:</strong> 2ndManager bukan pinjaman online (pinjol). Kami tidak pernah menyewa debt collector atau membagikan data utang kasbon ke pihak luar.</span>
+              <span><strong>Bebas Dari Penagih Pihak Ketiga:</strong> 2ndManager bukan pinjaman online (P2P lending/pinjol). Kami tidak pernah menyewa debt collector atau membagikan data utang kasbon ke pihak luar.</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 size={18} className="text-emerald-600 shrink-0 mt-0.5" />
-              <span><strong>Zero-Cost WhatsApp Direct:</strong> Pengiriman struk atau tagihan kasbon dilakukan langsung dari peramban pemilik toko melalui protokol <code>wa.me</code> resmi WhatsApp tanpa melalui server perantara berbayar.</span>
+              <span><strong>Zero-Cost WhatsApp Direct:</strong> Pengiriman struk belanja atau pengingat tagihan kasbon dilakukan secara mandiri oleh browser perangkat Anda via tautan resmi <code>wa.me</code> WhatsApp tanpa melewati server perantara berbayar.</span>
             </li>
           </ul>
         </section>
@@ -130,14 +135,29 @@ export default function PrivacyPolicyPage() {
             <span className="w-7 h-7 rounded-lg bg-amber-400 text-slate-900 font-mono font-black text-sm flex items-center justify-center border border-slate-900">
               4
             </span>
-            Kebijakan Cookie &amp; Penyimpanan Lokal (Offline-First)
+            Hak-Hak Subjek Data Pribadi (UU PDP Pasal 5 - 13)
           </h2>
           <p>
-            Untuk mendukung operasi kasir saat listrik padam atau jaringan internet terputus, 2ndManager menyimpan data katalog dan antrean transaksi secara terenkripsi pada <strong>IndexedDB browser lokal</strong> perangkat Anda.
+            Sebagai pemilik data, Anda dan pelanggan Anda memiliki hak-hak yang dijamin oleh hukum dan didukung penuh oleh platform 2ndManager:
           </p>
-          <p>
-            Cookie yang digunakan pada domain <code>2ndmanager.vercel.app</code> adalah murni <em>Strictly Necessary Session Cookies</em> (HTTP-Only, Secure) yang dikelola oleh Supabase Auth untuk menjaga sesi login tetap aman.
-          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-sans">
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <strong className="text-slate-900 block font-mono text-[11px] uppercase mb-1">1. Hak Akses &amp; Informasi</strong>
+              Hak untuk memperoleh kejelasan identitas, dasar kepentingan hukum, dan tujuan pemrosesan data.
+            </div>
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <strong className="text-slate-900 block font-mono text-[11px] uppercase mb-1">2. Hak Pembaruan &amp; Koreksi</strong>
+              Hak untuk memperbarui dan membetulkan ketidakakuratan data profil atau inventaris toko sewaktu-waktu.
+            </div>
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <strong className="text-slate-900 block font-mono text-[11px] uppercase mb-1">3. Hak Penghapusan (Right to Erasure)</strong>
+              Hak untuk mengakhiri pemrosesan, menghapus, atau memusnahkan data akun toko dari basis data 2ndManager.
+            </div>
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <strong className="text-slate-900 block font-mono text-[11px] uppercase mb-1">4. Hak Portabilitas Data</strong>
+              Hak untuk mengunduh seluruh arsip transaksi dan master produk dalam format standar CSV/JSON yang dapat dibaca mesin.
+            </div>
+          </div>
         </section>
 
         {/* Section 5 */}
@@ -146,16 +166,32 @@ export default function PrivacyPolicyPage() {
             <span className="w-7 h-7 rounded-lg bg-amber-400 text-slate-900 font-mono font-black text-sm flex items-center justify-center border border-slate-900">
               5
             </span>
-            Hak Pemilik Data &amp; Kontak Resmi DPO
+            Penyimpanan Lokal (Offline-First) &amp; Kuki Teknis
           </h2>
           <p>
-            Sesuai Pasal 5 hingga Pasal 13 UU PDP, pemilik toko berhak mengajukan penghapusan akun (Right to be Forgotten) dan pengunduhan seluruh riwayat data toko (Data Portability) dalam format spreadsheet/JSON kapan saja.
+            Untuk mendukung operasi kasir saat listrik padam atau jaringan seluler terputus, 2ndManager mengandalkan <strong>IndexedDB browser lokal</strong> pada perangkat Anda.
           </p>
-          <div className="bg-slate-100 border border-slate-300 rounded-xl p-4 text-xs font-mono">
-            <p className="font-bold text-slate-900">Petugas Perlindungan Data (Data Protection Officer):</p>
-            <p className="text-slate-700 mt-1">Email: legal@2ndmanager.com</p>
-            <p className="text-slate-700">WhatsApp Resmi: +62 812-3456-7890</p>
-            <p className="text-slate-700">Alamat: Sentra Niaga Kelontong Indonesia, Jakarta Selatan, DKI Jakarta 12430</p>
+          <p>
+            Kuki yang digunakan pada domain <code>2ndmanager.vercel.app</code> murni merupakan <em>Strictly Necessary Session Cookies</em> (HTTP-Only, SameSite, Secure) yang dikelola oleh Supabase Auth untuk menjaga keamanan sesi login. Kami tidak memasang piksel pelacak periklanan pihak ketiga.
+          </p>
+        </section>
+
+        {/* Section 6 */}
+        <section className="space-y-3">
+          <h2 className="font-display font-black text-lg md:text-xl text-[#0B0F17] uppercase flex items-center gap-2 border-b-2 border-slate-200 pb-2">
+            <span className="w-7 h-7 rounded-lg bg-amber-400 text-slate-900 font-mono font-black text-sm flex items-center justify-center border border-slate-900">
+              6
+            </span>
+            Kontak Petugas Perlindungan Data (DPO)
+          </h2>
+          <p>
+            Untuk pertanyaan terkait privasi, permohonan eksekusi hak subjek data, atau pelaporan insiden keamanan, hubungi Petugas Perlindungan Data (DPO) resmi kami:
+          </p>
+          <div className="bg-slate-100 border-2 border-slate-300 rounded-xl p-4 text-xs font-mono space-y-1">
+            <p className="font-bold text-slate-900 text-sm">PT Klola Warung Teknologi Nusantara</p>
+            <p className="text-slate-700">Divisi Kepatuhan Privasi &amp; Keamanan Siber (DPO Office)</p>
+            <p className="text-slate-700">Email Resmi: <span className="font-bold text-slate-900">privacy@warung2ndmanager.com</span> / <span className="font-bold text-slate-900">support@warung2ndmanager.com</span></p>
+            <p className="text-slate-700">Layanan Bantuan: Sentra Niaga Kelontong Indonesia, Jakarta Selatan, DKI Jakarta 12430</p>
           </div>
         </section>
       </div>

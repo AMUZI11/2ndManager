@@ -1,7 +1,13 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { errorResponse, successResponse } from '@/lib/auth-helpers';
+import { checkRateLimit, createRateLimitResponse } from '@/lib/rate-limiter';
 
 export async function POST(request) {
+  const rateLimit = checkRateLimit(request, { limit: 5, windowMs: 10 * 60 * 1000, identifier: 'auth-register-store' });
+  if (rateLimit.isRateLimited) {
+    return createRateLimitResponse(rateLimit);
+  }
+
   try {
     const bearerToken = request.headers.get('Authorization')?.replace('Bearer ', '');
     const supabase = await createServerSupabaseClient(bearerToken);

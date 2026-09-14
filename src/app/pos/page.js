@@ -1341,28 +1341,49 @@ export default function PosPage() {
     return cleanupScanner;
   }, [products, isRegisterFrozen, isNegativeMarginModalOpen, isReceiptModalOpen, isCloseShiftOpen, isStartShiftOpen, isCashDrawerModalOpen, isPaywallOpen, isAssetLoanModalOpen, isSmartChangeOpen, isUpgradeModalOpen, isEditRegisterOpen]);
 
-  // 2. Global Keyboard Navigation & Hotkeys
+  // 2. Global Keyboard Navigation & Hotkeys (F2: Search, F4/Spasi: Checkout, Esc: Close, Arrows: Cart)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (isRegisterFrozen) return;
-      // F4 / F1: Auto-focus search / barcode input
-      if (e.key === 'F4' || e.key === 'F1') {
+
+      const isTyping =
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName) ||
+        e.target?.isContentEditable ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+
+      // F4: Kapan pun ditekan (bahkan saat sedang mengetik di input): Buka modal bayar / proses checkout
+      if (e.key === 'F4') {
+        e.preventDefault();
+        if (!submitting && cartItemsRef.current.length > 0) {
+          handleCheckoutRef.current();
+        }
+        return;
+      }
+
+      // Space / Spasi:
+      // Jika isTyping === true: BIARKAN berjalan normal (jangan preventDefault) agar karakter spasi tetap terinput ke teks.
+      // Jika isTyping === false DAN keranjang belanja memiliki minimal 1 item: Buka bayar cepat.
+      if (e.key === ' ' || e.code === 'Space') {
+        if (!isTyping && !submitting && cartItemsRef.current.length > 0) {
+          e.preventDefault();
+          handleCheckoutRef.current();
+          return;
+        }
+      }
+
+      // F2: Fokuskan kursor seketika ke elemen input barcode / pencarian produk
+      if (e.key === 'F2') {
         e.preventDefault();
         const searchInput = document.getElementById('pos-search-input') || barcodeInputRef.current;
         if (searchInput) {
           searchInput.focus();
           searchInput.select?.();
         }
+        return;
       }
-      // F2: Trigger checkout / pay submission
-      else if (e.key === 'F2') {
-        e.preventDefault();
-        if (!submitting && cartItemsRef.current.length > 0) {
-          handleCheckoutRef.current();
-        }
-      }
+
       // F9: Manual cash drawer kick (DFO - Drawer Forced Open telemetry & HEM heuristic)
-      else if (e.key === 'F9') {
+      if (e.key === 'F9') {
         e.preventDefault();
         drawerKickLogRef.current.push(Date.now());
         evaluateHemHeuristic({
@@ -1378,9 +1399,11 @@ export default function PosPage() {
           reason: 'Manual cash drawer kick triggered outside completed transaction'
         });
         showToast('[Laci] Perintah Buka Laci Kas Dikirim');
+        return;
       }
-      // Esc: Close active modals or reset selection
-      else if (e.key === 'Escape') {
+
+      // Escape: Tutup modal yang aktif atau bersihkan fokus kursor dari kolom pencarian
+      if (e.key === 'Escape') {
         const hasOpenModal = isReceiptModalOpen || isCloseShiftOpen || isStartShiftOpen ||
           isCashDrawerModalOpen || isNegativeMarginModalOpen || isSmartChangeOpen ||
           isPaywallOpen || isAssetLoanModalOpen || isUpgradeModalOpen || isEditRegisterOpen;
@@ -1398,23 +1421,28 @@ export default function PosPage() {
 
         if (!hasOpenModal) {
           setSelectedCartIndex(-1);
+          const searchInput = document.getElementById('pos-search-input') || barcodeInputRef.current;
+          if (searchInput && (document.activeElement === searchInput || e.target === searchInput)) {
+            searchInput.blur();
+          }
         }
+        return;
       }
-      // Panah Atas / Bawah & Delete untuk navigasi item keranjang
-      else {
-        const isEditingInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+
+      // Panah Atas / Bawah & Delete untuk navigasi item keranjang (hanya jika TIDAK sedang mengetik)
+      if (!isTyping) {
         const hasOpenModal = isReceiptModalOpen || isCloseShiftOpen || isStartShiftOpen ||
           isCashDrawerModalOpen || isNegativeMarginModalOpen || isSmartChangeOpen ||
           isPaywallOpen || isAssetLoanModalOpen || isUpgradeModalOpen || isEditRegisterOpen;
 
-        if (!isEditingInput && !hasOpenModal && cartItemsRef.current.length > 0) {
+        if (!hasOpenModal && cartItemsRef.current.length > 0) {
           if (e.key === 'ArrowDown') {
             e.preventDefault();
             setSelectedCartIndex((prev) => (prev < cartItemsRef.current.length - 1 ? prev + 1 : 0));
           } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             setSelectedCartIndex((prev) => (prev > 0 ? prev - 1 : cartItemsRef.current.length - 1));
-          } else if (e.key === 'Delete') {
+          } else if (e.key === 'Delete' || e.key === 'Backspace') {
             const currentIdx = selectedCartIndexRef.current;
             if (currentIdx >= 0 && currentIdx < cartItemsRef.current.length) {
               e.preventDefault();
@@ -1744,13 +1772,15 @@ export default function PosPage() {
               ref={barcodeInputRef}
               id="pos-search-input"
               type="text"
+              aria-label="Cari nama produk atau scan barcode produk [F2]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tembak Barcode / Cari nama produk [F4] (Tekan Enter)..."
+              placeholder="[F2] Cari nama produk / tembak barcode (Enter)..."
               className="w-full h-14 bg-white border-2 border-slate-800 focus:border-slate-800 focus:ring-2 focus:ring-[#CCFF00] rounded-2xl pl-13 pr-32 text-base font-sans font-semibold text-slate-900 outline-none shadow-[3px_3px_0px_#1E293B] transition-all placeholder:text-slate-400"
             />
             <button
               type="submit"
+              aria-label="Kirim pencarian produk"
               className="btn-arcade absolute right-2.5 top-1/2 -translate-y-1/2 bg-[#CCFF00] hover:bg-[#b3e600] text-slate-900 border-2 border-slate-800 shadow-[2px_2px_0px_#1E293B] font-mono font-bold text-xs uppercase px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Search size={14} /> Cari [Enter]
@@ -2368,7 +2398,7 @@ export default function PosPage() {
                 </span>
               ) : (
                 <>
-                  <CheckCircle2 size={18} className="text-slate-900" /> PROSES &amp; CETAK STRUK <span className="bg-slate-900 text-[#CCFF00] text-xs px-2 py-0.5 rounded font-mono font-bold">[F2]</span>
+                  <CheckCircle2 size={18} className="text-slate-900" /> PROSES &amp; CETAK STRUK <span className="bg-slate-900 text-[#CCFF00] text-xs px-2 py-0.5 rounded font-mono font-bold">[F4 / Spasi]</span>
                 </>
               )}
             </button>
@@ -2377,6 +2407,33 @@ export default function PosPage() {
         </div>
 
       </div>
+
+      {/* ── TACTILE KEYBOARD SHORTCUT FOOTER (Light Neo-Brutalist) ── */}
+      <footer className="mt-auto border-t-2 border-slate-800 bg-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-slate-800 shadow-[0_-2px_0px_#1E293B] flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-black uppercase text-slate-900 flex items-center gap-1.5 mr-1">
+            <Zap size={14} className="text-amber-500 fill-amber-500" /> SHORTCUT KASIR:
+          </span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-800 font-bold shadow-[1px_1px_0px_#1E293B]">
+            <kbd className="bg-white px-1 rounded border border-slate-400 font-black text-slate-900">F2</kbd> Cari / Scan
+          </span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#CCFF00] border border-slate-800 font-bold shadow-[1px_1px_0px_#1E293B] text-slate-950">
+            <kbd className="bg-slate-900 text-[#CCFF00] px-1 rounded border border-slate-900 font-black">F4</kbd> / <kbd className="bg-slate-900 text-[#CCFF00] px-1 rounded border border-slate-900 font-black">Spasi</kbd> Bayar Bon
+          </span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-800 font-bold shadow-[1px_1px_0px_#1E293B]">
+            <kbd className="bg-white px-1 rounded border border-slate-400 font-black text-slate-900">ESC</kbd> Batal / Tutup Modal
+          </span>
+          <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-800 font-bold shadow-[1px_1px_0px_#1E293B]">
+            <kbd className="bg-white px-1 rounded border border-slate-400 font-black text-slate-900">↑ / ↓</kbd> Navigasi Keranjang
+          </span>
+          <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-800 font-bold shadow-[1px_1px_0px_#1E293B]">
+            <kbd className="bg-white px-1 rounded border border-slate-400 font-black text-slate-900">Del</kbd> Hapus Item
+          </span>
+        </div>
+        <div className="text-[11px] text-slate-500 font-semibold hidden md:block">
+          2ndManager POS • Mode Kasir Cepat
+        </div>
+      </footer>
 
       {/* ─────────────────────────────────────────────────────────────
           MODAL STRUK KASIR DIGITAL / THERMAL (Pop-Art Glass)

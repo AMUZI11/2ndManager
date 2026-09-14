@@ -1,7 +1,13 @@
 import { withAuthSupabase, errorResponse, successResponse, resolveOrganization } from '@/lib/auth-helpers';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { checkRateLimit, createRateLimitResponse } from '@/lib/rate-limiter';
 
 export const POST = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
+  const rateLimit = checkRateLimit(request, { limit: 5, windowMs: 60 * 1000, identifier: 'billing-claim' });
+  if (rateLimit.isRateLimited) {
+    return createRateLimitResponse(rateLimit);
+  }
+
   try {
     const formData = await request.formData();
     const targetTier = (formData.get('targetTier') || formData.get('plan') || 'MANAJER').toString().toUpperCase();

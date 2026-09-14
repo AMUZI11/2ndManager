@@ -1,5 +1,6 @@
 import { withAuthSupabase, errorResponse, successResponse, resolveOrganization } from '@/lib/auth-helpers';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { checkRateLimit, createRateLimitResponse } from '@/lib/rate-limiter';
 
 const TIER_PRICES = {
   SUPERVISOR: 49000,
@@ -8,6 +9,11 @@ const TIER_PRICES = {
 };
 
 export const POST = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
+  const rateLimit = checkRateLimit(request, { limit: 10, windowMs: 60 * 1000, identifier: 'promo-validate' });
+  if (rateLimit.isRateLimited) {
+    return createRateLimitResponse(rateLimit);
+  }
+
   try {
     const body = await request.json().catch(() => ({}));
     const { code, tierId = 'MANAJER', durationMonths = 1, orgId: explicitOrgId } = body;

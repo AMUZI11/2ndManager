@@ -45,27 +45,25 @@ function LoginContent() {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('hl_active_session', 'true');
     }
-    const adminEmails = (process.env.NEXT_PUBLIC_SUPERADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'ahza201111@gmail.com')
-      .split(',')
-      .map((e) => e.trim().toLowerCase());
-    const isSuperadmin = adminEmails.includes(email.trim().toLowerCase());
     const redirectTo = searchParams.get('redirectTo');
 
     let targetUrl = redirectTo;
     if (!targetUrl) {
-      if (isSuperadmin) {
-        targetUrl = '/admin/dashboard';
-      } else {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', authData?.user?.id)
-            .single();
-          targetUrl = profile?.role === 'CASHIER' ? '/pos' : '/dashboard';
-        } catch {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', authData?.user?.id)
+          .single();
+        if (profile?.role === 'SUPERADMIN' || profile?.role === 'ADMIN') {
+          targetUrl = '/admin/dashboard';
+        } else if (profile?.role === 'CASHIER') {
+          targetUrl = '/pos';
+        } else {
           targetUrl = '/dashboard';
         }
+      } catch {
+        targetUrl = '/dashboard';
       }
     }
 
