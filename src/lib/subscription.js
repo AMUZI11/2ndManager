@@ -9,7 +9,10 @@ import {
   normalizeTier, 
   getTierConfig, 
   calculateAdditiveCapacity, 
-  getWIBStartOfMonth 
+  getWIBStartOfMonth,
+  getTierLevel,
+  compareTiers,
+  resolveHighestTier
 } from '@/config/tiers';
 
 export { 
@@ -17,7 +20,10 @@ export {
   normalizeTier, 
   getTierConfig, 
   calculateAdditiveCapacity, 
-  getWIBStartOfMonth 
+  getWIBStartOfMonth,
+  getTierLevel,
+  compareTiers,
+  resolveHighestTier
 };
 
 export const ADD_ONS = {

@@ -291,6 +291,39 @@ export function normalizeTier(plan) {
 }
 
 /**
+ * Mendapatkan level numerik tier (MAGANG: 0, SUPERVISOR: 1, MANAJER: 2, EKSEKUTIF: 3)
+ */
+export function getTierLevel(plan) {
+  const norm = normalizeTier(plan);
+  return TIER_CONFIG[norm]?.tierLevel ?? 0;
+}
+
+/**
+ * Membandingkan dua tier (mengembalikan > 0 jika tierA > tierB)
+ */
+export function compareTiers(tierA, tierB) {
+  return getTierLevel(tierA) - getTierLevel(tierB);
+}
+
+/**
+ * Mengambil tier tertinggi dari daftar kandidat tier
+ */
+export function resolveHighestTier(...candidates) {
+  let highest = 'MAGANG';
+  let highestLevel = 0;
+  for (const c of candidates) {
+    if (!c) continue;
+    const norm = normalizeTier(c);
+    const lvl = getTierLevel(norm);
+    if (lvl > highestLevel) {
+      highestLevel = lvl;
+      highest = norm;
+    }
+  }
+  return highest;
+}
+
+/**
  * Mengambil konfigurasi lengkap tier (selalu mengembalikan config valid)
  */
 export function getTierConfig(plan) {

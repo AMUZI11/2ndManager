@@ -1,5 +1,6 @@
-import { withBossOnly, errorResponse, successResponse, resolveShopId } from '@/lib/auth-helpers';
+import { withBossOnly, errorResponse, successResponse, resolveShopId, resolveOrganization } from '@/lib/auth-helpers';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { resolveHighestTier } from '@/config/tiers';
 
 export const GET = withBossOnly(async (request, context, { user, profile, shopId: contextShopId, supabase }) => {
   try {
@@ -34,9 +35,24 @@ export const GET = withBossOnly(async (request, context, { user, profile, shopId
       if (mainShop) effectiveShop = mainShop;
     }
 
-    const activeTier = effectiveShop?.subscription_tier && effectiveShop.subscription_tier !== 'TRIAL' 
+    // Ambil tier dari organisasi jika ada
+    let orgTier = null;
+    try {
+      const org = await resolveOrganization(supabase, user, profile);
+      if (org?.tier_id) orgTier = org.tier_id;
+    } catch (orgErr) {
+      console.warn('[Billing Route Org Lookup Warning]', orgErr);
+    }
+
+    const shopTier = (effectiveShop?.subscription_tier && effectiveShop.subscription_tier !== 'TRIAL') 
       ? effectiveShop.subscription_tier 
-      : (profile?.subscription_plan || 'MAGANG');
+      : null;
+
+    const profileTier = (profile?.subscription_plan && profile.subscription_plan !== 'TRIAL') 
+      ? profile.subscription_plan 
+      : null;
+
+    const activeTier = resolveHighestTier(shopTier, profileTier, orgTier, 'MAGANG');
 
     // Ambil info subscription dari Toko Utama (Enterprise)
     let { data: subscription } = await supabase
@@ -64,7 +80,7 @@ export const GET = withBossOnly(async (request, context, { user, profile, shopId
       .eq('shop_id', billingShopId)
       .order('created_at', { ascending: false });
 
-    const activePlan = subscription?.plan || activeTier || 'MAGANG';
+    const activePlan = resolveHighestTier(subscription?.plan, activeTier, 'MAGANG');
 
     return successResponse({
       shop_id: targetShopId,
