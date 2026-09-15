@@ -141,9 +141,31 @@ export default function BillingPage() {
         const json = await res.json();
         if (json?.data) {
           setSubStatus(json.data);
+          if (typeof window !== 'undefined' && json.data.tier) {
+            window.dispatchEvent(new CustomEvent('hl-plan-changed', { detail: { plan: json.data.tier } }));
+          }
           return;
         }
       }
+
+      // Fallback ke /api/v1/billing jika endpoint status belum terisi
+      const fallbackRes = await fetch('/api/v1/billing', { cache: 'no-store' });
+      if (fallbackRes.ok) {
+        const fallbackJson = await fallbackRes.json();
+        const fallbackTier = (fallbackJson?.data?.plan || fallbackJson?.data?.tier || 'MAGANG').toUpperCase();
+        setSubStatus({
+          tier: fallbackTier,
+          status: 'ACTIVE',
+          is_in_grace: false,
+          days_remaining: 30,
+          active_branches_allowed: fallbackTier === 'EKSEKUTIF' ? 3 : 1,
+        });
+        if (typeof window !== 'undefined' && fallbackTier) {
+          window.dispatchEvent(new CustomEvent('hl-plan-changed', { detail: { plan: fallbackTier } }));
+        }
+        return;
+      }
+
       setSubStatus({
         tier: 'MAGANG',
         status: 'ACTIVE',

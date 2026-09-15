@@ -1,41 +1,11 @@
-import { withAuthSupabase, errorResponse } from '@/lib/auth-helpers';
+import { withAuthSupabase, errorResponse, resolveOrganization } from '@/lib/auth-helpers';
 
 export const GET = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
   try {
-    let orgId = null;
-    let orgName = 'Toko';
-
-    // 1. Selesaikan organisasi berdasarkan peran akun (Boss vs Kasir)
-    if (profile?.role === 'BOSS' || !profile?.role) {
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('id, name, tier_id')
-        .eq('owner_id', user.id)
-        .maybeSingle();
-
-      orgId = org?.id || null;
-      orgName = org?.name || 'Organisasi Anda';
-    } else {
-      // Kasir / Staff: cari organisasi pemilik dari toko kasir tersebut
-      if (profile?.shop_id) {
-        const { data: shop } = await supabase
-          .from('shops')
-          .select('id, name, owner_id')
-          .eq('id', profile.shop_id)
-          .maybeSingle();
-
-        if (shop?.owner_id) {
-          const { data: org } = await supabase
-            .from('organizations')
-            .select('id, name, tier_id')
-            .eq('owner_id', shop.owner_id)
-            .maybeSingle();
-
-          orgId = org?.id || null;
-          orgName = org?.name || shop.name;
-        }
-      }
-    }
+    // 1. Selesaikan organisasi secara terpadu melalui helper kanonikal resolveOrganization
+    const org = await resolveOrganization(supabase, user, profile);
+    const orgId = org?.id || null;
+    const orgName = org?.name || 'Organisasi Anda';
 
     // Jika organisasi belum ada, fallback ke status dasar Magang
     if (!orgId) {
@@ -43,6 +13,7 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
         JSON.stringify({
           data: {
             tier: 'MAGANG',
+            plan: 'MAGANG',
             is_in_grace: false,
             is_expired: false,
             days_remaining: 30,
@@ -82,18 +53,39 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
       .order('redeemed_at', { ascending: false })
       .limit(10);
 
-    const effectiveStatus = statusData || {
-      tier: 'MAGANG',
-      is_in_grace: false,
-      is_expired: false,
-      days_remaining: 30,
-      active_branches_allowed: 1,
-    };
+    let effectiveStatus = statusData;
+
+    // Defense-in-depth: jika RPC mengembalikan status Magang/null namun profil/toko juragan memiliki tier berbayar aktif
+    if (!effectiveStatus || effectiveStatus.tier === 'MAGANG') {
+      const activeTier = (org?.tier_id || profile?.subscription_plan || '').toUpperCase();
+      if (activeTier && activeTier !== 'MAGANG' && activeTier !== 'TRIAL') {
+        effectiveStatus = {
+          tier: activeTier,
+          is_in_grace: false,
+          is_expired: false,
+          days_remaining: effectiveStatus?.days_remaining || 30,
+          grace_seconds_remaining: 0,
+          expires_at: effectiveStatus?.expires_at || null,
+          active_branches_allowed: activeTier === 'EKSEKUTIF' ? 3 : (activeTier === 'MANAJER' ? 2 : 1),
+        };
+      }
+    }
+
+    if (!effectiveStatus) {
+      effectiveStatus = {
+        tier: org?.tier_id || 'MAGANG',
+        is_in_grace: false,
+        is_expired: false,
+        days_remaining: 30,
+        active_branches_allowed: (org?.tier_id === 'EKSEKUTIF') ? 3 : 1,
+      };
+    }
 
     return new Response(
       JSON.stringify({
         data: {
           ...effectiveStatus,
+          plan: effectiveStatus.tier,
           organization_id: orgId,
           organization_name: orgName,
           history: historyData || [],
