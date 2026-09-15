@@ -194,7 +194,7 @@ export default function BillingPage() {
           extraCashiersCount: cashiers,
           promoCode: appliedPromo?.code || promoInput,
           durationMonths: durationMonths,
-          isPureAddon: purchaseMode === 'PURE_ADDON',
+          isPureAddon: true, // Stepper ekspansi selalu menghitung prorata add-on murni untuk sisa siklus aktif
         }),
       });
       const json = await res.json();
@@ -443,7 +443,9 @@ export default function BillingPage() {
       setIsSubmittingClaim(true);
 
       const isPureAddon = purchaseMode === 'PURE_ADDON';
-      const addonTotal = isPureAddon ? (addonCalc?.grandTotal || 0) : addonTotalCostFull;
+      const addonTotal = isPureAddon
+        ? ((addonCalc?.totalBranchCost || 0) + (addonCalc?.totalCashierCost || 0))
+        : addonTotalCostFull;
 
       const formData = new FormData();
       formData.append('file', proofFile);
@@ -540,7 +542,7 @@ export default function BillingPage() {
   const addonTotalCostFull = addonBranchCostFull + addonCashierCostFull;
 
   const grandTotalPayable = purchaseMode === 'PURE_ADDON'
-    ? (addonCalc?.grandTotal || (addonCalc?.totalBranchCost || 0) + (addonCalc?.totalCashierCost || 0))
+    ? ((addonCalc?.totalBranchCost || 0) + (addonCalc?.totalCashierCost || 0))
     : (calculatedFinalPrice + addonTotalCostFull);
 
   const waMessage = encodeURIComponent(
@@ -789,6 +791,7 @@ export default function BillingPage() {
                 key={plan.key}
                 onClick={() => {
                   setSelectedCatalog(plan.key);
+                  setPurchaseMode('FULL');
                   if (appliedPromo) setAppliedPromo(null);
                 }}
                 className={`cursor-pointer transition-all rounded-3xl border-2 p-5 sm:p-6 flex flex-col justify-between relative ${
@@ -1009,13 +1012,13 @@ export default function BillingPage() {
             <div className="pt-2 border-t-2 border-slate-300 flex items-baseline justify-between text-base">
               <span className="font-black text-slate-900 uppercase">Total Tambahan Add-on:</span>
               <span className="font-display font-black text-xl text-slate-950 underline underline-offset-4 decoration-2 decoration-lime-500">
-                Rp {(addonCalc?.grandTotal || 0).toLocaleString('id-ID')}
+                Rp {((addonCalc?.totalBranchCost || 0) + (addonCalc?.totalCashierCost || 0)).toLocaleString('id-ID')}
               </span>
             </div>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
               <span className="text-[11px] text-slate-500">
-                Prorasi diselaraskan dengan masa aktif paket {subStatus?.tier || 'induk'} Anda hingga{' '}
+                Prorasi diselaraskan dengan masa aktif paket {(getCanonicalTier(subStatus?.tier)?.name || subStatus?.tier || 'induk').toUpperCase()} Anda hingga{' '}
                 {subStatus?.expires_at ? new Date(subStatus.expires_at).toLocaleDateString('id-ID') : 'akhir siklus'}.
               </span>
               <button
