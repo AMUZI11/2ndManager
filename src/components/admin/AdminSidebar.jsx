@@ -15,7 +15,8 @@ import {
   Terminal,
   ChevronRight,
   CreditCard,
-  Tag
+  Tag,
+  Users
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -79,6 +80,8 @@ export default function AdminSidebar() {
     { href: '/admin/dashboard', label: 'Platform Pulse', icon: Activity, shortcut: 'Alt+1' },
     { href: '/admin/claims', label: 'Audit Klaim Bayar', icon: CreditCard, shortcut: 'Alt+7', badge: pendingProofsCount },
     { href: '/admin/promos', label: 'Mesin Kode Promo', icon: Tag, shortcut: 'Alt+8' },
+    { href: '/admin/branches', label: 'Topologi Cabang', icon: Store },
+    { href: '/admin/cashiers', label: 'Kelola Staf Kasir', icon: Users },
     { href: '/admin/tenants', label: 'Tenants & Billing', icon: Store, shortcut: 'Alt+2' },
     { href: '/admin/panic-dispatch', label: 'Panic Dispatch', icon: LifeBuoy, shortcut: 'Alt+3' },
     { href: '/admin/categories-master', label: 'Master Kategori', icon: Layers, shortcut: 'Alt+4' },

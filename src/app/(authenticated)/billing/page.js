@@ -27,8 +27,10 @@ import {
   Calendar,
   CreditCard,
   ChevronRight,
-  Gift
+  Gift,
+  Users
 } from 'lucide-react';
+import QrisPaymentCard from '@/components/billing/QrisPaymentCard';
 
 const CATALOG_PLANS = [
   {
@@ -121,14 +123,64 @@ export default function BillingPage() {
   // Payment Claim State
   const [proofFile, setProofFile] = useState(null);
   const [proofPreview, setProofPreview] = useState(null);
-  const [senderBank, setSenderBank] = useState('BNI');
+  const [senderBank, setSenderBank] = useState('QRIS');
   const [senderAccountName, setSenderAccountName] = useState('');
   const [isSubmittingClaim, setIsSubmittingClaim] = useState(false);
   const [claimError, setClaimError] = useState('');
   const [optimisticModal, setOptimisticModal] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('qris'); // 'qris' or 'bank_transfer'
+  const uploadFormRef = useRef(null);
 
   // Copy feedback state
   const [copiedKey, setCopiedKey] = useState('');
+
+  // Add-on Capacity States
+  const [addonBranches, setAddonBranches] = useState(0);
+  const [addonCashiers, setAddonCashiers] = useState(0);
+  const [addonCalc, setAddonCalc] = useState(null);
+  const [isCalculatingAddon, setIsCalculatingAddon] = useState(false);
+  const [purchaseMode, setPurchaseMode] = useState('FULL'); // 'FULL' or 'PURE_ADDON'
+  const checkoutSectionRef = useRef(null);
+
+  const calculateAddons = async (branches, cashiers, orgId) => {
+    if (branches === 0 && cashiers === 0) {
+      setAddonCalc(null);
+      return;
+    }
+    setIsCalculatingAddon(true);
+    try {
+      const targetOrg = orgId || subStatus?.organization_id;
+      const res = await fetch('/api/v1/billing/addons/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: targetOrg,
+          additionalBranches: branches,
+          additionalCashiers: cashiers,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json?.data) {
+        setAddonCalc(json.data);
+      }
+    } catch (e) {
+      console.warn('Gagal kalkulasi add-on:', e);
+    } finally {
+      setIsCalculatingAddon(false);
+    }
+  };
+
+  const handleBranchStep = (delta) => {
+    const nextVal = Math.max(0, addonBranches + delta);
+    setAddonBranches(nextVal);
+    calculateAddons(nextVal, addonCashiers);
+  };
+
+  const handleCashierStep = (delta) => {
+    const nextVal = Math.max(0, addonCashiers + delta);
+    setAddonCashiers(nextVal);
+    calculateAddons(addonBranches, nextVal);
+  };
 
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   const fileInputRef = useRef(null);
@@ -338,16 +390,36 @@ export default function BillingPage() {
       return;
     }
 
+    if (purchaseMode === 'PURE_ADDON' && addonBranches === 0 && addonCashiers === 0) {
+      setClaimError('Pilih minimal 1 slot cabang atau kasir tambahan untuk melakukan pembelian add-on.');
+      return;
+    }
+
     try {
       setIsSubmittingClaim(true);
 
+      const isPureAddon = purchaseMode === 'PURE_ADDON';
+      const addonTotal = addonCalc?.grandTotal || 0;
+
       const formData = new FormData();
       formData.append('file', proofFile);
-      formData.append('targetTier', appliedPromo?.targetTier || selectedCatalog);
-      formData.append('durationMonths', durationMonths.toString());
-      formData.append('basePrice', calculatedBasePrice.toString());
-      formData.append('finalPrice', calculatedFinalPrice.toString());
-      if (appliedPromo?.promoId) {
+      if (isPureAddon) {
+        formData.append('targetTier', 'ADDON');
+        formData.append('durationMonths', '0');
+        formData.append('basePrice', addonTotal.toString());
+        formData.append('finalPrice', addonTotal.toString());
+      } else {
+        formData.append('targetTier', appliedPromo?.targetTier || selectedCatalog);
+        formData.append('durationMonths', durationMonths.toString());
+        formData.append('basePrice', (calculatedBasePrice + addonTotal).toString());
+        formData.append('finalPrice', (calculatedFinalPrice + addonTotal).toString());
+      }
+
+      formData.append('addonBranches', addonBranches.toString());
+      formData.append('addonCashiers', addonCashiers.toString());
+      formData.append('addonTotal', addonTotal.toString());
+
+      if (appliedPromo?.promoId && !isPureAddon) {
         formData.append('promoCodeId', appliedPromo.promoId);
       }
       if (senderBank) {
@@ -377,6 +449,10 @@ export default function BillingPage() {
       setSenderAccountName('');
       setAppliedPromo(null);
       setPromoInput('');
+      setAddonBranches(0);
+      setAddonCashiers(0);
+      setAddonCalc(null);
+      setPurchaseMode('FULL');
 
       // Refresh status langganan di background
       await fetchSubscriptionStatus();
@@ -415,12 +491,20 @@ export default function BillingPage() {
     }
   }
 
+  const grandTotalPayable = purchaseMode === 'PURE_ADDON'
+    ? (addonCalc?.grandTotal || 0)
+    : (calculatedFinalPrice + (addonCalc?.grandTotal || 0));
+
   const waMessage = encodeURIComponent(
     `Halo Admin 2ndManager, saya ingin konfirmasi klaim pembayaran lisensi:\n\n` +
       `*Nama Usaha:* ${subStatus?.organization_name || 'Toko 2ndManager'}\n` +
-      `*Paket:* ${currentCatalogPlan.name} (${durationMonths} Bulan)\n` +
-      `*Total Bayar:* Rp ${calculatedFinalPrice.toLocaleString('id-ID')}\n` +
-      (appliedPromo ? `*Promo:* ${appliedPromo.code}\n` : '') +
+      (purchaseMode === 'PURE_ADDON'
+        ? `*Mode:* Pembelian Add-on Kapasitas Murni\n`
+        : `*Paket:* ${currentCatalogPlan.name} (${durationMonths} Bulan)\n`) +
+      (addonBranches > 0 ? `*Extra Cabang:* +${addonBranches} Slot\n` : '') +
+      (addonCashiers > 0 ? `*Extra Kasir:* +${addonCashiers} Slot\n` : '') +
+      `*Total Bayar:* Rp ${grandTotalPayable.toLocaleString('id-ID')}\n` +
+      (appliedPromo && purchaseMode !== 'PURE_ADDON' ? `*Promo:* ${appliedPromo.code}\n` : '') +
       `*Bank Pengirim:* ${senderBank} a.n. ${senderAccountName || '-'}\n\n` +
       `Bukti bayar telah saya unggah ke sistem. Mohon verifikasi auditnya. Terima kasih!`
   );
@@ -713,156 +797,544 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* 2. OPTIMISTIC PAYMENT CLAIM & PROMO CODE ENGINE */}
-      <div className="bg-white rounded-3xl border-2 border-slate-800 p-6 lg:p-8 shadow-[4px_4px_0px_#1E293B] space-y-8">
+      {/* 2. KAPASITAS TAMBAHAN (ADD-ON FLEKSIBEL) */}
+      <div className="bg-white rounded-3xl border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B] p-6 sm:p-8 mt-8 space-y-6">
+        <div className="border-b-2 border-slate-100 pb-4">
+          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-lime-100 border-2 border-slate-800 text-slate-950 font-mono text-[11px] font-black uppercase rounded-lg mb-1 shadow-[2px_2px_0px_#1E293B]">
+            <Sparkles size={13} strokeWidth={2.5} /> EXPANSION PACK
+          </div>
+          <h2 className="text-xl sm:text-2xl font-display font-black uppercase text-slate-900 tracking-tight">
+            KAPASITAS TAMBAHAN (ADD-ON FLEKSIBEL)
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+            Perluas jangkauan operasional warung Anda tanpa terbebani upgrade paket.
+          </p>
+        </div>
+
+        {/* Dua Panel Stepper Taktil */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* PANEL 1: SLOT CABANG TAMBAHAN */}
+          <div className="p-5 bg-slate-50 border-2 border-slate-800 rounded-2xl space-y-4 shadow-[3px_3px_0px_#1E293B]">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="font-display font-black text-slate-900 text-base uppercase block">
+                  SLOT CABANG TAMBAHAN
+                </span>
+                <span className="font-mono text-xs font-bold text-slate-500">
+                  + Rp 100.000 / cabang / bulan
+                </span>
+              </div>
+              <div className="p-2 bg-slate-900 text-[#CCFF00] rounded-xl border border-slate-800">
+                <Building2 size={20} />
+              </div>
+            </div>
+
+            {/* Stepper Buttons */}
+            <div className="flex items-center justify-between bg-white border-2 border-slate-800 rounded-xl p-2 shadow-[2px_2px_0px_#1E293B]">
+              <span className="font-mono text-xs font-bold text-slate-600 pl-2">Tambah Slot:</span>
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => handleBranchStep(-1)}
+                  disabled={addonBranches <= 0}
+                  className="w-10 h-10 border-2 border-slate-800 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 rounded-lg flex items-center justify-center font-mono font-black text-lg text-slate-900 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+                >
+                  -
+                </button>
+                <span className="font-mono font-black text-xl px-4 min-w-[50px] text-center text-slate-900">
+                  {addonBranches}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleBranchStep(1)}
+                  className="w-10 h-10 border-2 border-slate-800 bg-lime-300 hover:bg-lime-400 rounded-lg flex items-center justify-center font-mono font-black text-lg text-slate-900 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer shadow-[1px_1px_0px_#1E293B]"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Meteran Kuota */}
+            <div className="pt-2 border-t border-slate-200 flex items-center justify-between font-mono text-xs">
+              <span className="text-slate-500">Status Gerai:</span>
+              <span className="font-bold text-slate-900">
+                Aktif: {subStatus?.current_active_branches ?? 1} Gerai | Kuota Baru:{' '}
+                {(subStatus?.max_allowed_branches ?? 1) + addonBranches} Gerai
+              </span>
+            </div>
+          </div>
+
+          {/* PANEL 2: SLOT AKUN KASIR TAMBAHAN */}
+          <div className="p-5 bg-slate-50 border-2 border-slate-800 rounded-2xl space-y-4 shadow-[3px_3px_0px_#1E293B]">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="font-display font-black text-slate-900 text-base uppercase block">
+                  SLOT AKUN KASIR TAMBAHAN
+                </span>
+                <span className="font-mono text-xs font-bold text-slate-500">
+                  + Rp 20.000 / kasir / bulan
+                </span>
+              </div>
+              <div className="p-2 bg-slate-900 text-[#CCFF00] rounded-xl border border-slate-800">
+                <Users size={20} />
+              </div>
+            </div>
+
+            {/* Stepper Buttons */}
+            <div className="flex items-center justify-between bg-white border-2 border-slate-800 rounded-xl p-2 shadow-[2px_2px_0px_#1E293B]">
+              <span className="font-mono text-xs font-bold text-slate-600 pl-2">Tambah Slot:</span>
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => handleCashierStep(-1)}
+                  disabled={addonCashiers <= 0}
+                  className="w-10 h-10 border-2 border-slate-800 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 rounded-lg flex items-center justify-center font-mono font-black text-lg text-slate-900 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+                >
+                  -
+                </button>
+                <span className="font-mono font-black text-xl px-4 min-w-[50px] text-center text-slate-900">
+                  {addonCashiers}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleCashierStep(1)}
+                  className="w-10 h-10 border-2 border-slate-800 bg-lime-300 hover:bg-lime-400 rounded-lg flex items-center justify-center font-mono font-black text-lg text-slate-900 active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer shadow-[1px_1px_0px_#1E293B]"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Meteran Kuota */}
+            <div className="pt-2 border-t border-slate-200 flex items-center justify-between font-mono text-xs">
+              <span className="text-slate-500">Status Kasir:</span>
+              <span className="font-bold text-slate-900">
+                Aktif: {subStatus?.current_active_cashiers ?? 0} Kasir | Kuota Baru:{' '}
+                {(subStatus?.max_allowed_cashiers ?? 2) + addonCashiers} Kasir
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Kotak Rincian & Prorasi Real-Time */}
+        {(addonBranches > 0 || addonCashiers > 0) && (
+          <div className="bg-slate-50 border-2 border-slate-800 rounded-2xl p-5 font-mono text-sm space-y-3 shadow-[3px_3px_0px_#1E293B]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+              <span className="font-bold text-slate-800 uppercase">
+                RINCIAN PRORASI TANGGAL JATUH TEMPO (CO-TERMINATION)
+              </span>
+              <span className="px-2.5 py-0.5 bg-sky-100 text-sky-900 border border-sky-400 rounded-md text-xs font-black">
+                ⏱️ Sisa Siklus: {addonCalc?.sisaHari ?? daysRemaining} Hari
+              </span>
+            </div>
+
+            <div className="space-y-1.5 text-xs text-slate-700">
+              {addonBranches > 0 && (
+                <div className="flex justify-between">
+                  <span>
+                    Slot Cabang (+{addonBranches} Gerai @ Rp {addonCalc?.proratedBranchPrice?.toLocaleString('id-ID') || '100.000'}/bln prorata):
+                  </span>
+                  <span className="font-bold text-slate-900">
+                    Rp {(addonCalc?.totalBranchCost || 0).toLocaleString('id-ID')}
+                  </span>
+                </div>
+              )}
+              {addonCashiers > 0 && (
+                <div className="flex justify-between">
+                  <span>
+                    Slot Kasir (+{addonCashiers} Kasir @ Rp {addonCalc?.proratedCashierPrice?.toLocaleString('id-ID') || '20.000'}/bln prorata):
+                  </span>
+                  <span className="font-bold text-slate-900">
+                    Rp {(addonCalc?.totalCashierCost || 0).toLocaleString('id-ID')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t-2 border-slate-300 flex items-baseline justify-between text-base">
+              <span className="font-black text-slate-900 uppercase">Total Tambahan Add-on:</span>
+              <span className="font-display font-black text-xl text-slate-950 underline underline-offset-4 decoration-2 decoration-lime-500">
+                Rp {(addonCalc?.grandTotal || 0).toLocaleString('id-ID')}
+              </span>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-[11px] text-slate-500">
+                Prorasi diselaraskan dengan masa aktif paket {subStatus?.tier || 'induk'} Anda hingga{' '}
+                {subStatus?.expires_at ? new Date(subStatus.expires_at).toLocaleDateString('id-ID') : 'akhir siklus'}.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setPurchaseMode('PURE_ADDON');
+                  checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="btn-arcade w-full sm:w-auto px-5 py-2.5 bg-[#CCFF00] hover:bg-[#b8e600] text-slate-950 font-black rounded-xl border-2 border-slate-900 shadow-[3px_3px_0px_#1E293B] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer uppercase text-xs"
+              >
+                [ 🚀 BAYAR ADD-ON & AKTIFKAN SLOT SEKARANG ]
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. OPTIMISTIC PAYMENT CLAIM & PROMO CODE ENGINE */}
+      <div ref={checkoutSectionRef} className="bg-white rounded-3xl border-2 border-slate-800 p-6 lg:p-8 shadow-[4px_4px_0px_#1E293B] space-y-8">
         <div className="border-b-2 border-slate-100 pb-4">
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-emerald-50 border-2 border-emerald-400 text-emerald-950 font-mono text-[11px] font-black uppercase rounded-lg mb-1">
             <Zap size={13} strokeWidth={2.5} /> FITUR BARU: AUTO-APPROVE INSTAN
           </div>
           <h2 className="text-xl sm:text-2xl font-display font-black uppercase text-slate-900 tracking-tight">
-            2. UPGRADE / PERPANJANG LANGGANAN INSTAN
+            3. SELESAIKAN PEMBAYARAN &amp; AKTIFKAN LISENSI INSTAN
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
-            Pilih durasi, masukkan kode promo (jika ada), transfer pembayaran, dan unggah bukti struk.
-            Sistem akan langsung mengaktifkan lisensi Anda secara otomatis tanpa perlu menunggu!
+            {purchaseMode === 'PURE_ADDON'
+              ? 'Anda memilih mode pembayaran Add-on Kapasitas Murni. Transfer pembayaran dan unggah bukti transfer untuk mengaktifkan slot seketika!'
+              : 'Pilih durasi, masukkan kode promo (jika ada), transfer pembayaran, dan unggah bukti struk. Sistem akan langsung mengaktifkan lisensi Anda secara otomatis tanpa perlu menunggu!'}
           </p>
         </div>
 
         {/* Durasi & Kode Promo Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Durasi Langganan */}
-          <div className="lg:col-span-6 space-y-3">
-            <label className="block text-xs font-mono font-bold text-slate-700 uppercase tracking-wider">
-              PILIH DURASI LANGGANAN
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {DURATION_OPTIONS.map((opt) => (
-                <button
-                  key={opt.months}
-                  type="button"
-                  onClick={() => {
-                    setDurationMonths(opt.months);
-                    if (appliedPromo) setAppliedPromo(null);
-                  }}
-                  className={`btn-arcade py-3 px-2 font-mono text-xs font-black rounded-xl border-2 text-center transition-all cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
-                    durationMonths === opt.months
-                      ? 'bg-[#CCFF00] text-slate-950 border-slate-900 shadow-[3px_3px_0px_#1E293B]'
-                      : 'bg-slate-50 text-slate-600 border-slate-800 hover:border-slate-900 hover:bg-slate-100 shadow-[2px_2px_0px_#1E293B]'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+        {purchaseMode === 'PURE_ADDON' ? (
+          <div className="p-4 bg-sky-50 border-2 border-sky-400 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[2px_2px_0px_#0284C7]">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-sky-600 text-white font-mono text-[10px] font-black rounded">
+                  MODE AKTIF
+                </span>
+                <span className="font-mono text-xs font-black text-sky-950 uppercase">
+                  PEMBELIAN ADD-ON KAPASITAS MURNI
+                </span>
+              </div>
+              <p className="text-xs text-sky-800 font-mono">
+                Anda hanya membeli slot kapasitas tambahan tanpa mengubah tier atau memperpanjang paket induk. Prorasi dihitung otomatis selaras dengan sisa siklus aktif ({addonCalc?.sisaHari ?? daysRemaining} hari).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPurchaseMode('FULL')}
+              className="btn-arcade px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-800 rounded-xl font-mono text-xs font-bold shadow-[2px_2px_0px_#1E293B] shrink-0 cursor-pointer"
+            >
+              [ 🔄 BERALIH KE PAKET + ADD-ON ]
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Durasi Langganan */}
+            <div className="lg:col-span-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-mono font-bold text-slate-700 uppercase tracking-wider">
+                  PILIH DURASI LANGGANAN
+                </label>
+                {(addonBranches > 0 || addonCashiers > 0) && (
+                  <button
+                    type="button"
+                    onClick={() => setPurchaseMode('PURE_ADDON')}
+                    className="text-[11px] font-mono font-bold text-sky-700 hover:text-sky-900 underline cursor-pointer"
+                  >
+                    [ HANYA BELI ADD-ON ]
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {DURATION_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.months}
+                    type="button"
+                    onClick={() => {
+                      setDurationMonths(opt.months);
+                      if (appliedPromo) setAppliedPromo(null);
+                    }}
+                    className={`btn-arcade py-3 px-2 font-mono text-xs font-black rounded-xl border-2 text-center transition-all cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+                      durationMonths === opt.months
+                        ? 'bg-[#CCFF00] text-slate-950 border-slate-900 shadow-[3px_3px_0px_#1E293B]'
+                        : 'bg-slate-50 text-slate-600 border-slate-800 hover:border-slate-900 hover:bg-slate-100 shadow-[2px_2px_0px_#1E293B]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Bilah Input Kode Promo Taktil */}
+            <div className="lg:col-span-6 space-y-3">
+              <label className="block text-xs font-mono font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                <span>KODE PROMO / DISKON WARUNG</span>
+                {appliedPromo && (
+                  <span className="text-emerald-700 text-[11px] font-mono font-black">TERAPKAN DISKON</span>
+                )}
+              </label>
+
+              {appliedPromo ? (
+                <div className="p-3 bg-emerald-50 border-2 border-emerald-400 rounded-xl flex items-center justify-between shadow-[2px_2px_0px_#10B981]">
+                  <div className="flex items-center gap-2.5">
+                    <Tag size={16} className="text-emerald-700" strokeWidth={2.5} />
+                    <div>
+                      <div className="font-mono text-xs font-black text-emerald-950">
+                        [ PROMO AKTIF: {appliedPromo.code} ]
+                      </div>
+                      <div className="text-[11px] text-emerald-800 font-mono">
+                        {appliedPromo.discountType === 'PERCENTAGE' && `Diskon ${appliedPromo.discountValue}%`}
+                        {appliedPromo.discountType === 'FIXED_AMOUNT' && `Potongan Rp ${Number(appliedPromo.discountValue).toLocaleString('id-ID')}`}
+                        {appliedPromo.discountType === 'BONUS_DAYS' && `Bonus +${appliedPromo.bonusDays} Hari Masa Aktif`}
+                        {appliedPromo.discountType === 'TIER_OVERRIDE' && `Upgrade ke Tier ${appliedPromo.targetTier}`}
+                        {appliedPromo.description ? ` • ${appliedPromo.description}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemovePromo}
+                    className="p-1.5 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-300 rounded-lg transition-colors cursor-pointer"
+                    title="Batalkan Promo"
+                  >
+                    <X size={14} strokeWidth={2.5} />
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleValidatePromo} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promoInput}
+                    onChange={(e) => {
+                      setPromoInput(e.target.value.toUpperCase());
+                      setPromoError('');
+                    }}
+                    placeholder="MASUKKAN KODE PROMO..."
+                    className="flex-1 bg-slate-50 border-2 border-slate-800 focus:border-slate-950 focus:bg-lime-50 px-4 py-2.5 rounded-xl font-mono text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider outline-none transition-all shadow-[2px_2px_0px_#1E293B]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isValidatingPromo || !promoInput.trim()}
+                    className="btn-arcade px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b8e600] disabled:opacity-50 text-slate-950 font-mono text-xs font-black rounded-xl border-2 border-slate-900 shadow-[3px_3px_0px_#1E293B] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer shrink-0"
+                  >
+                    {isValidatingPromo ? (
+                      <RefreshCw size={14} className="animate-spin" />
+                    ) : (
+                      <span>[ ⚡ TERAPKAN ]</span>
+                    )}
+                  </button>
+                </form>
+              )}
+
+              {promoError && (
+                <p className="text-[11px] font-mono text-rose-600 font-bold flex items-center gap-1.5">
+                  <AlertCircle size={12} /> {promoError}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* METODE PEMBAYARAN TABS (Capsule Neo-Brutalist) */}
+        <div className="pt-4 border-t-2 border-slate-100 space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <span className="font-mono text-xs font-black text-slate-500 uppercase tracking-wider block">
+                PILIH METODE PEMBAYARAN RESMI
+              </span>
+              <p className="text-[11px] text-slate-500 font-mono">
+                Pilih metode pembayaran terverifikasi: Scan QRIS instan atau transfer bank manual.
+              </p>
+            </div>
+
+            <div className="inline-flex p-1.5 bg-slate-100 border-2 border-slate-800 rounded-2xl gap-1.5 shadow-[2px_2px_0px_#1E293B]">
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentMethod('qris');
+                  setSenderBank('QRIS');
+                }}
+                className={`px-4 py-2 font-mono text-xs font-black rounded-xl border-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  paymentMethod === 'qris'
+                    ? 'bg-[#CCFF00] border-slate-900 text-slate-950 shadow-[2px_2px_0px_#1E293B]'
+                    : 'bg-white/80 hover:bg-white border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Zap size={14} className={paymentMethod === 'qris' ? 'text-slate-950' : 'text-amber-500'} strokeWidth={2.5} />
+                <span>[ ⚡ QRIS / E-WALLET (INSTAN) ]</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentMethod('bank_transfer');
+                  if (senderBank === 'QRIS') setSenderBank('BNI');
+                }}
+                className={`px-4 py-2 font-mono text-xs font-black rounded-xl border-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  paymentMethod === 'bank_transfer'
+                    ? 'bg-[#CCFF00] border-slate-900 text-slate-950 shadow-[2px_2px_0px_#1E293B]'
+                    : 'bg-white/80 hover:bg-white border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Building2 size={14} className={paymentMethod === 'bank_transfer' ? 'text-slate-950' : 'text-indigo-500'} strokeWidth={2.5} />
+                <span>[ 🏛️ TRANSFER BANK (BNI / BSI) ]</span>
+              </button>
             </div>
           </div>
 
-          {/* Bilah Input Kode Promo Taktil */}
-          <div className="lg:col-span-6 space-y-3">
-            <label className="block text-xs font-mono font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
-              <span>KODE PROMO / DISKON WARUNG</span>
-              {appliedPromo && (
-                <span className="text-emerald-700 text-[11px] font-mono font-black">TERAPKAN DISKON</span>
-              )}
-            </label>
-
-            {appliedPromo ? (
-              <div className="p-3 bg-emerald-50 border-2 border-emerald-400 rounded-xl flex items-center justify-between shadow-[2px_2px_0px_#10B981]">
-                <div className="flex items-center gap-2.5">
-                  <Tag size={16} className="text-emerald-700" strokeWidth={2.5} />
-                  <div>
-                    <div className="font-mono text-xs font-black text-emerald-950">
-                      [ PROMO AKTIF: {appliedPromo.code} ]
+          {/* TAB CONTENT: QRIS OR MANUAL BANK */}
+          <div>
+            {paymentMethod === 'qris' ? (
+              <QrisPaymentCard
+                totalAmount={grandTotalPayable}
+                onProceedToUpload={() => {
+                  uploadFormRef.current?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
+            ) : (
+              <div className="p-5 sm:p-6 bg-slate-50 border-2 border-slate-800 rounded-2xl shadow-[4px_4px_0px_#1E293B] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-slate-200 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-indigo-600 text-white rounded-lg border-2 border-slate-900 shadow-[2px_2px_0px_#1E293B]">
+                      <Building2 size={16} />
                     </div>
-                    <div className="text-[11px] text-emerald-800 font-mono">
-                      {appliedPromo.discountType === 'PERCENTAGE' && `Diskon ${appliedPromo.discountValue}%`}
-                      {appliedPromo.discountType === 'FIXED_AMOUNT' && `Potongan Rp ${Number(appliedPromo.discountValue).toLocaleString('id-ID')}`}
-                      {appliedPromo.discountType === 'BONUS_DAYS' && `Bonus +${appliedPromo.bonusDays} Hari Masa Aktif`}
-                      {appliedPromo.discountType === 'TIER_OVERRIDE' && `Upgrade ke Tier ${appliedPromo.targetTier}`}
-                      {appliedPromo.description ? ` • ${appliedPromo.description}` : ''}
+                    <div>
+                      <h4 className="font-display font-black text-sm text-slate-900 uppercase">
+                        REKENING TUJUAN TRANSFER RESMI
+                      </h4>
+                      <p className="text-[11px] font-mono text-slate-500">
+                        A.N. PT KLOLA WARUNG TEKNOLOGI NUSANTARA (Nominal Pas Sesuai Ringkasan)
+                      </p>
                     </div>
                   </div>
+                  <span className="font-mono text-[10px] font-black px-2 py-0.5 bg-indigo-100 text-indigo-800 border border-indigo-300 rounded self-start sm:self-center">
+                    MANUAL TRANSFER
+                  </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleRemovePromo}
-                  className="p-1.5 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-300 rounded-lg transition-colors cursor-pointer"
-                  title="Batalkan Promo"
-                >
-                  <X size={14} strokeWidth={2.5} />
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleValidatePromo} className="flex gap-2">
-                <input
-                  type="text"
-                  value={promoInput}
-                  onChange={(e) => {
-                    setPromoInput(e.target.value.toUpperCase());
-                    setPromoError('');
-                  }}
-                  placeholder="MASUKKAN KODE PROMO..."
-                  className="flex-1 bg-slate-50 border-2 border-slate-800 focus:border-slate-950 focus:bg-lime-50 px-4 py-2.5 rounded-xl font-mono text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider outline-none transition-all shadow-[2px_2px_0px_#1E293B]"
-                />
-                <button
-                  type="submit"
-                  disabled={isValidatingPromo || !promoInput.trim()}
-                  className="btn-arcade px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b8e600] disabled:opacity-50 text-slate-950 font-mono text-xs font-black rounded-xl border-2 border-slate-900 shadow-[3px_3px_0px_#1E293B] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer shrink-0"
-                >
-                  {isValidatingPromo ? (
-                    <RefreshCw size={14} className="animate-spin" />
-                  ) : (
-                    <span>[ ⚡ TERAPKAN ]</span>
-                  )}
-                </button>
-              </form>
-            )}
 
-            {promoError && (
-              <p className="text-[11px] font-mono text-rose-600 font-bold flex items-center gap-1.5">
-                <AlertCircle size={12} /> {promoError}
-              </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {BANK_ACCOUNTS.map((acc) => (
+                    <div
+                      key={acc.bank}
+                      className="p-4 bg-white border-2 border-slate-800 rounded-xl space-y-2 shadow-[2px_2px_0px_#1E293B]"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-black text-amber-600">{acc.bank}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(acc.number.replace(/-/g, ''), acc.bank)}
+                          className="flex items-center gap-1 text-[11px] font-mono font-bold text-slate-600 hover:text-slate-950 transition-colors cursor-pointer"
+                        >
+                          {copiedKey === acc.bank ? (
+                            <>
+                              <Check size={12} className="text-emerald-600" strokeWidth={2.5} />
+                              <span className="text-emerald-700">TERSALIN</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={12} strokeWidth={2.5} />
+                              <span>SALIN</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="font-mono text-lg font-black text-slate-900 tracking-wider">{acc.number}</div>
+                      <div className="text-[10px] text-slate-500 font-mono uppercase">A.N. {acc.holder}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Rincian Pembayaran & Rekening Bank */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-4 border-t-2 border-slate-100">
+        {/* Ringkasan & Form Unggah Bukti Bayar Instan */}
+        <div ref={uploadFormRef} className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-6 border-t-2 border-slate-200 scroll-mt-6">
           {/* Kolom Kiri: Rincian Total Bayar */}
-          <div className="lg:col-span-5 p-5 bg-slate-50 border-2 border-slate-800 rounded-2xl space-y-4 shadow-[3px_3px_0px_#1E293B]">
-            <div className="font-mono text-xs font-black text-slate-500 uppercase tracking-wider border-b-2 border-slate-200 pb-2">
-              RINGKASAN TOTAL TAGIHAN
+          <div className="lg:col-span-5 p-5 bg-slate-50 border-2 border-slate-800 rounded-2xl space-y-4 shadow-[3px_3px_0px_#1E293B] h-fit">
+            <div className="flex items-center justify-between border-b-2 border-slate-200 pb-2">
+              <span className="font-mono text-xs font-black text-slate-500 uppercase tracking-wider">
+                RINGKASAN TOTAL TAGIHAN
+              </span>
+              <span className="font-mono text-[10px] font-black px-2 py-0.5 bg-slate-900 text-white rounded">
+                {purchaseMode === 'PURE_ADDON' ? 'MODE ADD-ON' : 'MODE PAKET'}
+              </span>
             </div>
 
             <div className="space-y-2 font-mono text-xs">
-              <div className="flex justify-between text-slate-700">
-                <span>Paket Langganan:</span>
-                <span className="font-bold text-slate-900">{currentCatalogPlan.name}</span>
-              </div>
-              <div className="flex justify-between text-slate-700">
-                <span>Durasi:</span>
-                <span className="font-bold text-slate-900">{durationMonths} Bulan</span>
-              </div>
-              <div className="flex justify-between text-slate-500">
-                <span>Harga Normal:</span>
-                <span className={appliedPromo ? 'line-through text-slate-400' : 'text-slate-700 font-bold'}>
-                  Rp {calculatedBasePrice.toLocaleString('id-ID')}
-                </span>
-              </div>
+              {purchaseMode === 'PURE_ADDON' ? (
+                <>
+                  <div className="flex justify-between text-slate-700">
+                    <span>Jenis Transaksi:</span>
+                    <span className="font-bold text-slate-900">Add-on Kapasitas Murni</span>
+                  </div>
+                  <div className="flex justify-between text-slate-700">
+                    <span>Siklus Prorasi:</span>
+                    <span className="font-bold text-sky-700">
+                      {addonCalc?.sisaHari ?? daysRemaining} Hari (Co-Termination)
+                    </span>
+                  </div>
+                  {addonBranches > 0 && (
+                    <div className="flex justify-between text-slate-700">
+                      <span>Extra Cabang (+{addonBranches} Slot):</span>
+                      <span className="font-bold text-slate-900">
+                        Rp {(addonCalc?.totalBranchCost || 0).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  )}
+                  {addonCashiers > 0 && (
+                    <div className="flex justify-between text-slate-700">
+                      <span>Extra Kasir (+{addonCashiers} Slot):</span>
+                      <span className="font-bold text-slate-900">
+                        Rp {(addonCalc?.totalCashierCost || 0).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  )}
+                  {addonBranches === 0 && addonCashiers === 0 && (
+                    <div className="text-amber-700 font-bold text-[11px] bg-amber-50 p-2 rounded-lg border border-amber-300">
+                      ⚠️ Pilih minimal 1 slot cabang atau kasir pada kartu Add-on di atas.
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between text-slate-700">
+                    <span>Paket Langganan:</span>
+                    <span className="font-bold text-slate-900">{currentCatalogPlan.name}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-700">
+                    <span>Durasi:</span>
+                    <span className="font-bold text-slate-900">{durationMonths} Bulan</span>
+                  </div>
+                  <div className="flex justify-between text-slate-500">
+                    <span>Harga Paket:</span>
+                    <span className={appliedPromo ? 'line-through text-slate-400' : 'text-slate-700 font-bold'}>
+                      Rp {calculatedBasePrice.toLocaleString('id-ID')}
+                    </span>
+                  </div>
 
-              {appliedPromo && (
-                <div className="flex justify-between text-emerald-700 font-bold">
-                  <span>Potongan Promo ({appliedPromo.code}):</span>
-                  <span>
-                    - Rp {(calculatedBasePrice - calculatedFinalPrice).toLocaleString('id-ID')}
-                  </span>
-                </div>
-              )}
+                  {appliedPromo && (
+                    <div className="flex justify-between text-emerald-700 font-bold">
+                      <span>Potongan Promo ({appliedPromo.code}):</span>
+                      <span>
+                        - Rp {(calculatedBasePrice - calculatedFinalPrice).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  )}
 
-              {appliedPromo?.bonusDays > 0 && (
-                <div className="flex justify-between text-sky-700 font-bold">
-                  <span>Bonus Masa Aktif:</span>
-                  <span>+{appliedPromo.bonusDays} Hari</span>
-                </div>
+                  {appliedPromo?.bonusDays > 0 && (
+                    <div className="flex justify-between text-sky-700 font-bold">
+                      <span>Bonus Masa Aktif:</span>
+                      <span>+{appliedPromo.bonusDays} Hari</span>
+                    </div>
+                  )}
+
+                  {addonBranches > 0 && (
+                    <div className="flex justify-between text-indigo-700 font-bold pt-1 border-t border-dashed border-slate-200">
+                      <span>Add-on Extra Cabang (+{addonBranches}):</span>
+                      <span>Rp {(addonCalc?.totalBranchCost || 0).toLocaleString('id-ID')}</span>
+                    </div>
+                  )}
+
+                  {addonCashiers > 0 && (
+                    <div className="flex justify-between text-indigo-700 font-bold">
+                      <span>Add-on Extra Kasir (+{addonCashiers}):</span>
+                      <span>Rp {(addonCalc?.totalCashierCost || 0).toLocaleString('id-ID')}</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -870,205 +1342,181 @@ export default function BillingPage() {
               <span className="font-mono text-xs font-black text-slate-500 uppercase">TOTAL DIBAYAR:</span>
               <div className="text-right">
                 <span className="text-2xl sm:text-3xl font-display font-black text-slate-900">
-                  Rp {calculatedFinalPrice.toLocaleString('id-ID')}
+                  Rp {grandTotalPayable.toLocaleString('id-ID')}
                 </span>
               </div>
             </div>
 
             <div className="pt-2 text-[11px] font-mono text-slate-500">
-              Silakan transfer nominal pas di atas ke salah satu rekening resmi di samping.
+              {paymentMethod === 'qris'
+                ? 'Silakan scan QRIS di atas dengan nominal persis seperti di ringkasan ini.'
+                : 'Silakan transfer nominal pas di atas ke salah satu rekening resmi tertera.'}
             </div>
           </div>
 
-          {/* Kolom Kanan: Rekening Transfer */}
-          <div className="lg:col-span-7 space-y-3">
-            <span className="block text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">
-              REKENING TUJUAN TRANSFER RESMI
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {BANK_ACCOUNTS.map((acc) => (
-                <div
-                  key={acc.bank}
-                  className="p-3.5 bg-white border-2 border-slate-800 rounded-2xl space-y-1.5 shadow-[2px_2px_0px_#1E293B]"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-black text-amber-600">{acc.bank}</span>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(acc.number.replace(/-/g, ''), acc.bank)}
-                      className="flex items-center gap-1 text-[11px] font-mono font-bold text-slate-600 hover:text-slate-950 transition-colors cursor-pointer"
-                    >
-                      {copiedKey === acc.bank ? (
-                        <>
-                          <Check size={12} className="text-emerald-600" strokeWidth={2.5} />
-                          <span className="text-emerald-700">TERSALIN</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={12} strokeWidth={2.5} />
-                          <span>SALIN</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <div className="font-mono text-base font-black text-slate-900 tracking-wider">{acc.number}</div>
-                  <div className="text-[10px] text-slate-500 font-mono uppercase">A.N. {acc.holder}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Form Unggah Bukti Bayar Instan */}
-        <div className="p-6 bg-slate-50 border-2 border-slate-800 rounded-2xl space-y-6 shadow-[3px_3px_0px_#1E293B]">
-          <div className="flex items-center gap-3 border-b-2 border-slate-200 pb-3">
-            <div className="p-2 bg-slate-900 text-[#CCFF00] border-2 border-slate-900 rounded-xl shadow-[2px_2px_0px_#1E293B]">
-              <UploadCloud size={18} strokeWidth={2.5} />
-            </div>
-            <div>
-              <h3 className="text-sm font-display font-black uppercase text-slate-900 tracking-wide">
-                UNGGAH BUKTI STRUK TRANSFER &amp; AKTIFKAN SEGERA
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Format gambar JPG, PNG, atau WebP (maks. 10 MB). Lisensi langsung aktif seketika setelah diunggah!
-              </p>
-            </div>
-          </div>
-
-          {claimError && (
-            <div className="p-3 bg-rose-50 border-2 border-rose-500 rounded-xl text-rose-800 font-mono text-xs flex items-center gap-2">
-              <AlertCircle size={16} className="text-rose-600 shrink-0" />
-              <span>{claimError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmitClaim} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Kolom Kanan: Form Unggah Bukti Bayar Instan */}
+          <div className="lg:col-span-7 p-6 bg-slate-50 border-2 border-slate-800 rounded-2xl space-y-6 shadow-[3px_3px_0px_#1E293B]">
+            <div className="flex items-center gap-3 border-b-2 border-slate-200 pb-3">
+              <div className="p-2 bg-slate-900 text-[#CCFF00] border-2 border-slate-900 rounded-xl shadow-[2px_2px_0px_#1E293B]">
+                <UploadCloud size={18} strokeWidth={2.5} />
+              </div>
               <div>
-                <label className="block text-xs font-mono font-bold text-slate-700 uppercase mb-1.5">
-                  BANK PENGIRIM
-                </label>
-                <select
-                  value={senderBank}
-                  onChange={(e) => setSenderBank(e.target.value)}
-                  className="w-full bg-white border-2 border-slate-800 focus:border-slate-950 focus:ring-2 focus:ring-[#CCFF00] rounded-xl px-3 py-2 font-mono text-xs text-slate-900 outline-none cursor-pointer shadow-[2px_2px_0px_#1E293B]"
-                >
-                  <option value="BNI">BNI (Bank Negara Indonesia)</option>
-                  <option value="BSI">BSI (Bank Syariah Indonesia)</option>
-                  <option value="BCA">BCA (Bank Central Asia)</option>
-                  <option value="MANDIRI">Bank Mandiri</option>
-                  <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
-                  <option value="QRIS">QRIS / E-Wallet (GoPay/OVO/ShopeePay)</option>
-                  <option value="LAINNYA">Bank Lainnya</option>
-                </select>
+                <h3 className="text-sm font-display font-black uppercase text-slate-900 tracking-wide">
+                  UNGGAH BUKTI BAYAR &amp; AKTIFKAN SEGERA
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Format gambar JPG, PNG, atau WebP (maks. 10 MB). Lisensi langsung aktif seketika setelah diunggah!
+                </p>
+              </div>
+            </div>
+
+            {claimError && (
+              <div className="p-3 bg-rose-50 border-2 border-rose-500 rounded-xl text-rose-800 font-mono text-xs flex items-center gap-2">
+                <AlertCircle size={16} className="text-rose-600 shrink-0" />
+                <span>{claimError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitClaim} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-mono font-bold text-slate-700 uppercase mb-1.5">
+                    METODE / BANK PENGIRIM
+                  </label>
+                  <select
+                    value={senderBank}
+                    onChange={(e) => setSenderBank(e.target.value)}
+                    className="w-full bg-white border-2 border-slate-800 focus:border-slate-950 focus:ring-2 focus:ring-[#CCFF00] rounded-xl px-3 py-2 font-mono text-xs text-slate-900 outline-none cursor-pointer shadow-[2px_2px_0px_#1E293B]"
+                  >
+                    <option value="QRIS">QRIS / E-Wallet (GoPay/OVO/ShopeePay/Dana)</option>
+                    <option value="BNI">BNI (Bank Negara Indonesia)</option>
+                    <option value="BSI">BSI (Bank Syariah Indonesia)</option>
+                    <option value="BCA">BCA (Bank Central Asia)</option>
+                    <option value="MANDIRI">Bank Mandiri</option>
+                    <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
+                    <option value="LAINNYA">Bank / Saluran Lainnya</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono font-bold text-slate-700 uppercase mb-1.5">
+                    NAMA PEMILIK REKENING / E-WALLET (OPSIONAL)
+                  </label>
+                  <input
+                    type="text"
+                    value={senderAccountName}
+                    onChange={(e) => setSenderAccountName(e.target.value)}
+                    placeholder="Contoh: Budi Santoso"
+                    className="w-full bg-white border-2 border-slate-800 focus:border-slate-950 focus:ring-2 focus:ring-[#CCFF00] rounded-xl px-3 py-2 font-mono text-xs text-slate-900 placeholder-slate-400 outline-none shadow-[2px_2px_0px_#1E293B]"
+                  />
+                </div>
               </div>
 
+              {/* Drag and drop / file selector box */}
               <div>
-                <label className="block text-xs font-mono font-bold text-slate-700 uppercase mb-1.5">
-                  NAMA PEMILIK REKENING PENGIRIM (OPSIONAL)
-                </label>
                 <input
-                  type="text"
-                  value={senderAccountName}
-                  onChange={(e) => setSenderAccountName(e.target.value)}
-                  placeholder="Contoh: Budi Santoso"
-                  className="w-full bg-white border-2 border-slate-800 focus:border-slate-950 focus:ring-2 focus:ring-[#CCFF00] rounded-xl px-3 py-2 font-mono text-xs text-slate-900 placeholder-slate-400 outline-none shadow-[2px_2px_0px_#1E293B]"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png, image/jpeg, image/jpg, image/webp"
+                  onChange={handleFileChange}
+                  className="hidden"
                 />
-              </div>
-            </div>
 
-            {/* Drag and drop / file selector box */}
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png, image/jpeg, image/jpg, image/webp"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-
-              {proofPreview ? (
-                <div className="p-4 bg-white border-2 border-emerald-500 rounded-2xl flex flex-col sm:flex-row items-center gap-4 shadow-[2px_2px_0px_#10B981]">
-                  <img
-                    src={proofPreview}
-                    alt="Preview Bukti Transfer"
-                    className="w-24 h-24 sm:w-32 sm:h-32 object-cover border-2 border-slate-800 rounded-xl shrink-0"
-                  />
-                  <div className="space-y-1 flex-1 text-center sm:text-left">
-                    <div className="font-mono text-xs font-black text-emerald-800 flex items-center justify-center sm:justify-start gap-1.5">
-                      <FileCheck size={14} /> BERKAS SIAP DIUNGGAH
-                    </div>
-                    <div className="font-mono text-xs text-slate-800 font-bold truncate max-w-sm">
-                      {proofFile?.name}
-                    </div>
-                    <div className="text-[11px] text-slate-500 font-mono">
-                      {(proofFile?.size / 1024).toFixed(1)} KB
-                    </div>
-                    <div className="pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProofFile(null);
-                          setProofPreview(null);
-                        }}
-                        className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-mono text-xs font-bold border-2 border-rose-400 rounded-lg transition-colors cursor-pointer"
-                      >
-                        Ganti Gambar
-                      </button>
+                {proofPreview ? (
+                  <div className="p-4 bg-white border-2 border-emerald-500 rounded-2xl flex flex-col sm:flex-row items-center gap-4 shadow-[2px_2px_0px_#10B981]">
+                    <img
+                      src={proofPreview}
+                      alt="Preview Bukti Transfer"
+                      className="w-24 h-24 sm:w-32 sm:h-32 object-cover border-2 border-slate-800 rounded-xl shrink-0"
+                    />
+                    <div className="space-y-1 flex-1 text-center sm:text-left">
+                      <div className="font-mono text-xs font-black text-emerald-800 flex items-center justify-center sm:justify-start gap-1.5">
+                        <FileCheck size={14} /> BERKAS SIAP DIUNGGAH
+                      </div>
+                      <div className="font-mono text-xs text-slate-800 font-bold truncate max-w-sm">
+                        {proofFile?.name}
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-mono">
+                        {(proofFile?.size / 1024).toFixed(1)} KB
+                      </div>
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProofFile(null);
+                            setProofPreview(null);
+                          }}
+                          className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-mono text-xs font-bold border-2 border-rose-400 rounded-lg transition-colors cursor-pointer"
+                        >
+                          Ganti Gambar
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-6 sm:p-8 bg-slate-50/60 border-2 border-dashed border-slate-800 hover:border-lime-500 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors space-y-2 group shadow-[2px_2px_0px_#1E293B]"
-                >
-                  <UploadCloud
-                    size={32}
-                    className="text-slate-400 group-hover:text-slate-900 transition-colors"
-                    strokeWidth={2}
-                  />
-                  <div className="font-mono text-xs sm:text-sm font-bold text-slate-700 group-hover:text-slate-950">
-                    Klik di sini atau seret foto bukti transfer ke kotak ini
-                  </div>
-                  <p className="text-[11px] font-mono text-slate-500">
-                    Mendukung tangkapan layar m-banking (BNI, BSI, BCA, Mandiri, BRI) &amp; struk ATM
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-              <a
-                href={`https://wa.me/6285188789773?text=${waMessage}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-950 font-mono text-xs font-bold border-2 border-slate-800 rounded-xl shadow-[2px_2px_0px_#1E293B] transition-all text-center active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-              >
-                <MessageSquare size={14} />
-                <span>Bantuan Pembayaran via WhatsApp</span>
-              </a>
-
-              <button
-                type="submit"
-                disabled={isSubmittingClaim || !proofFile}
-                className="btn-arcade w-full sm:w-auto px-8 py-3.5 bg-[#CCFF00] hover:bg-[#b8e600] text-slate-950 font-mono text-sm font-black rounded-xl border-2 border-slate-900 shadow-[4px_4px_0px_#1E293B] flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-              >
-                {isSubmittingClaim ? (
-                  <>
-                    <RefreshCw size={16} className="animate-spin" strokeWidth={2.5} />
-                    <span>MENGUNGGAH &amp; MENGAKTIFKAN LISENSI...</span>
-                  </>
                 ) : (
-                  <>
-                    <Zap size={16} strokeWidth={2.5} />
-                    <span>[ 🚀 SAYA SUDAH BAYAR — AKTIFKAN LISENSI SEKARANG ]</span>
-                  </>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-6 sm:p-8 bg-slate-50/60 border-2 border-dashed border-slate-800 hover:border-lime-500 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors space-y-2 group shadow-[2px_2px_0px_#1E293B]"
+                  >
+                    <UploadCloud
+                      size={32}
+                      className="text-slate-400 group-hover:text-slate-900 transition-colors"
+                      strokeWidth={2}
+                    />
+                    <div className="font-mono text-xs sm:text-sm font-bold text-slate-700 group-hover:text-slate-950">
+                      Klik di sini atau seret foto bukti pembayaran ke kotak ini
+                    </div>
+                    <p className="text-[11px] font-mono text-slate-500">
+                      Mendukung tangkapan layar e-wallet/QRIS, m-banking (BNI, BSI, BCA, Mandiri, BRI) &amp; struk ATM
+                    </p>
+                  </div>
                 )}
-              </button>
-            </div>
-          </form>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                <a
+                  href={`https://wa.me/6285188789773?text=${waMessage}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-950 font-mono text-xs font-bold border-2 border-slate-800 rounded-xl shadow-[2px_2px_0px_#1E293B] transition-all text-center active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                >
+                  <MessageSquare size={14} />
+                  <span>Bantuan Pembayaran via WhatsApp</span>
+                </a>
+
+                <button
+                  type="submit"
+                  disabled={
+                    isSubmittingClaim ||
+                    !proofFile ||
+                    (purchaseMode === 'PURE_ADDON' && addonBranches === 0 && addonCashiers === 0)
+                  }
+                  className="btn-arcade w-full sm:w-auto px-8 py-3.5 bg-[#CCFF00] hover:bg-[#b8e600] text-slate-950 font-mono text-sm font-black rounded-xl border-2 border-slate-900 shadow-[4px_4px_0px_#1E293B] flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                >
+                  {isSubmittingClaim ? (
+                    <>
+                      <RefreshCw size={16} className="animate-spin" strokeWidth={2.5} />
+                      <span>
+                        {purchaseMode === 'PURE_ADDON'
+                          ? 'MENGUNGGAH & MENGAKTIFKAN ADD-ON...'
+                          : 'MENGUNGGAH & MENGAKTIFKAN LISENSI...'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={16} strokeWidth={2.5} />
+                      <span>
+                        {purchaseMode === 'PURE_ADDON'
+                          ? '[ 🚀 SAYA SUDAH BAYAR — AKTIFKAN SLOT ADD-ON SEKARANG ]'
+                          : '[ 🚀 SAYA SUDAH BAYAR — AKTIFKAN LISENSI SEKARANG ]'}
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 

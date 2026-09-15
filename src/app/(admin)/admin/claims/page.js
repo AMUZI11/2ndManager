@@ -28,6 +28,7 @@ export default function AdminClaimsAuditPage() {
 
   // Lightbox & Modal states
   const [selectedProofUrl, setSelectedProofUrl] = useState(null);
+  const [inspectingClaim, setInspectingClaim] = useState(null);
   const [revokingClaim, setRevokingClaim] = useState(null);
   const [revocationReason, setRevocationReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -289,7 +290,7 @@ export default function AdminClaimsAuditPage() {
                         )}
                       </td>
 
-                      {/* Paket & Durasi */}
+                      {/* Paket & Breakdown Add-on */}
                       <td className="py-3.5 px-4 space-y-1">
                         <span
                           className={`inline-block px-2 py-0.5 text-[11px] font-black border ${
@@ -297,12 +298,24 @@ export default function AdminClaimsAuditPage() {
                               ? 'bg-lime-950 text-[#CCFF00] border-lime-500'
                               : c.target_tier === 'MANAJER'
                               ? 'bg-amber-950 text-amber-300 border-amber-500'
+                              : c.target_tier === 'ADDON'
+                              ? 'bg-purple-950 text-purple-300 border-purple-500'
                               : 'bg-sky-950 text-sky-300 border-sky-500'
                           }`}
                         >
                           {c.target_tier}
                         </span>
-                        <div className="text-[11px] text-slate-400">{c.duration_months} Bulan</div>
+                        <div className="text-[11px] text-slate-400">
+                          {c.duration_months > 0 ? `${c.duration_months} Bulan` : 'Add-on Murni'}
+                        </div>
+                        {(c.addon_branches_count > 0 || c.addon_cashiers_count > 0) && (
+                          <div className="text-[10px] font-mono text-amber-400 font-bold">
+                            + {[
+                              c.addon_branches_count > 0 ? `${c.addon_branches_count} Cabang` : null,
+                              c.addon_cashiers_count > 0 ? `${c.addon_cashiers_count} Kasir` : null
+                            ].filter(Boolean).join(', ')}
+                          </div>
+                        )}
                       </td>
 
                       {/* Nominal & Promo */}
@@ -325,7 +338,10 @@ export default function AdminClaimsAuditPage() {
                         {c.signed_proof_url ? (
                           <button
                             type="button"
-                            onClick={() => setSelectedProofUrl(c.signed_proof_url)}
+                            onClick={() => {
+                              setSelectedProofUrl(c.signed_proof_url);
+                              setInspectingClaim(c);
+                            }}
                             className="group relative block w-14 h-14 border-2 border-slate-700 hover:border-[#CCFF00] overflow-hidden cursor-pointer"
                           >
                             <img
@@ -412,7 +428,7 @@ export default function AdminClaimsAuditPage() {
         </div>
       </div>
 
-      {/* Lightbox Modal (Zoom Bukti Transfer) */}
+      {/* Lightbox Modal (Zoom Bukti Transfer & Rincian Prorata) */}
       {selectedProofUrl && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
           <div className="relative max-w-4xl max-h-[90vh] bg-[#0B0F17] border-3 border-[#CCFF00] p-4 shadow-[8px_8px_0px_#4D7C0F] space-y-4">
@@ -421,18 +437,45 @@ export default function AdminClaimsAuditPage() {
                 INSPEKSI RESOLUSI TINGGI BUKTI TRANSFER
               </span>
               <button
-                onClick={() => setSelectedProofUrl(null)}
+                onClick={() => {
+                  setSelectedProofUrl(null);
+                  setInspectingClaim(null);
+                }}
                 className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="overflow-auto max-h-[75vh] flex items-center justify-center bg-black/60 p-2">
+            {/* Rincian Harga Dasar + Prorata Add-on */}
+            {inspectingClaim && (
+              <div className="bg-slate-900 border border-slate-700 p-3 font-mono text-xs text-slate-300 space-y-1">
+                <div className="text-white font-bold flex justify-between">
+                  <span>Paket: {inspectingClaim.target_tier} {inspectingClaim.duration_months > 0 ? `(${inspectingClaim.duration_months} Bulan)` : '(Add-on Murni)'}</span>
+                  <span className="text-slate-400">Warung: {inspectingClaim.organizations?.name || '-'}</span>
+                </div>
+                {(inspectingClaim.addon_branches_count > 0 || inspectingClaim.addon_cashiers_count > 0) && (
+                  <div className="text-amber-300">
+                    Add-on Kapasitas: {[
+                      inspectingClaim.addon_branches_count > 0 ? `+${inspectingClaim.addon_branches_count} Cabang` : null,
+                      inspectingClaim.addon_cashiers_count > 0 ? `+${inspectingClaim.addon_cashiers_count} Kasir` : null
+                    ].filter(Boolean).join(', ')}
+                  </div>
+                )}
+                <div className="text-[#CCFF00] font-black pt-1.5 border-t border-slate-800 flex flex-wrap justify-between gap-2">
+                  <span>Rincian Nilai Transfer:</span>
+                  <span>
+                    Rp {Number(inspectingClaim.base_price || 0).toLocaleString('id-ID')} (Harga Dasar) + Rp {Number(inspectingClaim.addon_total_amount || 0).toLocaleString('id-ID')} (Prorata Add-on) = <span className="underline">Rp {Number(inspectingClaim.final_price || 0).toLocaleString('id-ID')} (Total Transfer)</span>
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="overflow-auto max-h-[60vh] flex items-center justify-center bg-black/60 p-2">
               <img
                 src={selectedProofUrl}
                 alt="Zoom Bukti Bayar"
-                className="max-h-[70vh] object-contain border border-slate-700"
+                className="max-h-[55vh] object-contain border border-slate-700"
               />
             </div>
 
@@ -478,6 +521,7 @@ export default function AdminClaimsAuditPage() {
               </p>
               <ul className="text-xs font-mono text-red-300 list-disc pl-5 space-y-1 pt-1">
                 <li>Menurunkan tier organisasi ke MAGANG secara permanen.</li>
+                <li>Mereset seluruh kuota cabang dan kasir ekstra ke 0 (extra_branches_quota = 0, extra_cashiers_quota = 0).</li>
                 <li>Menonaktifkan seluruh cabang non-utama (read-only mode).</li>
                 <li>Menandai organisasi memiliki riwayat penipuan (has_fraud_history = TRUE).</li>
                 <li>Mewajibkan verifikasi manual ketat untuk seluruh pembayaran selanjutnya.</li>

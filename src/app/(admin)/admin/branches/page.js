@@ -18,7 +18,8 @@ import {
   MapPin,
   Phone,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Zap
 } from 'lucide-react';
 
 export default function AdminBranchesPage() {
@@ -36,17 +37,25 @@ export default function AdminBranchesPage() {
 
   // Delete State
   const [deletingId, setDeletingId] = useState(null);
+  const [billingStatus, setBillingStatus] = useState(null);
 
   const fetchBranches = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMsg('');
-      const res = await fetch('/api/v1/branches');
+      const [res, blRes] = await Promise.all([
+        fetch('/api/v1/branches', { cache: 'no-store' }),
+        fetch('/api/v1/billing/status', { cache: 'no-store' }),
+      ]);
       const json = await res.json();
       if (res.ok && json.data) {
         setBranches(json.data || []);
       } else {
         setErrorMsg(json.error?.message || 'Gagal memuat daftar cabang.');
+      }
+      if (blRes.ok) {
+        const blJson = await blRes.json();
+        setBillingStatus(blJson?.data || null);
       }
     } catch (err) {
       setErrorMsg(err.message || 'Terjadi kesalahan saat memuat data cabang.');
@@ -62,10 +71,12 @@ export default function AdminBranchesPage() {
   const rootBranch = branches.find((b) => b.is_main_branch === true);
   const childBranches = branches.filter((b) => !b.is_main_branch);
 
-  // Hitung kuota aktif (misal dari data organisasi atau tier shop)
-  const currentTier = rootBranch?.shop?.subscription_tier || 'MAGANG';
-  const isEksekutif = currentTier?.toUpperCase() === 'EKSEKUTIF';
-  const maxQuota = isEksekutif ? 3 : 1;
+  // Hitung kuota aktif dari view kuota efektif dan status add-on
+  const currentTier = (billingStatus?.tier || rootBranch?.shop?.subscription_tier || 'MAGANG').toUpperCase();
+  const isEksekutif = currentTier === 'EKSEKUTIF' || currentTier === 'JURAGAN_CABANG';
+  const baseQuota = isEksekutif ? 3 : 1;
+  const extraBranchesQuota = billingStatus?.extra_branches_quota || 0;
+  const maxQuota = billingStatus?.max_allowed_branches || (baseQuota + extraBranchesQuota);
   const isQuotaFull = branches.length >= maxQuota;
 
   const handleCreateBranch = async (e) => {
@@ -157,39 +168,71 @@ export default function AdminBranchesPage() {
           </p>
         </div>
 
-        {/* METER KUOTA & ACTION */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="bg-slate-50 border-2 border-slate-800 rounded-xl p-3 shadow-[2px_2px_0px_#1E293B] flex items-center justify-between sm:justify-start gap-4">
-            <div>
-              <div className="text-[10px] font-mono uppercase text-slate-500 font-bold">Kuota Gerai</div>
-              <div className="text-sm font-black text-slate-900 flex items-center gap-1.5">
-                <Building2 size={16} className="text-slate-700" />
-                {branches.length} / {maxQuota} Gerai ({isEksekutif ? 'Eksekutif' : 'Magang'})
-              </div>
-            </div>
-            {isQuotaFull && !isEksekutif && (
-              <Link
-                href="/billing"
-                className="text-[10px] font-black uppercase font-mono px-2 py-1 bg-amber-200 border border-slate-800 rounded shadow-sm hover:bg-amber-300"
-              >
-                Upgrade Tier
-              </Link>
-            )}
-          </div>
-
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            disabled={isQuotaFull}
-            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-slate-800 font-black text-sm uppercase tracking-wider transition-all ${
-              isQuotaFull
-                ? 'bg-slate-200 text-slate-400 cursor-not-allowed border-slate-400 shadow-none'
-                : 'bg-[#CCFF00] hover:bg-[#b8e600] text-slate-900 shadow-[3px_3px_0px_#1E293B] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
-            }`}
-          >
-            <Plus size={18} />
-            Tambah Cabang Anak
-          </button>
+        {/* ACTION BUTTON */}
+        <div className="flex items-center gap-3">
+          {isQuotaFull ? (
+            <Link
+              href="/billing"
+              className="btn-arcade flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-950 font-mono text-xs font-black shadow-[4px_4px_0px_#1E293B] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer uppercase"
+            >
+              <Zap size={16} strokeWidth={2.5} />
+              <span>[ ⚡ KUOTA PENUH — BELI SLOT CABANG ]</span>
+            </Link>
+          ) : (
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="btn-arcade flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border-2 border-slate-900 bg-[#CCFF00] hover:bg-[#b8e600] text-slate-900 font-mono text-xs font-black shadow-[4px_4px_0px_#1E293B] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer uppercase"
+            >
+              <Plus size={18} strokeWidth={2.5} />
+              <span>Tambah Cabang Anak</span>
+            </button>
+          )}
         </div>
+      </div>
+
+      {/* Neo-Brutalist Capacity Progress Bar */}
+      <div className="bg-white border-2 border-slate-800 rounded-3xl p-6 shadow-[5px_5px_0px_#1E293B] space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-slate-100 pb-3">
+          <div className="font-mono text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <Building2 size={16} className="text-slate-700" />
+            <span>KAPASITAS GERAI: [ {branches.length} / {maxQuota} AKTIF ]</span>
+          </div>
+          <div className="font-mono text-[11px] font-bold text-slate-600">
+            (1 Toko Induk + {Math.max(0, baseQuota - 1)} Tier Dasar + {extraBranchesQuota} Add-on)
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="h-6 w-full bg-slate-100 border-2 border-slate-800 rounded-xl overflow-hidden p-0.5 shadow-inner">
+            <div
+              className={`h-full rounded-lg transition-all duration-500 border border-slate-900 ${
+                isQuotaFull ? 'bg-amber-400' : 'bg-[#CCFF00]'
+              }`}
+              style={{
+                width: `${Math.min(100, Math.max(8, Math.round((branches.length / Math.max(1, maxQuota)) * 100)))}%`,
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between font-mono text-[11px] text-slate-500 font-bold">
+            <span>Status: {branches.length} Gerai Fisik Beroperasi</span>
+            <span>Maksimal Kuota: {maxQuota} Cabang</span>
+          </div>
+        </div>
+
+        {isQuotaFull && (
+          <div className="p-3.5 bg-amber-50 border-2 border-amber-400 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs text-amber-950">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} className="text-amber-700 shrink-0" />
+              <span>Kuota cabang penuh. Perluas jangkauan warung Anda dengan menambah slot cabang fleksibel.</span>
+            </div>
+            <Link
+              href="/billing"
+              className="btn-arcade px-3.5 py-1.5 bg-amber-400 hover:bg-amber-500 font-black text-slate-900 rounded-xl border border-slate-900 shrink-0 uppercase text-[11px] text-center"
+            >
+              Beli Slot Cabang ➔
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* ALERT NOTIFICATIONS */}

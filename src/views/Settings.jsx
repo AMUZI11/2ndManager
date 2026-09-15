@@ -150,10 +150,18 @@ export default function Settings() {
     }
   };
 
+  const [billingStatus, setBillingStatus] = useState(null);
+
   const loadBilling = async () => {
     try {
-      const data = await api.getBilling();
+      const [data, statusRes] = await Promise.all([
+        api.getBilling(),
+        fetch('/api/v1/billing/status', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
+      ]);
       setBillingData(data);
+      if (statusRes?.data) {
+        setBillingStatus(statusRes.data);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -870,43 +878,40 @@ PETUNJUK PENTING UNTUK BAPAK/IBU:
         {/* Section 3: Manajemen Cabang & Akun Kasir */}
         <div className="bg-white border-2 border-slate-800 rounded-2xl p-6 shadow-[4px_4px_0px_#1E293B] space-y-4 lg:col-span-2">
           {/* Branch & Multi-Cashier Plan Status Banner */}
-          {isEksekutif ? (
-            <div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-950 px-4 py-3 rounded-xl text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[2px_2px_0px_#10B981]">
-              <div className="flex items-center gap-2.5 font-bold">
-                <span className="text-base">🏢</span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="uppercase tracking-wider font-extrabold text-emerald-900">Akses Penuh: Paket Eksekutif Aktif</span>
-                    <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold font-mono">AKTIF</span>
-                  </div>
-                  <p className="text-[11px] text-emerald-700 font-normal font-sans mt-0.5">
-                    Cabang terdaftar: <strong>{branches.length} / 3 Cabang</strong> • Akun kasir terdaftar: <strong>{cashiers.length} / 10 Kasir</strong>
-                  </p>
+          <div className="bg-slate-50 border-2 border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[2px_2px_0px_#1E293B]">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🏢</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="uppercase tracking-wider font-extrabold text-slate-900 font-mono text-xs">
+                    Kapasitas Gerai & Staf Kasir ({activePlan})
+                  </span>
+                  <span className="bg-[#CCFF00] text-slate-900 border border-slate-800 text-[9px] px-1.5 py-0.5 rounded font-black font-mono">
+                    TERHUBUNG
+                  </span>
                 </div>
+                <p className="text-[11px] text-slate-600 font-mono mt-0.5">
+                  Cabang: <strong>{branches.length} / {billingStatus?.max_allowed_branches || (isEksekutif ? 3 : 1)} Gerai</strong> • Kasir: <strong>{cashiers.length} / {billingStatus?.max_allowed_cashiers || (isEksekutif ? 8 : (activePlan === 'MANAJER' ? 4 : (activePlan === 'SUPERVISOR' ? 2 : 1)))} Staf</strong>
+                </p>
               </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button 
+                type="button"
+                onClick={() => router.push('/admin/cashiers')} 
+                className="btn-arcade bg-white hover:bg-slate-100 text-slate-900 text-[10px] px-3 py-1.5 rounded-lg font-mono font-bold cursor-pointer transition-all border border-slate-800 shadow-[1px_1px_0px_#1E293B]"
+              >
+                Dashboard Kasir ➔
+              </button>
               <button 
                 type="button"
                 onClick={() => router.push('/billing')} 
-                className="btn-arcade bg-slate-900 text-[#CCFF00] hover:bg-slate-800 text-[10px] px-3 py-1.5 rounded-lg font-mono font-bold cursor-pointer transition-all shrink-0 uppercase border border-slate-800"
+                className="btn-arcade bg-slate-900 text-[#CCFF00] hover:bg-slate-800 text-[10px] px-3 py-1.5 rounded-lg font-mono font-bold cursor-pointer transition-all shrink-0 uppercase border border-slate-800 shadow-[1px_1px_0px_#1E293B]"
               >
-                Kelola Langganan ➔
+                Beli Slot Add-on ➔
               </button>
             </div>
-          ) : (
-            <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-xl text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <span className="flex items-center gap-2 font-bold">
-                <span>🔒</span>
-                <span>Manajemen Cabang &amp; Multi-Kasir (Fitur Paket Eksekutif)</span>
-              </span>
-              <button 
-                type="button"
-                onClick={() => router.push('/billing')} 
-                className="btn-arcade bg-slate-900 text-[#CCFF00] hover:bg-slate-800 text-[10px] px-3 py-1.5 rounded-lg font-mono font-bold cursor-pointer transition-all shrink-0 uppercase"
-              >
-                Upgrade ke Eksekutif ➔
-              </button>
-            </div>
-          )}
+          </div>
 
           <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
             <div className="w-9 h-9 bg-slate-900 text-[#CCFF00] border-2 border-slate-800 rounded-xl flex items-center justify-center shadow-[1px_1px_0px_#1E293B]">

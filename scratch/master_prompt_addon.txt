@@ -1,0 +1,231 @@
+<USER_REQUEST>
+[MASTER IMPLEMENTASI: FITUR ADD-ON FLEKSIBEL UNTUK SLOT KASIR & CABANG]
+
+Rancang dan bangun arsitektur sistem Add-on berbayar (Slot Tambahan Akun Kasir & Slot Tambahan Cabang Fisik) pada platform 2ndManager (Next.js 16 App Router, Supabase PostgreSQL, dan UI Light Neo-Brutalist Bento).
+
+Fitur ini memungkinkan pemilik toko (Owner) menambah kapasitas kasir atau gerai tanpa harus berpindah tier, dengan penegakan tanggal jatuh tempo selaras (Co-Termination Proration), perlindungan cabang aktif (Strict Downgrade Guard), kalkulasi harga transparan, dan integrasi dengan sistem bukti bayar optimistik.
+
+---
+
+### 1. PERUBAHAN BASIS DATA & SKEMA RELASIONAL (SUPABASE SQL)
+
+Buat file migrasi 'scratch/addons_and_quotas_schema.sql':
+
+1. Modifikasi Tabel 'organization_subscriptions':
+   Tambahkan kolom kuota tambahan dan pelacakan biaya:
+   ```sql
+   ALTER TABLE organization_subscriptions
+   ADD COLUMN IF NOT EXISTS extra_branches_quota INT NOT NULL DEFAULT 0,
+   ADD COLUMN IF NOT EXISTS extra_cashiers_quota INT NOT NULL DEFAULT 0,
+   ADD COLUMN IF NOT EXISTS extra_branches_unit_price NUMERIC(15,2) NOT NULL DEFAULT 100000,
+   ADD COLUMN IF NOT EXISTS extra_cashiers_unit_price NUMERIC(15,2) NOT NULL DEFAULT 20000;
+Buat View Kalkulasi Kuota Efektif ('v_organization_effective_quotas'):
+
+SQL
+CREATE OR REPLACE VIEW v_organization_effective_quotas AS
+SELECT 
+  os.organization_id,
+  os.current_tier,
+  os.expires_at,
+  os.is_active,
+  -- Basis Kuota Cabang berdasarkan Tier
+  (CASE 
+    WHEN os.current_tier = 'JURAGAN_CABANG' OR os.current_tier = 'EKSEKUTIF' THEN 3
+    ELSE 1 
+  END + os.extra_branches_quota) AS max_allowed_branches,
+
+  -- Basis Kuota Kasir berdasarkan Tier
+  (CASE 
+    WHEN os.current_tier = 'RINTISAN' OR os.current_tier = 'MAGANG' THEN 1
+    WHEN os.current_tier = 'MANDIRI' OR os.current_tier = 'SUPERVISOR' THEN 2
+    WHEN os.current_tier = 'USAHA_BERKEMBANG' OR os.current_tier = 'MANAJER' THEN 4
+    ELSE 8 
+  END + os.extra_cashiers_quota) AS max_allowed_cashiers,
+
+  -- Jumlah Entitas Aktif Saat Ini
+  (SELECT COUNT(*) FROM branches b WHERE b.organization_id = os.organization_id AND b.is_active = TRUE) AS current_active_branches,
+  (SELECT COUNT(*) FROM user_shops us 
+   JOIN profiles p ON p.id = us.user_id 
+   WHERE p.organization_id = os.organization_id AND p.role = 'CASHIER' AND p.is_active = TRUE) AS current_active_cashiers
+FROM organization_subscriptions os;
+Trigger Proteksi Penambahan Entitas Melebihi Kuota Efektif:
+
+Buat fungsi trigger 'check_branch_quota_before_insert()':
+
+Periksa 'current_active_branches' terhadap 'max_allowed_branches'.
+
+Jika melampaui kuota, batalkan eksekusi:
+RAISE EXCEPTION '2NDM-40310: Kuota cabang penuh (% gerai). Tambah slot cabang di menu Billing untuk membuka cabang baru.', v_max;
+
+Buat fungsi trigger 'check_cashier_quota_before_insert()':
+
+Periksa 'current_active_cashiers' terhadap 'max_allowed_cashiers'.
+
+Jika melampaui kuota, batalkan eksekusi:
+RAISE EXCEPTION '2NDM-40311: Kuota kasir penuh (% staf). Beli add-on slot kasir di menu Billing.', v_max;
+
+Stored Procedure Downgrade Guard (RPC 'validate_addon_quota_reduction'):
+
+Memastikan pengguna tidak dapat membeli/mengurangi kuota add-on di bawah jumlah cabang atau kasir yang sedang aktif:
+
+Jika (base_tier_quota + new_addon_quota) < current_active_count, lempar exception deskriptif:
+"Nonaktifkan atau arsipkan cabang/kasir terlebih dahulu sebelum mengurangi kuota add-on!"
+
+Pembaruan Tabel 'payment_claims':
+
+Tambahkan kolom rincian add-on pada klaim pembayaran:
+
+SQL
+ALTER TABLE payment_claims
+ADD COLUMN IF NOT EXISTS addon_branches_count INT DEFAULT 0,
+ADD COLUMN IF NOT EXISTS addon_cashiers_count INT DEFAULT 0,
+ADD COLUMN IF NOT EXISTS addon_total_amount NUMERIC(15,2) DEFAULT 0;
+2. LOGIKA PRORASI BIAYA & BACKEND API (NEXT.JS APP ROUTER)
+Formula Penyelarasan Masa Aktif (Co-Termination Proration):
+
+Standar Harga Dasar Bulanan (30 hari):
+
+1 Slot Cabang = Rp 100.000 / bulan.
+
+1 Slot Kasir  = Rp 20.000 / bulan.
+
+Perhitungan Prorasi jika Dibeli di Tengah Siklus Langganan:
+
+sisa_hari = CEIL((expires_at - NOW()) dalam hari).
+
+Jika sisa_hari <= 0 (langganan kadaluarsa), hitung tarif 30 hari penuh.
+
+Jika sisa_hari > 0:
+
+harga_cabang = (100000 / 30) * sisa_hari (dibulatkan ke ribuan terdekat).
+
+harga_kasir  = (20000 / 30) * sisa_hari (dibulatkan ke ribuan terdekat).
+
+Endpoint Kalkulasi & Preview Add-on ('src/app/api/v1/billing/addons/calculate/route.js'):
+
+'POST': Menerima { organizationId, additionalBranches, additionalCashiers }.
+
+Hitung total prorasi berdasarkan sisa hari aktif organisasi.
+
+Kembalikan:
+{ sisaHari, branchUnitPrice, cashierUnitPrice, totalBranchCost, totalCashierCost, grandTotal, coTerminationDate }.
+
+Modifikasi Endpoint Pengajuan Bukti Bayar ('src/app/api/v1/billing/claim/route.js'):
+
+Dukung dua mode pembayaran:
+
+Mode A (Perpanjangan Tier Sekaligus Add-on).
+
+Mode B (Pembelian Add-on Murni di tengah masa aktif).
+
+Eksekusi RPC aktivasi instan untuk memperbarui extra_branches_quota dan extra_cashiers_quota di tabel organization_subscriptions begitu bukti transfer diunggah.
+
+3. DESAIN ANTARMUKA PENGGUNA (LIGHT NEO-BRUTALIST BENTO)
+Komponen Bento Add-on di Halaman Langganan ('src/app/(authenticated)/billing/page.js'):
+
+Tambahkan Kartu Bento Khusus: "KAPASITAS TAMBAHAN (ADD-ON FLEKSIBEL)"
+
+Latar: bg-white rounded-3xl border-2 border-slate-800 shadow-[6px_6px_0px_#1E293B] p-6 sm:p-8 mt-8
+
+Subtitle: "Perluas jangkauan operasional warung Anda tanpa terbebani upgrade paket."
+
+Dua Panel Stepper Taktil:
+
+SLOT CABANG TAMBAHAN:
+
+Label: + Rp 100.000 / cabang / bulan
+
+Stepper Button:
+[ - ] (border-2 border-slate-800 bg-slate-100 hover:bg-slate-200 active:translate-x-0.5 active:translate-y-0.5)
+[ Angka Slot ] (font-mono font-black text-xl px-4)
+[ + ] (border-2 border-slate-800 bg-lime-300 hover:bg-lime-400 active:translate-x-0.5 active:translate-y-0.5)
+
+Meteran Kuota: Tampilkan status saat ini Aktif: 1 Gerai | Kuota Baru: X Gerai.
+
+SLOT AKUN KASIR TAMBAHAN:
+
+Label: + Rp 20.000 / kasir / bulan
+
+Stepper Button identik dengan batas minimum 0.
+
+Meteran Kuota: Tampilkan status saat ini Aktif: 2 Kasir | Kuota Baru: Y Kasir.
+
+Kotak Rincian & Prorasi Real-Time:
+
+Kotak bg-slate-50 border-2 border-slate-800 rounded-2xl p-4 font-mono text-sm space-y-2:
+
+Menampilkan sisa hari aktif paket induk: [ ⏱️ Sisa Siklus: X Hari ].
+
+Rincian biaya prorata cabang dan kasir.
+
+Total Nominal Bersih yang harus ditransfer (tebal bergaris bawah).
+
+Tombol Aksi:
+
+Jika hanya beli add-on: [ 🚀 BAYAR ADD-ON & AKTIFKAN SLOT SEKARANG ].
+
+Terintegrasi langsung dengan drag-and-drop unggah bukti transfer yang sudah ada.
+
+Meteran Kapasitas di Halaman Manajemen Cabang ('src/app/(admin)/admin/branches/page.js'):
+
+Di bagian atas daftar cabang, pasang Progress Bar Neo-Brutalist:
+KAPASITAS GERAI: [ 2 / 3 AKTIF ] (1 Toko Induk + 1 Tier Dasar + 1 Add-on).
+
+Jika kuota habis, ubah tombol [ + Tambah Cabang ] menjadi tombol amber:
+[ ⚡ KUOTA PENUH — BELI SLOT CABANG ] yang mengarahkan langsung ke tab add-on di /billing.
+
+Meteran Kapasitas di Halaman Manajemen Staf Kasir ('src/app/(admin)/admin/cashiers/page.js'):
+
+Tampilkan badge taktil kuota kasir aktif vs batas kuota.
+
+Peringatan visual jika penambahan kasir baru memerlukan pembelian slot add-on.
+
+4. PEMBARUAN MEJA AUDIT ADMIN ('src/app/(admin)/admin/claims/page.js')
+Pada tabel inspeksi bukti bayar:
+
+Tampilkan kolom breakdown: Paket Dipilih + (X Cabang, Y Kasir Add-on).
+
+Tombol modal inspeksi menampilkan rincian: "Harga Dasar + Prorata Add-on = Total Transfer".
+
+Jika bukti bayar terindikasi palsu, penekanan tombol [ 🚨 CABUT LISENSI ] otomatis mereset extra_branches_quota = 0 dan extra_cashiers_quota = 0.
+
+5. SUITE VERIFIKASI MANDIRI (scratch/verify_phase12_addons.cjs)
+Buat script pengujian otomatis Node.js untuk memvalidasi skenario kritis:
+
+Perhitungan kalkulasi prorasi sisa hari berjalan akurat secara matematis.
+
+Penambahan cabang terbukti berhasil jika slot add-on mencukupi.
+
+Penambahan cabang terbukti DITOLAK oleh database trigger '2NDM-40310' jika slot add-on habis.
+
+Pengurangan kuota add-on di bawah jumlah entitas yang sedang aktif terbukti digagalkan oleh RPC 'validate_addon_quota_reduction'.
+
+Alur upload bukti bayar add-on optimistik seketika menaikkan kuota efektif di view 'v_organization_effective_quotas'.
+
+Kompilasi 'npm run build' lulus 100% tanpa error TypeScript/ESLint.
+
+Tulis seluruh skrip migrasi SQL, API route prorasi, komponen UI stepper bento, dan laporkan hasil pengujian otomatisnya!
+
+/grill-me /agency-agents-orchestrator /using-superpowers 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-15T12:59:44+07:00.
+
+The user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:
+
+/grill-me is a [Slash Command]:
+<GRILL_ME>
+The user has requested that you interview them about every aspect of their task until you've reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+Guidelines:
+- Ask the questions one at a time.
+- If a question can be answered by exploring the codebase, explore the codebase instead.
+- Use the ask_question tool for asking questions to the user.
+</GRILL_ME>
+/agency-agents-orchestrator is a [Slash Command]:
+<SKILL>The user requested you read and use the "agency-agents-orchestrator" skill. The path to the skill file is:
+C:\Users\USER\.gemini\config\skills\agency-agents-orchestrator\SKILL.md</SKILL>
+/using-superpowers is a [Slash Command]:
+<SKILL>The user requested you read and use the "using-superpowers" skill. The path to the skill file is:
+C:\Users\USER\.gemini\config\plugins\superpowers-plugin\skills\using-superpowers\SKILL.md</SKILL>
+</ADDITIONAL_METADATA>

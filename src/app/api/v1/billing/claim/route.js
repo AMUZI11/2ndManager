@@ -20,6 +20,10 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
     const explicitOrgId = formData.get('orgId') || null;
     const file = formData.get('file');
 
+    const addonBranches = parseInt(formData.get('addonBranches') || formData.get('additionalBranches') || '0', 10) || 0;
+    const addonCashiers = parseInt(formData.get('addonCashiers') || formData.get('additionalCashiers') || '0', 10) || 0;
+    const addonTotal = parseFloat(formData.get('addonTotal') || formData.get('addonTotalAmount') || '0') || 0;
+
     if (!file || typeof file === 'string') {
       return errorResponse('Berkas gambar bukti transfer wajib diunggah.', 'FILE_REQUIRED', 422);
     }
@@ -93,7 +97,7 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
 
     const proofImageUrl = `${bucketName}/${storagePath}`;
 
-    // 3. Panggil Stored Procedure submit_optimistic_payment_claim
+    // 3. Panggil Stored Procedure submit_optimistic_payment_claim dengan Add-on Support
     const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('submit_optimistic_payment_claim', {
       p_org_id: org.id,
       p_user_id: user.id,
@@ -105,6 +109,9 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
       p_proof_url: proofImageUrl,
       p_bank: senderBank ? String(senderBank).trim() : null,
       p_acc_name: senderAccountName ? String(senderAccountName).trim() : null,
+      p_addon_branches: addonBranches,
+      p_addon_cashiers: addonCashiers,
+      p_addon_total: addonTotal,
     });
 
     if (rpcErr) {
@@ -125,6 +132,9 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
           org_name: org.name,
           target_tier: targetTier,
           final_price: finalPrice,
+          addon_branches: addonBranches,
+          addon_cashiers: addonCashiers,
+          addon_total: addonTotal,
           status: rpcResult?.status,
           timestamp: new Date().toISOString(),
         },

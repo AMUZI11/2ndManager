@@ -20,6 +20,12 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
             grace_seconds_remaining: 0,
             expires_at: null,
             active_branches_allowed: 1,
+            max_allowed_branches: 1,
+            max_allowed_cashiers: 1,
+            current_active_branches: 0,
+            current_active_cashiers: 0,
+            extra_branches_quota: 0,
+            extra_cashiers_quota: 0,
             organization_name: orgName,
             history: [],
           },
@@ -81,6 +87,26 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
       };
     }
 
+    // 4. Ambil kuota efektif dan status add-on organisasi dari view v_organization_effective_quotas
+    let quotaData = null;
+    try {
+      const { data: qData } = await supabase
+        .from('v_organization_effective_quotas')
+        .select('*')
+        .eq('organization_id', orgId)
+        .maybeSingle();
+      quotaData = qData;
+    } catch (qe) {
+      console.warn('[Billing Status Quota View Warning]', qe);
+    }
+
+    const maxBranches = quotaData?.max_allowed_branches || (effectiveStatus.tier === 'EKSEKUTIF' ? 3 : 1);
+    const maxCashiers = quotaData?.max_allowed_cashiers || (
+      effectiveStatus.tier === 'EKSEKUTIF' ? 8 :
+      effectiveStatus.tier === 'MANAJER' ? 4 :
+      effectiveStatus.tier === 'SUPERVISOR' ? 2 : 1
+    );
+
     return new Response(
       JSON.stringify({
         data: {
@@ -89,6 +115,13 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
           organization_id: orgId,
           organization_name: orgName,
           history: historyData || [],
+          extra_branches_quota: quotaData?.extra_branches_quota || 0,
+          extra_cashiers_quota: quotaData?.extra_cashiers_quota || 0,
+          max_allowed_branches: maxBranches,
+          max_allowed_cashiers: maxCashiers,
+          current_active_branches: parseInt(quotaData?.current_active_branches || '0', 10),
+          current_active_cashiers: parseInt(quotaData?.current_active_cashiers || '0', 10),
+          expires_at: quotaData?.expires_at || effectiveStatus?.expires_at || null,
         },
       }),
       {
@@ -100,8 +133,8 @@ export const GET = withAuthSupabase(async (request, context, { user, profile, su
         },
       }
     );
-  } catch (err) {
-    console.error('[Billing Status Error]', err);
-    return errorResponse(err.message || 'Gagal memeriksa status langganan.', 'INTERNAL_ERROR', 500);
+  } catch (error) {
+    console.error('[GET /api/v1/billing/status]', error);
+    return errorResponse('Gagal mengambil status langganan organisasi.', 'SERVER_ERROR', 500);
   }
 });
