@@ -31,59 +31,93 @@ import {
   Users
 } from 'lucide-react';
 import QrisPaymentCard from '@/components/billing/QrisPaymentCard';
+import { TIER_DEFINITIONS, ADDON_PRICING, normalizeTierKey, toDbTierKey, getCanonicalTier } from '@/config/tierMapping';
 
 const CATALOG_PLANS = [
   {
-    key: 'SUPERVISOR',
-    name: 'Supervisor Shift',
-    priceRp: 49000,
-    priceLabel: 'Rp 49.000',
+    key: 'RINTISAN',
+    legacyKey: 'MAGANG',
+    name: 'Rintisan',
+    priceRp: 0,
+    priceLabel: 'Rp 0',
     period: '/ bulan',
-    badge: 'KASIR TUNGGAL',
+    badge: '🌱 RINTISAN',
+    description: 'Pondasi kasir mandiri bebas biaya untuk warung pemula.',
+    isPopular: false,
     features: [
-      'Bebas Kuota Bon & Bon Kasbon Pelanggan',
-      'Alarm HPP Kulakan (Margin Guard)',
-      'Konversi Satuan Grosir (Multi-Unit 15 SKU)',
-      'Notifikasi WhatsApp Tagihan',
-      'Pencatatan Pinjaman Tabung Gas & Galon (20 Item)',
-      'Sinkronisasi Background Sync POS Otomatis',
+      '1 Cabang Utama (Toko A)',
+      '1 Akun Kasir Aktif',
+      'Pencatatan Transaksi & Cetak Struk',
+      'Riwayat Laporan 7 Hari',
+      'Katalog Maksimal 50 SKU',
+      'Keyboard Kasir Ergonomis (F2/F4/Spasi)',
+    ],
+    borderCol: '#94A3B8',
+    bgCol: '#475569',
+  },
+  {
+    key: 'MANDIRI',
+    legacyKey: 'SUPERVISOR',
+    name: 'Mandiri',
+    priceRp: 50000,
+    priceLabel: 'Rp 50.000',
+    period: '/ bulan',
+    badge: '🛡️ MANDIRI',
+    description: 'Pengamanan penuh laci kas dari kecurangan dan anomali nota.',
+    isPopular: false,
+    features: [
+      'Semua Fitur Rintisan',
+      'Maksimal 2 Kasir Aktif',
+      'Laporan Keuangan 90 Hari',
+      'Manajemen Kasbon & WhatsApp Tagihan',
+      'Log Void & Pembatalan Transaksi',
+      'Ekspor CSV & Background Sync POS',
     ],
     borderCol: '#38BDF8',
     bgCol: '#0369A1',
   },
   {
-    key: 'MANAJER',
-    name: 'Manajer Operasional',
-    priceRp: 149000,
-    priceLabel: 'Rp 149.000',
+    key: 'USAHA_BERKEMBANG',
+    legacyKey: 'MANAJER',
+    name: 'Usaha Berkembang',
+    priceRp: 150000,
+    priceLabel: 'Rp 150.000',
     period: '/ bulan',
-    badge: 'WARUNG RAMAI',
+    badge: '📈 USAHA BERKEMBANG',
+    description: 'Kepatuhan pajak PP 55, SAK EMKM, dan berkas KUR Bank resmi.',
     isPopular: true,
     features: [
-      'Seluruh Fitur Paket Supervisor',
-      'Hingga 5 Perangkat Terminal Kasir Bersamaan',
-      'Hard Block Bon Minus (Negative Margin Hard Block)',
-      'Smart Reorder Prediksi Kulakan Cerdas',
-      'Kunci Kasir Jarak Jauh (Remote Kill-Switch)',
-      'Laporan Pajak PP 55/2022 & Keuangan SAK EMKM',
+      'Semua Fitur Mandiri',
+      'Maksimal 4 Kasir Aktif',
+      'Riwayat Laporan Tanpa Batas (Unlimited)',
+      'Multi-Satuan Barang (Pcs, Dus, Renceng)',
+      'Margin Guard (Peringatan Jual Rugi)',
+      'Manajemen Konsinyasi & Rekap Vendor',
+      'Sistem Titipan Saldo Pelanggan',
+      'Pergantian Shift Kasir & Rekap WA',
     ],
     borderCol: '#F59E0B',
     bgCol: '#B45309',
   },
   {
-    key: 'EKSEKUTIF',
-    name: 'Eksekutif Multi-Cabang',
-    priceRp: 399000,
-    priceLabel: 'Rp 399.000',
+    key: 'JURAGAN_CABANG',
+    legacyKey: 'EKSEKUTIF',
+    name: 'Juragan Cabang',
+    priceRp: 350000,
+    priceLabel: 'Rp 350.000',
     period: '/ bulan',
-    badge: 'MULTI-GERAI B2B',
+    badge: '👑 JURAGAN CABANG',
+    description: 'Kendali multi-cabang terpadu, transfer stok PIN, dan kontrol sentral.',
+    isPopular: false,
     features: [
-      'Seluruh Fitur Paket Manajer Operasional',
-      'Kelola Hingga 3 Cabang Toko Fisik Mandiri',
-      'Mutasi Antar-Cabang Two-Phase (PIN & Barcode)',
-      'Pencatatan Susut Barang di Jalan (Transit Shrinkage)',
-      'Generator Berkas Pengajuan Kredit KUR Bank (QR Seal)',
-      'Radar Keamanan Konsolidasi Seluruh Cabang',
+      'Semua Fitur Usaha Berkembang',
+      'Hingga 3 Cabang Toko (Toko A + 2 Cabang)',
+      'Maksimal 8 Kasir Aktif',
+      'Transfer Stok Antar Cabang (PIN Validasi)',
+      'Laporan Konsolidasi Multi-Cabang',
+      'Audit Forensik Fraud Kasir Tingkat Lanjut',
+      'Pemisahan Akses Supervisor & Owner',
+      'Prioritas Fitur Baru & VIP Support 24/7',
     ],
     borderCol: '#CCFF00',
     bgCol: '#4D7C0F',
@@ -105,7 +139,7 @@ const DURATION_OPTIONS = [
 export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [subStatus, setSubStatus] = useState(null);
-  const [selectedCatalog, setSelectedCatalog] = useState('MANAJER');
+  const [selectedCatalog, setSelectedCatalog] = useState('USAHA_BERKEMBANG');
   const [durationMonths, setDurationMonths] = useState(1);
 
   // 4x4 Segmented Input State
@@ -150,18 +184,28 @@ export default function BillingPage() {
     setIsCalculatingAddon(true);
     try {
       const targetOrg = orgId || subStatus?.organization_id;
-      const res = await fetch('/api/v1/billing/addons/calculate', {
+      const res = await fetch('/api/v1/billing/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          organizationId: targetOrg,
-          additionalBranches: branches,
-          additionalCashiers: cashiers,
+          orgId: targetOrg,
+          targetTier: selectedCatalog,
+          extraBranchesCount: branches,
+          extraCashiersCount: cashiers,
+          promoCode: appliedPromo?.code || promoInput,
+          durationMonths: durationMonths,
+          isPureAddon: purchaseMode === 'PURE_ADDON',
         }),
       });
       const json = await res.json();
       if (res.ok && json?.data) {
-        setAddonCalc(json.data);
+        setAddonCalc({
+          ...json.data,
+          totalBranchCost: json.data.branchCost,
+          totalCashierCost: json.data.cashierCost,
+          proratedBranchPrice: json.data.proratedBranchUnitPrice || json.data.branchUnitPrice,
+          proratedCashierPrice: json.data.proratedCashierUnitPrice || json.data.cashierUnitPrice,
+        });
       }
     } catch (e) {
       console.warn('Gagal kalkulasi add-on:', e);
@@ -399,7 +443,7 @@ export default function BillingPage() {
       setIsSubmittingClaim(true);
 
       const isPureAddon = purchaseMode === 'PURE_ADDON';
-      const addonTotal = addonCalc?.grandTotal || 0;
+      const addonTotal = isPureAddon ? (addonCalc?.grandTotal || 0) : addonTotalCostFull;
 
       const formData = new FormData();
       formData.append('file', proofFile);
@@ -476,7 +520,7 @@ export default function BillingPage() {
   const isExpired = Boolean(subStatus?.is_expired);
   const daysRemaining = subStatus?.days_remaining ?? 0;
 
-  const currentCatalogPlan = CATALOG_PLANS.find((p) => p.key === selectedCatalog) || CATALOG_PLANS[1];
+  const currentCatalogPlan = CATALOG_PLANS.find((p) => p.key === selectedCatalog || p.legacyKey === selectedCatalog) || CATALOG_PLANS[2];
 
   // Price calculations
   const calculatedBasePrice = currentCatalogPlan.priceRp * durationMonths;
@@ -491,9 +535,13 @@ export default function BillingPage() {
     }
   }
 
+  const addonBranchCostFull = addonBranches * 150000 * durationMonths;
+  const addonCashierCostFull = addonCashiers * 40000 * durationMonths;
+  const addonTotalCostFull = addonBranchCostFull + addonCashierCostFull;
+
   const grandTotalPayable = purchaseMode === 'PURE_ADDON'
-    ? (addonCalc?.grandTotal || 0)
-    : (calculatedFinalPrice + (addonCalc?.grandTotal || 0));
+    ? (addonCalc?.grandTotal || (addonCalc?.totalBranchCost || 0) + (addonCalc?.totalCashierCost || 0))
+    : (calculatedFinalPrice + addonTotalCostFull);
 
   const waMessage = encodeURIComponent(
     `Halo Admin 2ndManager, saya ingin konfirmasi klaim pembayaran lisensi:\n\n` +
@@ -575,16 +623,16 @@ export default function BillingPage() {
                 <div className="mt-2 flex items-center gap-3">
                   <div
                     className={`px-3 py-1 font-mono text-sm font-black rounded-xl border-2 ${
-                      currentTier === 'EKSEKUTIF'
+                      currentTier === 'EKSEKUTIF' || currentTier === 'JURAGAN_CABANG'
                         ? 'bg-[#CCFF00] text-slate-950 border-slate-900 shadow-[2px_2px_0px_#1E293B]'
-                        : currentTier === 'MANAJER'
+                        : currentTier === 'MANAJER' || currentTier === 'USAHA_BERKEMBANG'
                         ? 'bg-amber-400 text-slate-950 border-slate-900 shadow-[2px_2px_0px_#1E293B]'
-                        : currentTier === 'SUPERVISOR'
+                        : currentTier === 'SUPERVISOR' || currentTier === 'MANDIRI'
                         ? 'bg-sky-400 text-slate-950 border-slate-900 shadow-[2px_2px_0px_#1E293B]'
                         : 'bg-slate-200 text-slate-800 border-slate-700'
                     }`}
                   >
-                    [ 🏆 TIER {currentTier} ]
+                    [ 🏆 TIER {(getCanonicalTier(currentTier)?.name || currentTier).toUpperCase()} ]
                   </div>
                 </div>
 
@@ -714,19 +762,27 @@ export default function BillingPage() {
             </form>
           </div>
 
+      {/* Umbrella License Banner */}
+      <div className="bg-lime-50 border-2 border-slate-800 rounded-2xl p-4 shadow-[3px_3px_0px_#1E293B] flex items-center gap-3">
+        <span className="text-2xl">☂️</span>
+        <div className="text-xs sm:text-sm font-sans text-slate-800">
+          <strong className="font-mono uppercase font-black text-slate-900">Satu Lisensi Untuk Semua:</strong> Seluruh toko cabang dan akun kasir Anda otomatis menikmati fitur penuh dari paket yang Anda pilih tanpa biaya paket tambahan!
+        </div>
+      </div>
+
       {/* Subscription Packages Catalog */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
           <h2 className="text-xl sm:text-2xl font-display font-black uppercase text-slate-900 tracking-tight">
             1. PILIH PAKET LANGGANAN RESMI
           </h2>
           <span className="font-mono text-xs font-bold text-slate-500 uppercase">KLIK UNTUK MEMILIH TIER</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {CATALOG_PLANS.map((plan) => {
-            const isSelected = selectedCatalog === plan.key;
-            const isCurrent = currentTier === plan.key;
+            const isSelected = selectedCatalog === plan.key || selectedCatalog === plan.legacyKey;
+            const isCurrent = currentTier === plan.key || currentTier === plan.legacyKey;
 
             return (
               <div
@@ -735,60 +791,61 @@ export default function BillingPage() {
                   setSelectedCatalog(plan.key);
                   if (appliedPromo) setAppliedPromo(null);
                 }}
-                className={`cursor-pointer transition-all rounded-3xl border-2 p-6 flex flex-col justify-between relative ${
+                className={`cursor-pointer transition-all rounded-3xl border-2 p-5 sm:p-6 flex flex-col justify-between relative ${
                   isSelected
                     ? 'bg-white border-slate-900 shadow-[6px_6px_0px_#1E293B] ring-4 ring-[#CCFF00]/50 -translate-y-1'
                     : 'bg-white border-slate-800 hover:border-slate-900 shadow-[4px_4px_0px_#1E293B] hover:-translate-y-0.5'
                 }`}
               >
                 {plan.isPopular && (
-                  <div className="absolute -top-3 right-6 px-3 py-0.5 bg-amber-400 text-slate-950 font-mono text-[10px] font-black uppercase border-2 border-slate-900 rounded-full shadow-[2px_2px_0px_#1E293B]">
-                    PALING BANYAK DIGUNAKAN
+                  <div className="absolute -top-3 right-4 px-2.5 py-0.5 bg-amber-400 text-slate-950 font-mono text-[9px] font-black uppercase border-2 border-slate-900 rounded-full shadow-[2px_2px_0px_#1E293B]">
+                    PALING LARIS
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-3.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-black px-2.5 py-1 bg-slate-900 text-white rounded-lg border border-slate-800">
+                    <span className="font-mono text-[11px] font-black px-2 py-0.5 bg-slate-900 text-white rounded-lg border border-slate-800">
                       {plan.badge}
                     </span>
                     {isCurrent && (
-                      <span className="font-mono text-xs font-black text-emerald-700 flex items-center gap-1">
-                        <CheckCircle2 size={13} strokeWidth={2.5} /> PAKET AKTIF
+                      <span className="font-mono text-[11px] font-black text-emerald-700 flex items-center gap-1">
+                        <CheckCircle2 size={12} strokeWidth={2.5} /> PAKET AKTIF
                       </span>
                     )}
                   </div>
 
                   <div>
-                    <h3 className="text-xl font-display font-black text-slate-900">{plan.name}</h3>
+                    <h3 className="text-lg font-display font-black text-slate-900">{plan.name}</h3>
+                    <p className="text-[11px] font-mono text-slate-500 line-clamp-2 mt-0.5">{plan.description}</p>
                     <div className="mt-2 flex items-baseline gap-1">
-                      <span className="text-2xl sm:text-3xl font-display font-black text-slate-900">
+                      <span className="text-xl sm:text-2xl font-display font-black text-slate-900">
                         {plan.priceLabel}
                       </span>
                       <span className="text-xs font-mono text-slate-500 font-bold">{plan.period}</span>
                     </div>
                   </div>
 
-                  <div className="border-t-2 border-slate-100 pt-4 space-y-2">
+                  <div className="border-t-2 border-slate-100 pt-3 space-y-1.5">
                     {plan.features.map((feat, fIdx) => (
-                      <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700">
-                        <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" strokeWidth={2.5} />
-                        <span>{feat}</span>
+                      <div key={fIdx} className="flex items-start gap-1.5 text-xs text-slate-700">
+                        <Check size={13} className="text-emerald-600 shrink-0 mt-0.5" strokeWidth={2.5} />
+                        <span className="leading-snug">{feat}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t-2 border-slate-100">
+                <div className="mt-5 pt-3 border-t-2 border-slate-100">
                   <button
                     type="button"
-                    className={`btn-arcade w-full py-2.5 rounded-xl font-mono text-xs font-bold border-2 transition-all cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+                    className={`btn-arcade w-full py-2 rounded-xl font-mono text-xs font-bold border-2 transition-all cursor-pointer active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
                       isSelected
                         ? 'bg-[#CCFF00] text-slate-950 border-slate-900 shadow-[3px_3px_0px_#1E293B] font-black'
                         : 'bg-slate-50 text-slate-700 border-slate-800 hover:border-slate-900 hover:bg-slate-100 shadow-[2px_2px_0px_#1E293B]'
                     }`}
                   >
-                    {isSelected ? '[ PAKET TERPILIH ]' : 'PILIH PAKET INI'}
+                    {isSelected ? '[ PAKET TERPILIH ]' : 'PILIH PAKET'}
                   </button>
                 </div>
               </div>
@@ -820,8 +877,8 @@ export default function BillingPage() {
                 <span className="font-display font-black text-slate-900 text-base uppercase block">
                   SLOT CABANG TAMBAHAN
                 </span>
-                <span className="font-mono text-xs font-bold text-slate-500">
-                  + Rp 100.000 / cabang / bulan
+                <span className="font-mono text-xs font-bold text-slate-600">
+                  + Rp 150.000 / cabang / bulan (~Rp 5.000/hari)
                 </span>
               </div>
               <div className="p-2 bg-slate-900 text-[#CCFF00] rounded-xl border border-slate-800">
@@ -854,12 +911,11 @@ export default function BillingPage() {
               </div>
             </div>
 
-            {/* Meteran Kuota */}
+            {/* Status Visual Gerai */}
             <div className="pt-2 border-t border-slate-200 flex items-center justify-between font-mono text-xs">
               <span className="text-slate-500">Status Gerai:</span>
               <span className="font-bold text-slate-900">
-                Aktif: {subStatus?.current_active_branches ?? 1} Gerai | Kuota Baru:{' '}
-                {(subStatus?.max_allowed_branches ?? 1) + addonBranches} Gerai
+                [ Toko A (Pusat) + {addonBranches} Cabang Baru ]
               </span>
             </div>
           </div>
@@ -871,8 +927,8 @@ export default function BillingPage() {
                 <span className="font-display font-black text-slate-900 text-base uppercase block">
                   SLOT AKUN KASIR TAMBAHAN
                 </span>
-                <span className="font-mono text-xs font-bold text-slate-500">
-                  + Rp 20.000 / kasir / bulan
+                <span className="font-mono text-xs font-bold text-slate-600">
+                  + Rp 40.000 / kasir / bulan (~Rp 1.300/hari)
                 </span>
               </div>
               <div className="p-2 bg-slate-900 text-[#CCFF00] rounded-xl border border-slate-800">
@@ -905,12 +961,11 @@ export default function BillingPage() {
               </div>
             </div>
 
-            {/* Meteran Kuota */}
+            {/* Status Visual Kasir */}
             <div className="pt-2 border-t border-slate-200 flex items-center justify-between font-mono text-xs">
               <span className="text-slate-500">Status Kasir:</span>
               <span className="font-bold text-slate-900">
-                Aktif: {subStatus?.current_active_cashiers ?? 0} Kasir | Kuota Baru:{' '}
-                {(subStatus?.max_allowed_cashiers ?? 2) + addonCashiers} Kasir
+                [ {subStatus?.current_active_cashiers ?? 0} Kasir Terdaftar / {(subStatus?.max_allowed_cashiers ?? 1) + addonCashiers} Total Kuota ]
               </span>
             </div>
           </div>
@@ -932,7 +987,7 @@ export default function BillingPage() {
               {addonBranches > 0 && (
                 <div className="flex justify-between">
                   <span>
-                    Slot Cabang (+{addonBranches} Gerai @ Rp {addonCalc?.proratedBranchPrice?.toLocaleString('id-ID') || '100.000'}/bln prorata):
+                    Slot Cabang (+{addonBranches} Gerai @ Rp {(addonCalc?.proratedBranchPrice || 150000).toLocaleString('id-ID')}/bln prorata):
                   </span>
                   <span className="font-bold text-slate-900">
                     Rp {(addonCalc?.totalBranchCost || 0).toLocaleString('id-ID')}
@@ -942,7 +997,7 @@ export default function BillingPage() {
               {addonCashiers > 0 && (
                 <div className="flex justify-between">
                   <span>
-                    Slot Kasir (+{addonCashiers} Kasir @ Rp {addonCalc?.proratedCashierPrice?.toLocaleString('id-ID') || '20.000'}/bln prorata):
+                    Slot Kasir (+{addonCashiers} Kasir @ Rp {(addonCalc?.proratedCashierPrice || 40000).toLocaleString('id-ID')}/bln prorata):
                   </span>
                   <span className="font-bold text-slate-900">
                     Rp {(addonCalc?.totalCashierCost || 0).toLocaleString('id-ID')}
@@ -1291,7 +1346,7 @@ export default function BillingPage() {
               ) : (
                 <>
                   <div className="flex justify-between text-slate-700">
-                    <span>Paket Langganan:</span>
+                    <span>Paket Pilihan:</span>
                     <span className="font-bold text-slate-900">{currentCatalogPlan.name}</span>
                   </div>
                   <div className="flex justify-between text-slate-700">
@@ -1323,15 +1378,15 @@ export default function BillingPage() {
 
                   {addonBranches > 0 && (
                     <div className="flex justify-between text-indigo-700 font-bold pt-1 border-t border-dashed border-slate-200">
-                      <span>Add-on Extra Cabang (+{addonBranches}):</span>
-                      <span>Rp {(addonCalc?.totalBranchCost || 0).toLocaleString('id-ID')}</span>
+                      <span>Tambahan {addonBranches} Cabang:</span>
+                      <span>+ Rp {addonBranchCostFull.toLocaleString('id-ID')}</span>
                     </div>
                   )}
 
                   {addonCashiers > 0 && (
                     <div className="flex justify-between text-indigo-700 font-bold">
-                      <span>Add-on Extra Kasir (+{addonCashiers}):</span>
-                      <span>Rp {(addonCalc?.totalCashierCost || 0).toLocaleString('id-ID')}</span>
+                      <span>Tambahan {addonCashiers} Kasir:</span>
+                      <span>+ Rp {addonCashierCostFull.toLocaleString('id-ID')}</span>
                     </div>
                   )}
                 </>
@@ -1339,7 +1394,9 @@ export default function BillingPage() {
             </div>
 
             <div className="pt-3 border-t-2 border-slate-200 flex items-baseline justify-between">
-              <span className="font-mono text-xs font-black text-slate-500 uppercase">TOTAL DIBAYAR:</span>
+              <span className="font-mono text-xs font-black text-slate-500 uppercase">
+                {purchaseMode === 'PURE_ADDON' ? 'TOTAL DIBAYAR:' : 'TOTAL TRANSFER KONSOLIDASI:'}
+              </span>
               <div className="text-right">
                 <span className="text-2xl sm:text-3xl font-display font-black text-slate-900">
                   Rp {grandTotalPayable.toLocaleString('id-ID')}

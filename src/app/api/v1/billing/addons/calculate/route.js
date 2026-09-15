@@ -31,8 +31,8 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
       return errorResponse('Langganan organisasi tidak ditemukan.', 'SUBSCRIPTION_NOT_FOUND', 404);
     }
 
-    const branchUnitPrice = parseFloat(sub.extra_branches_unit_price) || 100000;
-    const cashierUnitPrice = parseFloat(sub.extra_cashiers_unit_price) || 20000;
+    const branchUnitPrice = parseFloat(sub.extra_branches_unit_price) || 150000;
+    const cashierUnitPrice = parseFloat(sub.extra_cashiers_unit_price) || 40000;
 
     // 3. Co-Termination Proration Formula
     const expiresAt = new Date(sub.expires_at || Date.now());

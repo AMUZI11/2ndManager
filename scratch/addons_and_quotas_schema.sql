@@ -6,9 +6,20 @@
 ALTER TABLE public.organization_subscriptions
 ADD COLUMN IF NOT EXISTS extra_branches_quota INT NOT NULL DEFAULT 0,
 ADD COLUMN IF NOT EXISTS extra_cashiers_quota INT NOT NULL DEFAULT 0,
-ADD COLUMN IF NOT EXISTS extra_branches_unit_price NUMERIC(15,2) NOT NULL DEFAULT 100000,
-ADD COLUMN IF NOT EXISTS extra_cashiers_unit_price NUMERIC(15,2) NOT NULL DEFAULT 20000,
+ADD COLUMN IF NOT EXISTS extra_branches_unit_price NUMERIC(15,2) NOT NULL DEFAULT 150000,
+ADD COLUMN IF NOT EXISTS extra_cashiers_unit_price NUMERIC(15,2) NOT NULL DEFAULT 40000,
 ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE public.organization_subscriptions
+ALTER COLUMN extra_branches_unit_price SET DEFAULT 150000,
+ALTER COLUMN extra_cashiers_unit_price SET DEFAULT 40000;
+
+-- Update data lama jika ada
+UPDATE public.organization_subscriptions
+SET 
+  extra_branches_unit_price = 150000,
+  extra_cashiers_unit_price = 40000
+WHERE extra_branches_unit_price = 100000 OR extra_cashiers_unit_price = 20000;
 
 -- 2. Modifikasi Tabel 'profiles' untuk status aktif kasir
 ALTER TABLE public.profiles
@@ -27,6 +38,30 @@ ADD COLUMN IF NOT EXISTS addon_branches_count INT DEFAULT 0,
 ADD COLUMN IF NOT EXISTS addon_cashiers_count INT DEFAULT 0,
 ADD COLUMN IF NOT EXISTS addon_total_amount NUMERIC(15,2) DEFAULT 0;
 
+-- 3b. Fungsi Penegakan Otorisasi Fitur Payung (Umbrella Feature Resolver)
+CREATE OR REPLACE FUNCTION public.get_organization_feature_tier(p_org_id UUID)
+RETURNS VARCHAR(50)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_tier VARCHAR(50);
+  v_is_active BOOLEAN;
+BEGIN
+  SELECT current_tier, (expires_at > NOW()) INTO v_tier, v_is_active
+  FROM public.organization_subscriptions
+  WHERE organization_id = p_org_id;
+
+  IF NOT FOUND OR v_is_active IS FALSE THEN
+    RETURN 'RINTISAN'; -- Fallback ke tier gratis jika expired
+  END IF;
+
+  RETURN v_tier;
+END;
+$$;
+
 -- 4. View Kalkulasi Kuota Efektif ('v_organization_effective_quotas')
 CREATE OR REPLACE VIEW public.v_organization_effective_quotas AS
 SELECT 
@@ -41,27 +76,29 @@ SELECT
   os.extra_cashiers_unit_price,
   -- Basis Kuota Cabang berdasarkan Tier
   (CASE 
-    WHEN os.current_tier = 'JURAGAN_CABANG' OR os.current_tier = 'EKSEKUTIF' THEN 3
+    WHEN UPPER(os.current_tier) IN ('JURAGAN_CABANG', 'EKSEKUTIF') THEN 3
     ELSE 1 
   END) AS base_branches_quota,
   -- Kuota Maksimal Cabang (Tier + Add-on)
   (CASE 
-    WHEN os.current_tier = 'JURAGAN_CABANG' OR os.current_tier = 'EKSEKUTIF' THEN 3
+    WHEN UPPER(os.current_tier) IN ('JURAGAN_CABANG', 'EKSEKUTIF') THEN 3
     ELSE 1 
   END + os.extra_branches_quota) AS max_allowed_branches,
 
   -- Basis Kuota Kasir berdasarkan Tier
   (CASE 
-    WHEN os.current_tier = 'RINTISAN' OR os.current_tier = 'MAGANG' THEN 1
-    WHEN os.current_tier = 'MANDIRI' OR os.current_tier = 'SUPERVISOR' THEN 2
-    WHEN os.current_tier = 'USAHA_BERKEMBANG' OR os.current_tier = 'MANAJER' THEN 4
+    WHEN UPPER(os.current_tier) IN ('RINTISAN', 'MAGANG') THEN 1
+    WHEN UPPER(os.current_tier) IN ('MANDIRI', 'SUPERVISOR') THEN 2
+    WHEN UPPER(os.current_tier) IN ('USAHA_BERKEMBANG', 'MANAJER') THEN 4
+    WHEN UPPER(os.current_tier) IN ('JURAGAN_CABANG', 'EKSEKUTIF') THEN 8
     ELSE 8 
   END) AS base_cashiers_quota,
   -- Kuota Maksimal Kasir (Tier + Add-on)
   (CASE 
-    WHEN os.current_tier = 'RINTISAN' OR os.current_tier = 'MAGANG' THEN 1
-    WHEN os.current_tier = 'MANDIRI' OR os.current_tier = 'SUPERVISOR' THEN 2
-    WHEN os.current_tier = 'USAHA_BERKEMBANG' OR os.current_tier = 'MANAJER' THEN 4
+    WHEN UPPER(os.current_tier) IN ('RINTISAN', 'MAGANG') THEN 1
+    WHEN UPPER(os.current_tier) IN ('MANDIRI', 'SUPERVISOR') THEN 2
+    WHEN UPPER(os.current_tier) IN ('USAHA_BERKEMBANG', 'MANAJER') THEN 4
+    WHEN UPPER(os.current_tier) IN ('JURAGAN_CABANG', 'EKSEKUTIF') THEN 8
     ELSE 8 
   END + os.extra_cashiers_quota) AS max_allowed_cashiers,
 

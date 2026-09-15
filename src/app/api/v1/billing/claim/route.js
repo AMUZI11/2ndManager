@@ -1,6 +1,7 @@
 import { withAuthSupabase, errorResponse, successResponse, resolveOrganization } from '@/lib/auth-helpers';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit, createRateLimitResponse } from '@/lib/rate-limiter';
+import { toDbTierKey } from '@/config/tierMapping';
 
 export const POST = withAuthSupabase(async (request, context, { user, profile, supabase }) => {
   const rateLimit = checkRateLimit(request, { limit: 5, windowMs: 60 * 1000, identifier: 'billing-claim' });
@@ -10,7 +11,8 @@ export const POST = withAuthSupabase(async (request, context, { user, profile, s
 
   try {
     const formData = await request.formData();
-    const targetTier = (formData.get('targetTier') || formData.get('plan') || 'MANAJER').toString().toUpperCase();
+    const rawTargetTier = (formData.get('targetTier') || formData.get('plan') || 'MANAJER').toString().toUpperCase();
+    const targetTier = (rawTargetTier === 'ADDON' || rawTargetTier === 'ADD-ON') ? 'ADDON' : toDbTierKey(rawTargetTier);
     const durationMonths = parseInt(formData.get('durationMonths')) || 1;
     const basePrice = parseFloat(formData.get('basePrice')) || 0;
     const finalPrice = parseFloat(formData.get('finalPrice')) || 0;
